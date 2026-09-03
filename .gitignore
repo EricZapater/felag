@@ -8,6 +8,8 @@ build/
 # Go
 backend/bin/
 backend/tmp/
+backend/api
+uploads/
 *.exe
 *.test
 *.prof

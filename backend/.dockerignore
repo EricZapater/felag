@@ -1,0 +1,9 @@
+.git
+.env
+.env.*
+api
+bin
+tmp
+*.test
+*.prof
+uploads
