@@ -1,0 +1,26 @@
+.env.backend.example
+  h_42175f19913982 1-8
+.env.frontend.example
+  h_42175f19913982 1
+.github/workflows/ci.yml
+  h_42175f19913982 1,5-9,11-17,20-21,23-25,27-29,34-36,38-45,47-51,53-55,57-61,64-66,68,70-72,74-97
+.github/workflows/deploy.yml
+  h_42175f19913982 1,5-8,10-26,29-33,36,39-40,42-104,106,108,111-112,114-140,142-143,156,165,176
+docker-compose.yml
+  h_42175f19913982 2-3,5,7-9,13-22,24-25,27-29,31-39,42-45
+frontend/.npmrc
+  h_42175f19913982 1-2
+frontend/Dockerfile
+  h_42175f19913982 5-8,12-13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "1925bfeb9c192c7d9e11b485cd2d4ffa09b64b58",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
