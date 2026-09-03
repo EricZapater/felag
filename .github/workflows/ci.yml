@@ -106,6 +106,9 @@ jobs:
       - name: Run Expo Doctor Diagnostics
         run: cd mobile && npx --registry=https://registry.npmjs.org/ --yes expo-doctor
 
+      - name: Run Expo Bundle Check (Pre-build validation)
+        run: cd mobile && npx --registry=https://registry.npmjs.org/ --yes expo export --platform android --no-bytecode
+
   docker-lint-ci:
     name: Dockerfile & Compose Syntax Validation
     runs-on: ubuntu-latest

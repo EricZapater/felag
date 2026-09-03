@@ -60,6 +60,7 @@ revisió humana de merge (Checkpoint 5).
   l'entorn. Si no hi ha cap dispositiu/emulador disponible, documenta-ho
   com a incidència bloquejant en lloc d'ometre les proves mòbil.
 - **Diagnòstic d'integritat Expo (MANDATORI)**: Executa sempre `pnpm doctor` (o `cd mobile && npx expo-doctor`) com a pas previ obligatori de QA. Si `expo-doctor` reporta dependències desalineades o incompatibilitats de plugins natius, el mòdul **no és APTE**.
+- **Comprovació de bundle de producció Mòbil (MANDATORI)**: Executa `pnpm build:mobile:check` (o `cd mobile && npx expo export --platform android --no-bytecode`). Aquesta comanda executa exactament la mateixa compilació de JS i resolució d'assets que realitza el build natiu de Gradle/EAS. Si la generació del bundle falla per mòduls no resolts o camins relatius, el mòdul **no és APTE**.
 - Engega backend, frontend i mòbil abans de validar cap mòdul. Si
   qualsevol dels tres no arrenca, això ja és per si sol una incidència
   **bloquejant** — no es pot validar funcionalment un mòdul que no
