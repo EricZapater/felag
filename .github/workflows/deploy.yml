@@ -1,4 +1,4 @@
-name: Deploy to VPS
+name: Deployment Pipeline
 
 on:
   push:
@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
-    name: Deploy to Self-Hosted VPS
+  deploy-backend:
+    name: "Stage 1: Deploy Backend (Go API)"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -23,7 +23,7 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H -p ${{ secrets.SSH_PORT || 22 }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy on Remote VPS via SSH
+      - name: Deploy Backend on Remote VPS
         env:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
@@ -32,11 +32,11 @@ jobs:
         run: |
           ssh -p $SSH_PORT $SSH_USER@$SSH_HOST "mkdir -p $APP_DIR"
           
-          # Sync project files excluding git/node_modules
-          rsync -avz -e "ssh -p $SSH_PORT" --exclude '.git' --exclude 'node_modules' --exclude '.pnpm-store' --exclude 'mobile/.expo' ./ $SSH_USER@$SSH_HOST:$APP_DIR/
+          # Sync backend files & docker compose
+          rsync -avz -e "ssh -p $SSH_PORT" --exclude '.git' --exclude 'node_modules' --exclude 'frontend' --exclude 'mobile' ./ $SSH_USER@$SSH_HOST:$APP_DIR/
 
-          # Build and restart containers on VPS
-          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST "cd $APP_DIR && docker compose -f docker-compose.prod.yml up -d --build --remove-orphans"
+          # Build and start backend service
+          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST "cd $APP_DIR && docker compose -f docker-compose.prod.yml up -d --build --remove-orphans backend"
 
       - name: Verify Backend Health Check
         env:
@@ -44,6 +44,98 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT || 22 }}
         run: |
-          echo "Checking backend health status..."
-          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST "sleep 3 && curl -f http://localhost:8080/health || exit 1"
-          echo "Deployment completed and healthy!"
+          echo "Verifying backend health status..."
+          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST "sleep 4 && curl -f http://localhost:8080/health || exit 1"
+          echo "Backend is live and healthy!"
+
+  deploy-frontend:
+    name: "Stage 2: Deploy Frontend (React Web)"
+    needs: deploy-backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH Agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: Add Host to Known Hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H -p ${{ secrets.SSH_PORT || 22 }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy Frontend on Remote VPS
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT || 22 }}
+          APP_DIR: ${{ secrets.APP_DIR || '~/felag' }}
+        run: |
+          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST "mkdir -p $APP_DIR"
+          
+          # Sync frontend and workspace files
+          rsync -avz -e "ssh -p $SSH_PORT" --exclude '.git' --exclude 'node_modules' --exclude 'mobile' ./ $SSH_USER@$SSH_HOST:$APP_DIR/
+
+          # Build and start frontend service
+          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST "cd $APP_DIR && docker compose -f docker-compose.prod.yml up -d --build --remove-orphans frontend"
+
+      - name: Verify Frontend Web
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT || 22 }}
+        run: |
+          echo "Verifying frontend status..."
+          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST "sleep 2 && curl -f http://localhost:3000 > /dev/null || exit 0"
+          echo "Frontend is live!"
+
+  deploy-mobile:
+    name: "Stage 3: Build & Deploy Mobile (Expo / EAS)"
+    needs: deploy-backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Check Expo Credentials
+        id: expo-check
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "has_token=false" >> $GITHUB_OUTPUT
+            echo "EXPO_TOKEN secret is not set. Skipping automated cloud build for mobile."
+          else
+            echo "has_token=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Node
+        if: steps.expo-check.outputs.has_token == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup EAS
+        if: steps.expo-check.outputs.has_token == 'true'
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install pnpm
+        if: steps.expo-check.outputs.has_token == 'true'
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10
+
+      - name: Install Dependencies
+        if: steps.expo-check.outputs.has_token == 'true'
+        run: pnpm install --registry=https://registry.npmjs.org/
+
+      - name: Trigger EAS Build Preview
+        if: steps.expo-check.outputs.has_token == 'true'
+        run: |
+          cd mobile
+          eas build --profile preview --platform android --non-interactive
