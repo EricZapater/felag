@@ -1,0 +1,122 @@
+CHANGELOG.md
+  h_42175f19913982 7-21,26-29,35-36,47
+VERSION
+  h_42175f19913982 1
+backend/cmd/api/main.go
+  h_42175f19913982 11,110-113,133-144,185,200-207
+backend/internal/community/handler.go
+  h_42175f19913982 1-291
+backend/internal/community/model.go
+  h_42175f19913982 1-116
+backend/internal/community/repository.go
+  h_42175f19913982 1-1160
+backend/internal/community/service.go
+  h_42175f19913982 1-270
+backend/internal/community/service_test.go
+  h_42175f19913982 1-408
+backend/internal/db/migrations/000006_create_community_and_moments.down.sql
+  h_42175f19913982 1-11
+backend/internal/db/migrations/000006_create_community_and_moments.up.sql
+  h_42175f19913982 1-74
+backend/internal/shared/middleware.go
+  h_42175f19913982 102-125
+backend/internal/trip/handler.go
+  h_42175f19913982 66-68,90-92,121-123,135-167
+backend/internal/trip/model.go
+  h_42175f19913982 10-12,15,22-23,30-41,45-51,55-65
+backend/internal/trip/repository.go
+  h_42175f19913982 15,38-40,48-52,66,76,92-94,98,102-107,114,122-123,133-134,146-151,174,192,211,226,234-235,246-251,277,284,291,322,353,369,377-378,389-394,435,451-453,462,465,481,491,513-514,518,522-527,538-539,552,567,575-576,587-592,634-656
+backend/internal/trip/service.go
+  h_42175f19913982 24,72-80,118-119,127-132,234-241,277-278,313-325
+backend/internal/trip/service_test.go
+  h_42175f19913982 10-16,71-73,92-103,171-173,175-179,181,191-196,247-253,277-285
+contracts/community.openapi.yaml
+  h_42175f19913982 1-534
+frontend/src/components/AppHeader.tsx
+  h_42175f19913982 28,77-90
+frontend/src/modules/community/api.ts
+  h_42175f19913982 1-147
+frontend/src/modules/community/components/ArrivalPromptDialog.tsx
+  h_42175f19913982 1-178
+frontend/src/modules/community/components/CreateRecommendationDialog.tsx
+  h_42175f19913982 1-201
+frontend/src/modules/community/components/ReportDialog.tsx
+  h_42175f19913982 1-174
+frontend/src/modules/community/store.ts
+  h_42175f19913982 1-304
+frontend/src/modules/community/types.ts
+  h_42175f19913982 1-146
+frontend/src/modules/community/views/DestinationDetailView.tsx
+  h_42175f19913982 1-815
+frontend/src/modules/community/views/DestinationsListView.tsx
+  h_42175f19913982 1-178
+frontend/src/modules/community/views/LiveFeedView.tsx
+  h_42175f19913982 1-431
+frontend/src/modules/trips/components/DestinationAutocomplete.tsx
+  h_42175f19913982 1-208
+frontend/src/modules/trips/types.ts
+  h_42175f19913982 12-13,23-24
+frontend/src/modules/trips/views/TripCreateView.tsx
+  h_42175f19913982 23,30-31,84-100,143-144,331,333-335
+frontend/src/modules/trips/views/TripDetailView.tsx
+  h_42175f19913982 270,274-291
+frontend/src/router/index.tsx
+  h_42175f19913982 14-16,72-95
+mobile/src/modules/community/api.ts
+  h_42175f19913982 1-126
+mobile/src/modules/community/components/ArrivalPromptModal.tsx
+  h_42175f19913982 1-235
+mobile/src/modules/community/screens/DestinationDetailScreen.tsx
+  h_42175f19913982 1-918
+mobile/src/modules/community/screens/DestinationsListScreen.tsx
+  h_42175f19913982 1-385
+mobile/src/modules/community/screens/LiveFeedScreen.tsx
+  h_42175f19913982 1-532
+mobile/src/modules/community/screens/RecommendationCreateScreen.tsx
+  h_42175f19913982 1-386
+mobile/src/modules/community/store.ts
+  h_42175f19913982 1-319
+mobile/src/modules/community/types.ts
+  h_42175f19913982 1-135
+mobile/src/modules/trips/components/DestinationPickerModal.tsx
+  h_42175f19913982 1-281
+mobile/src/modules/trips/screens/TripCreateScreen.tsx
+  h_42175f19913982 22,52,366-392,463-473
+mobile/src/modules/trips/screens/TripDetailScreen.tsx
+  h_42175f19913982 183-199,207,351-356,361-372
+mobile/src/navigation/index.tsx
+  h_42175f19913982 19-22,62,96,114-125,154-176
+mockups/approvals.md
+  h_42175f19913982 29-34
+mockups/community/arrival-popup-mobile.html
+  h_42175f19913982 1-119
+mockups/community/arrival-popup-web.html
+  h_42175f19913982 1-120
+mockups/community/destination-detail-mobile.html
+  h_42175f19913982 1-169
+mockups/community/destination-detail-web.html
+  h_42175f19913982 1-222
+mockups/community/live-feed-mobile.html
+  h_42175f19913982 1-103
+mockups/community/live-feed-web.html
+  h_42175f19913982 1-94
+qa-reports/community.md
+  h_42175f19913982 1-60
+roadmap.md
+  h_42175f19913982 151-152,158-160,163-164
+specs/community.md
+  h_42175f19913982 1-111
+ux-reports/community.md
+  h_42175f19913982 1-103
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "30b70395a5c0dc8ada7587294b6687cd31891145",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
