@@ -1,0 +1,18 @@
+.agent/qa-agent.md
+  h_42175f19913982 62
+.github/workflows/ci.yml
+  h_42175f19913982 81-108
+package.json
+  h_42175f19913982 9-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "59ab383f6a44eb385cf1dc1c04f8b917f0eb993d",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
