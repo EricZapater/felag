@@ -6,7 +6,8 @@
     "dev:mobile": "pnpm --filter mobile start",
     "build:frontend": "pnpm --filter frontend build",
     "lint": "pnpm --filter frontend lint && pnpm --filter mobile lint",
-    "typecheck": "pnpm --filter frontend typecheck && pnpm --filter mobile typecheck"
+    "typecheck": "pnpm --filter frontend typecheck && pnpm --filter mobile typecheck",
+    "doctor": "cd mobile && npx --registry=https://registry.npmjs.org/ --yes expo-doctor"
   },
   "devDependencies": {
     "typescript": "^5.4.0"

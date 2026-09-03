@@ -59,6 +59,7 @@ revisió humana de merge (Checkpoint 5).
 - Per a l'app mòbil, usa Expo Go o un emulador/simulador ja disponible a
   l'entorn. Si no hi ha cap dispositiu/emulador disponible, documenta-ho
   com a incidència bloquejant en lloc d'ometre les proves mòbil.
+- **Diagnòstic d'integritat Expo (MANDATORI)**: Executa sempre `pnpm doctor` (o `cd mobile && npx expo-doctor`) com a pas previ obligatori de QA. Si `expo-doctor` reporta dependències desalineades o incompatibilitats de plugins natius, el mòdul **no és APTE**.
 - Engega backend, frontend i mòbil abans de validar cap mòdul. Si
   qualsevol dels tres no arrenca, això ja és per si sol una incidència
   **bloquejant** — no es pot validar funcionalment un mòdul que no
