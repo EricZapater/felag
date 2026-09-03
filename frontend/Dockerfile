@@ -1,5 +1,8 @@
 # Build stage
 FROM node:22-alpine AS builder
+ARG VITE_API_URL=https://api.felag.app
+ENV VITE_API_URL=$VITE_API_URL
+
 RUN npm install -g pnpm@10
 WORKDIR /app
 COPY package.json .npmrc* ./
