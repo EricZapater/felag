@@ -35,16 +35,23 @@ func InitDB() (*sql.DB, error) {
 		}
 	}
 
-	db, err := sql.Open("postgres", connStr)
+	database, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return nil, fmt.Errorf("error opening database: %w", err)
 	}
 
-	if err := db.Ping(); err != nil {
+	if err := database.Ping(); err != nil {
 		log.Printf("Warning: Database ping failed: %v", err)
 	} else {
 		log.Println("Database connection established successfully.")
 	}
 
-	return db, nil
+	autoMigrate := os.Getenv("AUTO_MIGRATE")
+	if autoMigrate != "false" {
+		if err := RunMigrations(database); err != nil {
+			log.Printf("Warning: Automatic migration error: %v", err)
+		}
+	}
+
+	return database, nil
 }
