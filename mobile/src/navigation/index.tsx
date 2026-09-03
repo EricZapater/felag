@@ -3,6 +3,7 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useAuthStore } from '@/modules/auth/store';
 import { useNotificationsStore } from '@/modules/notifications/store';
+import { useChatStore } from '@/modules/chat/store';
 import LoginScreen from '@/modules/auth/screens/LoginScreen';
 import RegisterScreen from '@/modules/auth/screens/RegisterScreen';
 import ProfileScreen from '@/modules/profile/screens/ProfileScreen';
@@ -12,10 +13,20 @@ import TripCreateScreen from '@/modules/trips/screens/TripCreateScreen';
 import TripDetailScreen from '@/modules/trips/screens/TripDetailScreen';
 import TripMatchesScreen from '@/modules/matching/screens/TripMatchesScreen';
 import NotificationsScreen from '@/modules/notifications/screens/NotificationsScreen';
+import ConversationsScreen from '@/modules/chat/screens/ConversationsScreen';
+import ChatRoomScreen from '@/modules/chat/screens/ChatRoomScreen';
+import PublicProfileScreen from '@/modules/users/screens/PublicProfileScreen';
 
 export default function AppNavigation() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, accessToken } = useAuthStore();
   const { unreadCount, fetchNotifications } = useNotificationsStore();
+  const {
+    totalUnreadCount: unreadChatCount,
+    fetchConversations,
+    initWebSocket,
+    closeWebSocket,
+  } = useChatStore();
+
   const [screenStack, setScreenStack] = useState<{ name: string; params?: any }[]>([
     { name: 'TripsList' },
   ]);
@@ -23,8 +34,18 @@ export default function AppNavigation() {
   useEffect(() => {
     if (isAuthenticated) {
       fetchNotifications();
+      fetchConversations();
+      if (accessToken) {
+        initWebSocket(accessToken);
+      }
+    } else {
+      closeWebSocket();
     }
-  }, [isAuthenticated, fetchNotifications]);
+
+    return () => {
+      closeWebSocket();
+    };
+  }, [isAuthenticated, accessToken, fetchNotifications, fetchConversations, initWebSocket, closeWebSocket]);
 
   const current = screenStack[screenStack.length - 1] || { name: 'TripsList' };
   const currentScreen = current.name;
@@ -32,7 +53,12 @@ export default function AppNavigation() {
 
   const navigate = (screenName: string, params?: any) => {
     // If switching between bottom tabs, replace stack
-    if (screenName === 'TripsList' || screenName === 'Notifications' || screenName === 'Profile') {
+    if (
+      screenName === 'TripsList' ||
+      screenName === 'Conversations' ||
+      screenName === 'Notifications' ||
+      screenName === 'Profile'
+    ) {
       setScreenStack([{ name: screenName, params }]);
     } else {
       setScreenStack((prev) => [...prev, { name: screenName, params }]);
@@ -62,6 +88,7 @@ export default function AppNavigation() {
 
   const isMainTab =
     currentScreen === 'TripsList' ||
+    currentScreen === 'Conversations' ||
     currentScreen === 'Notifications' ||
     currentScreen === 'Profile';
 
@@ -77,6 +104,13 @@ export default function AppNavigation() {
         )}
         {currentScreen === 'TripMatches' && (
           <TripMatchesScreen navigation={navigation} route={{ params: currentParams }} />
+        )}
+        {currentScreen === 'Conversations' && <ConversationsScreen navigation={navigation} />}
+        {currentScreen === 'ChatRoom' && (
+          <ChatRoomScreen navigation={navigation} route={{ params: currentParams }} />
+        )}
+        {currentScreen === 'PublicProfile' && (
+          <PublicProfileScreen navigation={navigation} route={{ params: currentParams }} />
         )}
         {currentScreen === 'Notifications' && <NotificationsScreen navigation={navigation} />}
         {currentScreen === 'Profile' && <ProfileScreen navigation={navigation} />}
@@ -101,12 +135,47 @@ export default function AppNavigation() {
 
           <TouchableOpacity
             style={styles.navItem}
+            onPress={() => navigate('Conversations')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.iconContainer}>
+              <Text
+                style={[
+                  styles.navIcon,
+                  currentScreen === 'Conversations' && styles.navActiveText,
+                ]}
+              >
+                💬
+              </Text>
+              {unreadChatCount > 0 && (
+                <View style={styles.badgeCount}>
+                  <Text style={styles.badgeCountText}>
+                    {unreadChatCount > 99 ? '99+' : unreadChatCount}
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Text
+              style={[
+                styles.navLabel,
+                currentScreen === 'Conversations' && styles.navActiveText,
+              ]}
+            >
+              Xats
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.navItem}
             onPress={() => navigate('Notifications')}
             activeOpacity={0.7}
           >
             <View style={styles.iconContainer}>
               <Text
-                style={[styles.navIcon, currentScreen === 'Notifications' && styles.navActiveText]}
+                style={[
+                  styles.navIcon,
+                  currentScreen === 'Notifications' && styles.navActiveText,
+                ]}
               >
                 🔔
               </Text>
@@ -119,7 +188,10 @@ export default function AppNavigation() {
               )}
             </View>
             <Text
-              style={[styles.navLabel, currentScreen === 'Notifications' && styles.navActiveText]}
+              style={[
+                styles.navLabel,
+                currentScreen === 'Notifications' && styles.navActiveText,
+              ]}
             >
               Avisos
             </Text>

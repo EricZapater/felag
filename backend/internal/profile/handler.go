@@ -130,3 +130,33 @@ func (h *Handler) GetTownsByRegion(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, towns)
 }
+
+func (h *Handler) GetPublicProfile(c *gin.Context) {
+	currentUserID, exists := c.Get("user_id")
+	if !exists {
+		shared.ErrorResponse(c, http.StatusUnauthorized, "UNAUTHORIZED", "Sessió no vàlida.")
+		return
+	}
+
+	targetUserID := c.Param("user_id")
+	if targetUserID == "" {
+		shared.ErrorResponse(c, http.StatusBadRequest, "INVALID_USER_ID", "L'identificador d'usuari és obligatori.")
+		return
+	}
+
+	p, err := h.service.GetPublicProfile(currentUserID.(string), targetUserID)
+	if err != nil {
+		if errors.Is(err, ErrForbidden) {
+			shared.ErrorResponse(c, http.StatusForbidden, "FORBIDDEN", "No tens permís per veure aquest perfil.")
+			return
+		}
+		if errors.Is(err, ErrProfileNotFound) {
+			shared.ErrorResponse(c, http.StatusNotFound, "NOT_FOUND", "Perfil no trobat.")
+			return
+		}
+		shared.ErrorResponse(c, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, p)
+}

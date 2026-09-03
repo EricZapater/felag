@@ -7,8 +7,10 @@ import (
 	"path/filepath"
 
 	"felag/backend/internal/auth"
+	"felag/backend/internal/chat"
 	"felag/backend/internal/db"
 	"felag/backend/internal/matching"
+	"felag/backend/internal/moderation"
 	"felag/backend/internal/notification"
 	"felag/backend/internal/profile"
 	"felag/backend/internal/shared"
@@ -70,8 +72,13 @@ func main() {
 	authService := auth.NewService(authRepo)
 	authHandler := auth.NewHandler(authService)
 
+	moderationRepo := moderation.NewRepository(database)
+	moderationService := moderation.NewService(moderationRepo)
+	moderationHandler := moderation.NewHandler(moderationService)
+
 	profileRepo := profile.NewRepository(database)
 	profileService := profile.NewService(profileRepo)
+	profileService.SetModerationService(moderationService)
 	profileHandler := profile.NewHandler(profileService)
 
 	notificationRepo := notification.NewRepository(database)
@@ -92,6 +99,13 @@ func main() {
 	tripService.SetEventListener(matchingWorker)
 	tripHandler := trip.NewHandler(tripService)
 
+	chatHub := chat.NewHub()
+	chatRepo := chat.NewRepository(database)
+	chatService := chat.NewService(chatRepo, chatHub)
+	chatService.SetModerationService(moderationService)
+	chatService.SetNotificationService(notificationService)
+	chatHandler := chat.NewHandler(chatService)
+
 	// API Routes (matching OpenAPI specs)
 	v1 := r.Group("/api/v1")
 	{
@@ -111,6 +125,9 @@ func main() {
 			originsGroup.GET("/regions/:region_id/towns", profileHandler.GetTownsByRegion)
 		}
 
+		// WebSocket route for real-time chat (handles auth token via query param or header)
+		v1.GET("/ws/chat", chatHandler.HandleWebSocket)
+
 		// Protected routes
 		protected := v1.Group("")
 		protected.Use(shared.AuthMiddleware())
@@ -122,6 +139,22 @@ func main() {
 			protected.PUT("/profile", profileHandler.UpdateProfile)
 			protected.POST("/profile/avatar", profileHandler.UploadAvatar)
 			protected.PUT("/profile/origin", profileHandler.UpdateOrigin)
+
+			// Public profile route
+			protected.GET("/users/:user_id/public-profile", profileHandler.GetPublicProfile)
+
+			// Moderation routes (blocking & reporting)
+			protected.POST("/users/:user_id/block", moderationHandler.BlockUser)
+			protected.DELETE("/users/:user_id/block", moderationHandler.UnblockUser)
+			protected.GET("/users/blocked", moderationHandler.ListBlockedUsers)
+			protected.POST("/users/:user_id/report", moderationHandler.ReportUser)
+
+			// Chat & Conversations routes
+			protected.GET("/conversations", chatHandler.ListConversations)
+			protected.POST("/conversations", chatHandler.CreateOrGetConversation)
+			protected.GET("/conversations/:id/messages", chatHandler.GetConversationMessages)
+			protected.POST("/conversations/:id/messages", chatHandler.SendMessage)
+			protected.PUT("/conversations/:id/read", chatHandler.MarkConversationAsRead)
 
 			// Trips routes
 			tripGroup := protected.Group("/trips")

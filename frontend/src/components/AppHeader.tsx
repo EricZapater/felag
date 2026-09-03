@@ -3,18 +3,21 @@ import { Box, Button, Typography, Badge } from '@mui/material';
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/modules/auth/store';
 import { useNotificationStore } from '@/modules/notifications/store';
+import { useChatStore } from '@/modules/chat/store';
 
 export default function AppHeader() {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout, isAuthenticated } = useAuthStore();
   const { unreadCount, fetchNotifications } = useNotificationStore();
+  const { conversations, fetchConversations } = useChatStore();
 
   useEffect(() => {
     if (isAuthenticated) {
       fetchNotifications();
+      fetchConversations();
     }
-  }, [isAuthenticated, fetchNotifications]);
+  }, [isAuthenticated, fetchNotifications, fetchConversations]);
 
   const handleLogout = async () => {
     await logout();
@@ -22,8 +25,11 @@ export default function AppHeader() {
   };
 
   const isTripsActive = location.pathname.startsWith('/trips');
+  const isChatsActive = location.pathname.startsWith('/chats');
   const isNotificationsActive = location.pathname.startsWith('/notifications');
   const isProfileActive = location.pathname.startsWith('/profile') || location.pathname.startsWith('/origin');
+
+  const chatUnreadCount = conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
 
   return (
     <Box
@@ -66,6 +72,39 @@ export default function AppHeader() {
           >
             Viatges
           </Typography>
+
+          <Box
+            component={RouterLink}
+            to="/chats"
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              textDecoration: 'none',
+              color: isChatsActive ? '#C85A32' : '#786C65',
+              fontWeight: isChatsActive ? 700 : 500,
+              fontSize: 15,
+              '&:hover': { color: '#C85A32' },
+            }}
+          >
+            <Badge
+              badgeContent={chatUnreadCount}
+              color="error"
+              sx={{
+                '& .MuiBadge-badge': {
+                  bgcolor: '#C85A32',
+                  color: '#FFFFFF',
+                  fontWeight: 700,
+                  fontSize: '0.7rem',
+                  height: 18,
+                  minWidth: 18,
+                  right: -8,
+                  top: -2,
+                },
+              }}
+            >
+              <span>Xats 💬</span>
+            </Badge>
+          </Box>
 
           <Box
             component={RouterLink}

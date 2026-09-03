@@ -18,10 +18,11 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
-import { Link as RouterLink, useParams } from 'react-router-dom';
+import { Link as RouterLink, useParams, useNavigate } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader';
 import { useMatchingStore } from '../store';
 import { useTripStore } from '@/modules/trips/store';
+import { useChatStore } from '@/modules/chat/store';
 import { Match, AffinityLevel } from '../types';
 
 function formatDate(dateStr: string): string {
@@ -72,8 +73,10 @@ function getAffinityBadgeConfig(level: AffinityLevel): { label: string; bg: stri
 
 export default function TripMatchesView() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { matches, fetchTripMatches, isLoading, error } = useMatchingStore();
   const { currentTrip, fetchTripById } = useTripStore();
+  const { createOrGetConversation } = useChatStore();
 
   const [selectedContactUser, setSelectedContactUser] = useState<Match | null>(null);
 
@@ -210,7 +213,18 @@ export default function TripMatchesView() {
                   }}
                 >
                   {/* Left Felagi info */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+                  <Box
+                    component={RouterLink}
+                    to={`/users/${match.matched_user.id}`}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 2.5,
+                      textDecoration: 'none',
+                      color: 'inherit',
+                      '&:hover .felagi-name': { color: '#C85A32' },
+                    }}
+                  >
                     <Avatar
                       src={match.matched_user.avatar_url || undefined}
                       sx={{
@@ -227,7 +241,17 @@ export default function TripMatchesView() {
                     </Avatar>
 
                     <Box>
-                      <Typography variant="h6" sx={{ fontWeight: 700, color: '#2C221E', lineHeight: 1.2, mb: 0.5 }}>
+                      <Typography
+                        className="felagi-name"
+                        variant="h6"
+                        sx={{
+                          fontWeight: 700,
+                          color: '#2C221E',
+                          lineHeight: 1.2,
+                          mb: 0.5,
+                          transition: 'color 0.2s',
+                        }}
+                      >
                         {match.matched_user.name}
                       </Typography>
                       {match.matched_user.origin_summary && (
@@ -332,9 +356,20 @@ export default function TripMatchesView() {
           </Button>
           <Button
             variant="contained"
-            onClick={() => {
-              alert(`Sol·licitud de contacte enviada a ${selectedContactUser?.matched_user.name}!`);
-              setSelectedContactUser(null);
+            onClick={async () => {
+              if (selectedContactUser) {
+                const targetMatch = selectedContactUser;
+                setSelectedContactUser(null);
+                try {
+                  const conv = await createOrGetConversation(
+                    targetMatch.matched_user.id,
+                    targetMatch.id
+                  );
+                  navigate(`/chats/${conv.id}`);
+                } catch (err) {
+                  // Handled
+                }
+              }
             }}
             sx={{ bgcolor: '#C85A32', '&:hover': { bgcolor: '#A0471D' }, textTransform: 'none', fontWeight: 600 }}
           >

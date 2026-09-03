@@ -1,0 +1,516 @@
+openapi: 3.0.3
+info:
+  title: FELAG Connect & Chat API
+  description: Contracte OpenAPI per a la missatgeria xifrada en repòs (AES-256-GCM), perfils públics de viatgers, bloqueig i moderació de FELAG.
+  version: 1.0.0
+servers:
+  - url: https://api.felag.app
+    description: Servidor de producció
+  - url: http://localhost:8080
+    description: Servidor de desenvolupament local
+
+paths:
+  /api/v1/users/{user_id}/public-profile:
+    get:
+      summary: Obtenir el perfil públic d'un FELAGI
+      operationId: getPublicProfile
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Dades públiques del perfil del viatger
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicProfile'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/v1/conversations:
+    get:
+      summary: Llistar les converses de l'usuari autenticat
+      operationId: listConversations
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Llista de converses ordenades per darrer missatge
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Conversation'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    post:
+      summary: Crear o obtenir una conversa existent amb un altre usuari
+      operationId: createOrGetConversation
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateConversationRequest'
+      responses:
+        '200':
+          description: Conversa recuperada o creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/conversations/{id}/messages:
+    get:
+      summary: Obtenir els missatges d'una conversa (desxifrats en memòria)
+      operationId: getConversationMessages
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Historial de missatges
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    post:
+      summary: Enviar un missatge a la conversa (es xifra en AES-256 abans de desar-se)
+      operationId: sendMessage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+      responses:
+        '201':
+          description: Missatge enviat i desat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/v1/conversations/{id}/read:
+    put:
+      summary: Marcar tots els missatges d'una conversa com a llegits
+      operationId: markConversationAsRead
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Conversa marcada com a llegida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/users/{user_id}/block:
+    post:
+      summary: Bloquejar un usuari
+      operationId: blockUser
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Usuari bloquejat amb èxit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    delete:
+      summary: Desbloquejar un usuari
+      operationId: unblockUser
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Usuari desbloquejat amb èxit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/users/blocked:
+    get:
+      summary: Llistar els usuaris que l'usuari autenticat ha bloquejat
+      operationId: listBlockedUsers
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Llista d'usuaris bloquejats
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BlockedUser'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/users/{user_id}/report:
+    post:
+      summary: Denunciar un usuari per motius de moderació i seguretat
+      operationId: reportUser
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportUserRequest'
+      responses:
+        '201':
+          description: Denúncia registrada per a moderació
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    PublicTripSummary:
+      type: object
+      required:
+        - id
+        - title
+        - start_date
+        - end_date
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          example: Escandinàvia d'hivern
+        destination_summary:
+          type: string
+          example: Estocolm, Suècia
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+
+    PublicProfile:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Mireia Masnou
+        avatar_url:
+          type: string
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+        origin_summary:
+          type: string
+          example: Vic (Catalunya)
+        public_trips:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicTripSummary'
+
+    ParticipantUser:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Mireia Masnou
+        avatar_url:
+          type: string
+          nullable: true
+        origin_summary:
+          type: string
+          example: Vic (Catalunya)
+
+    Conversation:
+      type: object
+      required:
+        - id
+        - other_participant
+        - last_message_at
+        - unread_count
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        match_id:
+          type: string
+          format: uuid
+          nullable: true
+        other_participant:
+          $ref: '#/components/schemas/ParticipantUser'
+        last_message_preview:
+          type: string
+          nullable: true
+          example: Hola! Jo també estaré a Estocolm...
+        last_message_at:
+          type: string
+          format: date-time
+        unread_count:
+          type: integer
+          example: 1
+        created_at:
+          type: string
+          format: date-time
+
+    Message:
+      type: object
+      required:
+        - id
+        - conversation_id
+        - sender_id
+        - content
+        - read
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        conversation_id:
+          type: string
+          format: uuid
+        sender_id:
+          type: string
+          format: uuid
+        content:
+          type: string
+          example: Hola! He vist que coincidim a Estocolm!
+        read:
+          type: boolean
+          example: false
+        created_at:
+          type: string
+          format: date-time
+
+    CreateConversationRequest:
+      type: object
+      required:
+        - recipient_id
+      properties:
+        recipient_id:
+          type: string
+          format: uuid
+        match_id:
+          type: string
+          format: uuid
+
+    SendMessageRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          minLength: 1
+          example: Perfecte, ens veiem el dia 17!
+
+    BlockedUser:
+      type: object
+      required:
+        - id
+        - user_id
+        - name
+        - blocked_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Usuari Bloquejat
+        avatar_url:
+          type: string
+          nullable: true
+        blocked_at:
+          type: string
+          format: date-time
+
+    ReportUserRequest:
+      type: object
+      required:
+        - reason
+        - details
+      properties:
+        reason:
+          type: string
+          enum: [spam, harassment, inappropriate_content, safety_concern, other]
+          example: harassment
+        details:
+          type: string
+          minLength: 5
+          example: L'usuari envia missatges insistents i ofensius.
+
+    SuccessResponse:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Operació completada amb èxit
+
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: FORBIDDEN
+        message:
+          type: string
+          example: No tens permís per realitzar aquesta acció
+
+  responses:
+    BadRequestError:
+      description: Dades invàlides
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    UnauthorizedError:
+      description: Token invàlid o no proporcionat
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    ForbiddenError:
+      description: Acció no permesa (ex. usuari bloquejat)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFoundError:
+      description: Recurs no trobat
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

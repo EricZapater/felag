@@ -3,6 +3,7 @@ package profile
 import (
 	"database/sql"
 	"fmt"
+	"time"
 )
 
 type Repository interface {
@@ -13,6 +14,8 @@ type Repository interface {
 	GetCountries() ([]Country, error)
 	GetRegionsByCountry(countryID string) ([]Region, error)
 	GetTownsByRegion(regionID string) ([]Town, error)
+	GetPublicProfile(userID string) (*PublicProfile, error)
+	GetPublicTrips(userID string) ([]PublicTripSummary, error)
 }
 
 type repository struct {
@@ -159,4 +162,87 @@ func (r *repository) GetTownsByRegion(regionID string) ([]Town, error) {
 		towns = append(towns, tw)
 	}
 	return towns, nil
+}
+
+func (r *repository) GetPublicProfile(userID string) (*PublicProfile, error) {
+	query := `
+		SELECT u.id, u.name, u.avatar_url, u.bio,
+		       t.name, r.name, c.name
+		FROM users u
+		LEFT JOIN towns t ON u.town_id = t.id
+		LEFT JOIN regions r ON t.region_id = r.id
+		LEFT JOIN countries c ON r.country_id = c.id
+		WHERE u.id = $1
+	`
+	p := &PublicProfile{
+		PublicTrips: []PublicTripSummary{},
+	}
+	var townName, regionName, countryName sql.NullString
+	var avatar, bio sql.NullString
+
+	err := r.db.QueryRow(query, userID).Scan(
+		&p.ID, &p.Name, &avatar, &bio,
+		&townName, &regionName, &countryName,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("error querying public profile: %w", err)
+	}
+
+	if avatar.Valid {
+		p.AvatarURL = &avatar.String
+	}
+	if bio.Valid {
+		p.Bio = &bio.String
+	}
+
+	if townName.Valid && regionName.Valid {
+		summary := fmt.Sprintf("%s (%s)", townName.String, regionName.String)
+		p.OriginSummary = &summary
+	} else if regionName.Valid && countryName.Valid {
+		summary := fmt.Sprintf("%s (%s)", regionName.String, countryName.String)
+		p.OriginSummary = &summary
+	} else if countryName.Valid {
+		summary := countryName.String
+		p.OriginSummary = &summary
+	}
+
+	return p, nil
+}
+
+func (r *repository) GetPublicTrips(userID string) ([]PublicTripSummary, error) {
+	query := `
+		SELECT t.id, t.title, t.start_date, t.end_date,
+		       COALESCE((
+		           SELECT STRING_AGG(ts.destination_name, ', ' ORDER BY ts.stage_order)
+		           FROM trip_stages ts
+		           WHERE ts.trip_id = t.id
+		       ), '') AS destination_summary
+		FROM trips t
+		WHERE t.user_id = $1 AND t.visibility = 'public'
+		ORDER BY t.start_date ASC
+	`
+	rows, err := r.db.Query(query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("error querying public trips: %w", err)
+	}
+	defer rows.Close()
+
+	var trips []PublicTripSummary
+	for rows.Next() {
+		var pt PublicTripSummary
+		var startDate, endDate time.Time
+		if err := rows.Scan(&pt.ID, &pt.Title, &startDate, &endDate, &pt.DestinationSummary); err != nil {
+			return nil, fmt.Errorf("error scanning public trip: %w", err)
+		}
+		pt.StartDate = startDate.Format("2006-01-02")
+		pt.EndDate = endDate.Format("2006-01-02")
+		trips = append(trips, pt)
+	}
+	if trips == nil {
+		trips = []PublicTripSummary{}
+	}
+	return trips, nil
 }

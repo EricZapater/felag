@@ -98,21 +98,21 @@ export default function TripMatchesScreen({ navigation, route }: Props) {
     }
   };
 
-  const handleConnect = (match: Match) => {
-    const firstName = match.matched_user.name.split(' ')[0];
-    Alert.alert(
-      `Connectar amb ${firstName}`,
-      `Vols enviar una sol·licitud de connexió a ${match.matched_user.name}? Podreu xatejar i compartir plans durant la vostra estada a ${match.destination_name}.`,
-      [
-        { text: 'Cancel·lar', style: 'cancel' },
-        {
-          text: 'Enviar sol·licitud',
-          onPress: () => {
-            Alert.alert('Sol·licitud enviada!', `Hem notificat a ${firstName}.`);
-          },
+  const handleConnect = async (match: Match) => {
+    try {
+      navigation.navigate('ChatRoom', {
+        userId: match.matched_user.id,
+        otherParticipant: {
+          id: match.matched_user.id,
+          name: match.matched_user.name,
+          avatar_url: match.matched_user.avatar_url,
+          origin_summary: match.matched_user.origin_summary,
         },
-      ]
-    );
+        matchId: match.id,
+      });
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'No s’ha pogut connectar.');
+    }
   };
 
   const tripTitle = currentTrip?.title || 'Viatge';
@@ -190,7 +190,15 @@ export default function TripMatchesScreen({ navigation, route }: Props) {
               return (
                 <View key={match.id} style={styles.matchCard}>
                   <View style={styles.matchTop}>
-                    <View style={styles.avatarWrapper}>
+                    <TouchableOpacity
+                      style={styles.avatarWrapper}
+                      onPress={() =>
+                        navigation.navigate('PublicProfile', {
+                          userId: match.matched_user.id,
+                        })
+                      }
+                      activeOpacity={0.7}
+                    >
                       {match.matched_user.avatar_url ? (
                         <Image
                           source={{ uri: match.matched_user.avatar_url }}
@@ -207,7 +215,7 @@ export default function TripMatchesScreen({ navigation, route }: Props) {
                           📍 {match.matched_user.origin_summary || 'Origen desconegut'}
                         </Text>
                       </View>
-                    </View>
+                    </TouchableOpacity>
 
                     <View style={[styles.badge, badge.style]}>
                       <Text style={[styles.badgeText, badge.textStyle]}>{badge.label}</Text>

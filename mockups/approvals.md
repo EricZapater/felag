@@ -20,3 +20,9 @@
 | matching | trip-matches | mobile | Aprovada | 2026-09-03 |
 | matching | notifications | web | Aprovada | 2026-09-03 |
 | matching | notifications | mobile | Aprovada | 2026-09-03 |
+| connect | conversations | web | Aprovada | 2026-09-03 |
+| connect | conversations | mobile | Aprovada | 2026-09-03 |
+| connect | chat | web | Aprovada | 2026-09-03 |
+| connect | chat | mobile | Aprovada | 2026-09-03 |
+| connect | felagi-profile | web | Aprovada | 2026-09-03 |
+| connect | felagi-profile | mobile | Aprovada | 2026-09-03 |

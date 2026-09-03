@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FELAG — Xat amb Mireia (Web)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
+    body { background-color: #F9F6F0; color: #2C221E; }
+    header { background: #FFFFFF; border-bottom: 1px solid #E8E2D9; padding: 16px 40px; display: flex; justify-content: space-between; align-items: center; }
+    .brand { font-size: 22px; font-weight: 700; color: #C85A32; letter-spacing: 1px; }
+    .nav-links { display: flex; gap: 24px; align-items: center; }
+    .nav-link { color: #786C65; text-decoration: none; font-weight: 500; font-size: 15px; }
+    .nav-link.active { color: #C85A32; font-weight: 700; }
+    
+    .chat-layout { max-width: 860px; margin: 30px auto; height: calc(100vh - 140px); background: #FFFFFF; border: 1px solid #E8E2D9; border-radius: 12px; box-shadow: 0 2px 16px rgba(74, 46, 43, 0.06); display: flex; flex-direction: column; overflow: hidden; }
+    
+    .chat-header { padding: 16px 24px; border-bottom: 1px solid #E8E2D9; display: flex; justify-content: space-between; align-items: center; background: #FAF7F2; }
+    .user-profile-preview { display: flex; align-items: center; gap: 14px; text-decoration: none; color: inherit; }
+    .avatar { width: 44px; height: 44px; border-radius: 50%; background: #F4ECE1; color: #703817; border: 2px solid #C85A32; display: flex; justify-content: center; align-items: center; font-size: 16px; font-weight: 700; }
+    .name { font-size: 16px; font-weight: 700; color: #2C221E; }
+    .origin { font-size: 12px; color: #703817; font-weight: 600; }
+    
+    .header-actions { display: flex; gap: 12px; align-items: center; }
+    .btn-secondary { background: transparent; border: 1px solid #E8E2D9; color: #786C65; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+    .btn-secondary:hover { border-color: #C85A32; color: #C85A32; }
+    
+    .messages-area { flex: 1; overflow-y: auto; padding: 24px; background: #F9F6F0; display: flex; flex-direction: column; gap: 14px; }
+    .security-badge { align-self: center; font-size: 11px; color: #786C65; background: #FFFFFF; border: 1px solid #E8E2D9; padding: 4px 12px; border-radius: 12px; margin-bottom: 8px; }
+    
+    .msg-row { display: flex; flex-direction: column; max-width: 68%; }
+    .msg-row.incoming { align-self: flex-start; }
+    .msg-row.outgoing { align-self: flex-end; }
+    
+    .bubble { padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.4; word-break: break-word; }
+    .incoming .bubble { background: #FFFFFF; color: #2C221E; border: 1px solid #E8E2D9; border-bottom-left-radius: 2px; }
+    .outgoing .bubble { background: #C85A32; color: #FFFFFF; border-bottom-right-radius: 2px; }
+    
+    .msg-time { font-size: 10px; margin-top: 4px; }
+    .incoming .msg-time { color: #786C65; }
+    .outgoing .msg-time { color: #786C65; text-align: right; }
+    
+    .input-bar { padding: 16px 20px; border-top: 1px solid #E8E2D9; background: #FFFFFF; display: flex; gap: 12px; align-items: center; }
+    .msg-input { flex: 1; padding: 12px 16px; border: 1px solid #E8E2D9; border-radius: 24px; font-size: 14px; outline: none; background: #FAF7F2; }
+    .msg-input:focus { border-color: #C85A32; background: #FFFFFF; }
+    .btn-send { background: #C85A32; color: #FFFFFF; border: none; padding: 12px 24px; border-radius: 24px; font-size: 14px; font-weight: 700; cursor: pointer; }
+    .btn-send:hover { background: #A0471D; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">FELAG</div>
+    <div class="nav-links">
+      <a href="../trips/trips-list-web.html" class="nav-link">Viatges</a>
+      <a href="../matching/trip-matches-web.html" class="nav-link">Coincidències</a>
+      <a href="conversations-web.html" class="nav-link active">Xats 💬</a>
+      <a href="../matching/notifications-web.html" class="nav-link">Notificacions 🔔</a>
+      <a href="../profile/profile-web.html" class="nav-link">Perfil</a>
+    </div>
+  </header>
+
+  <div class="chat-layout">
+    <div class="chat-header">
+      <a href="felagi-profile-web.html" class="user-profile-preview">
+        <div class="avatar">MM</div>
+        <div>
+          <div class="name">Mireia Masnou <span>›</span></div>
+          <div class="origin">📍 Vic (Catalunya) • Coincidència a Estocolm (11-15 Oct)</div>
+        </div>
+      </a>
+      <div class="header-actions">
+        <button class="btn-secondary">⚠️ Denunciar</button>
+        <button class="btn-secondary">🚫 Bloquejar</button>
+      </div>
+    </div>
+
+    <div class="messages-area">
+      <div class="security-badge">🔒 Missatges xifrats en repòs amb AES-256</div>
+
+      <div class="msg-row incoming">
+        <div class="bubble">Hola! He vist que coincidim a Estocolm de l'11 al 15 d'octubre! Jo també sóc de Vic 😊</div>
+        <div class="msg-time">15:40</div>
+      </div>
+
+      <div class="msg-row outgoing">
+        <div class="bubble">Hola Mireia! Quina casualitat! Sí, faig una ruta per Suècia i Noruega. Teniu plans per al museu Vasa?</div>
+        <div class="msg-time">15:41 • Enviat</div>
+      </div>
+
+      <div class="msg-row incoming">
+        <div class="bubble">Justament volíem anar-hi dimarts al matí! Fem un cafè abans o després? ☕</div>
+        <div class="msg-time">15:42</div>
+      </div>
+    </div>
+
+    <div class="input-bar">
+      <input type="text" class="msg-input" placeholder="Escriu un missatge a la Mireia..." value="" />
+      <button class="btn-send">Enviar</button>
+    </div>
+  </div>
+
+</body>
+</html>

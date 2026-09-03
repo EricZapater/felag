@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FELAG — Xat (Mobile)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
+    body { background-color: #E8E2D9; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+    .mobile-frame { background: #F9F6F0; width: 375px; height: 750px; border-radius: 36px; border: 12px solid #3E2723; box-shadow: 0 10px 30px rgba(62, 39, 35, 0.2); display: flex; flex-direction: column; overflow: hidden; position: relative; }
+    .status-bar { height: 40px; background: #FFFFFF; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; font-size: 12px; font-weight: bold; color: #4A3E39; }
+    
+    .chat-header { background: #FFFFFF; padding: 12px 16px; border-bottom: 1px solid #E8E2D9; display: flex; justify-content: space-between; align-items: center; }
+    .back-btn { text-decoration: none; color: #C85A32; font-size: 14px; font-weight: 700; margin-right: 8px; }
+    .header-user { display: flex; align-items: center; gap: 8px; text-decoration: none; color: inherit; flex: 1; }
+    .avatar { width: 36px; height: 36px; border-radius: 50%; background: #F4ECE1; color: #703817; border: 2px solid #C85A32; display: flex; justify-content: center; align-items: center; font-size: 13px; font-weight: bold; }
+    .name { font-size: 14px; font-weight: 700; color: #2C221E; }
+    .sub { font-size: 10px; color: #703817; }
+    
+    .messages-area { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+    .sec-badge { align-self: center; font-size: 10px; color: #786C65; background: #FFFFFF; border: 1px solid #E8E2D9; padding: 3px 10px; border-radius: 10px; }
+    
+    .msg-box { display: flex; flex-direction: column; max-width: 80%; }
+    .msg-box.incoming { align-self: flex-start; }
+    .msg-box.outgoing { align-self: flex-end; }
+    
+    .bubble { padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.35; }
+    .incoming .bubble { background: #FFFFFF; color: #2C221E; border: 1px solid #E8E2D9; border-bottom-left-radius: 2px; }
+    .outgoing .bubble { background: #C85A32; color: #FFFFFF; border-bottom-right-radius: 2px; }
+    
+    .time { font-size: 9px; margin-top: 3px; }
+    .incoming .time { color: #786C65; }
+    .outgoing .time { color: #786C65; text-align: right; }
+    
+    .input-bar { padding: 10px 14px; background: #FFFFFF; border-top: 1px solid #E8E2D9; display: flex; gap: 8px; align-items: center; }
+    .input-field { flex: 1; background: #FAF7F2; border: 1px solid #E8E2D9; border-radius: 20px; padding: 8px 14px; font-size: 13px; outline: none; }
+    .btn-send { background: #C85A32; color: #fff; border: none; width: 34px; height: 34px; border-radius: 50%; font-size: 14px; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <div class="mobile-frame">
+    <div class="status-bar">
+      <span>9:41</span>
+      <span>100%</span>
+    </div>
+
+    <div class="chat-header">
+      <a href="conversations-mobile.html" class="back-btn">‹</a>
+      <a href="felagi-profile-mobile.html" class="header-user">
+        <div class="avatar">MM</div>
+        <div>
+          <div class="name">Mireia Masnou</div>
+          <div class="sub">📍 Vic • Estocolm</div>
+        </div>
+      </a>
+      <span style="font-size: 16px; color: #786C65; cursor: pointer;">⋮</span>
+    </div>
+
+    <div class="messages-area">
+      <div class="sec-badge">🔒 Xifrat en repòs AES-256</div>
+
+      <div class="msg-box incoming">
+        <div class="bubble">Hola! He vist que coincidim a Estocolm de l'11 al 15! Jo també sóc de Vic 😊</div>
+        <div class="time">15:40</div>
+      </div>
+
+      <div class="msg-box outgoing">
+        <div class="bubble">Hola Mireia! Quina casualitat! Sí, faig una ruta per Suècia i Noruega. Teniu plans per al museu Vasa?</div>
+        <div class="time">15:41 • Enviat</div>
+      </div>
+
+      <div class="msg-box incoming">
+        <div class="bubble">Justament volíem anar-hi dimarts! Fem un cafè abans o després? ☕</div>
+        <div class="time">15:42</div>
+      </div>
+    </div>
+
+    <div class="input-bar">
+      <input type="text" class="input-field" placeholder="Missatge..." />
+      <button class="btn-send">➤</button>
+    </div>
+  </div>
+
+</body>
+</html>

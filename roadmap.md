@@ -130,14 +130,14 @@ Definition of done:
 
 Goal: users can interact with their FELAGIS.
 
-- [ ] Match detail
-- [ ] FELAGI profile
-- [ ] Chat
-- [ ] Conversation list
-- [ ] Block user
-- [ ] Report user
-- [ ] Push notifications
-- [ ] Share trip/photo prompt
+- [x] Match detail
+- [x] FELAGI profile
+- [x] Chat
+- [x] Conversation list
+- [x] Block user
+- [x] Report user
+- [x] Push notifications
+- [x] Share trip/photo prompt
 
 Definition of done:
 - A matched user can contact another matched user.
@@ -168,7 +168,17 @@ Recommended by 14 FELAGIS
 - Transport tip
 - Local anecdote
 
-# Phase 6 — Agencies & Marketplace
+# Phase 6 - Punctuation for travels
+Goal: two days after a user finishes a trip, the user receives a notification asking for feedback about the trip. If the user agrees, the feedback is shared with other users in the same destination or available to search. We must also provide a way to search diferent destinations independently of the matches. In this way, a user can look for "what can I do in Tokyo?" even if there are no matches for that destination. So we need a new query for destinations. Also a "where can i go" query based on ratings from other users.
+
+- [ ] Send notification
+- [ ] Trip feedback form
+- [ ] Trip rating
+- [ ] Trip comments
+- [ ] Update FELAGIS if the user wants to share comments/photos
+- [ ] Search diferent destinations independently of the matches
+
+# Phase 7 — Agencies & Marketplace
 
 Goal: allow travel agencies to offer experiences to FELAG users.
 

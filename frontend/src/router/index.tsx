@@ -9,6 +9,9 @@ import TripCreateView from '@/modules/trips/views/TripCreateView';
 import TripDetailView from '@/modules/trips/views/TripDetailView';
 import TripMatchesView from '@/modules/matching/views/TripMatchesView';
 import NotificationsView from '@/modules/notifications/views/NotificationsView';
+import ConversationsView from '@/modules/chat/views/ConversationsView';
+import ChatRoomView from '@/modules/chat/views/ChatRoomView';
+import PublicProfileView from '@/modules/users/views/PublicProfileView';
 import { useAuthStore } from '@/modules/auth/store';
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
@@ -68,6 +71,30 @@ export default function AppRouter() {
           element={
             <ProtectedRoute>
               <NotificationsView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/chats"
+          element={
+            <ProtectedRoute>
+              <ConversationsView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/chats/:id"
+          element={
+            <ProtectedRoute>
+              <ChatRoomView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/users/:id"
+          element={
+            <ProtectedRoute>
+              <PublicProfileView />
             </ProtectedRoute>
           }
         />

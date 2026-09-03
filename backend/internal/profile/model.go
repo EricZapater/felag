@@ -43,3 +43,20 @@ type UpdateProfileRequest struct {
 type UpdateOriginRequest struct {
 	TownID string `json:"town_id" binding:"required"`
 }
+
+type PublicTripSummary struct {
+	ID                 string `json:"id"`
+	Title              string `json:"title"`
+	DestinationSummary string `json:"destination_summary,omitempty"`
+	StartDate          string `json:"start_date"`
+	EndDate            string `json:"end_date"`
+}
+
+type PublicProfile struct {
+	ID            string              `json:"id"`
+	Name          string              `json:"name"`
+	AvatarURL     *string             `json:"avatar_url"`
+	Bio           *string             `json:"bio"`
+	OriginSummary *string             `json:"origin_summary,omitempty"`
+	PublicTrips   []PublicTripSummary `json:"public_trips"`
+}

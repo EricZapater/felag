@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FELAG — Converses (Web)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
+    body { background-color: #F9F6F0; color: #2C221E; }
+    header { background: #FFFFFF; border-bottom: 1px solid #E8E2D9; padding: 16px 40px; display: flex; justify-content: space-between; align-items: center; }
+    .brand { font-size: 22px; font-weight: 700; color: #C85A32; letter-spacing: 1px; }
+    .nav-links { display: flex; gap: 24px; align-items: center; }
+    .nav-link { color: #786C65; text-decoration: none; font-weight: 500; font-size: 15px; }
+    .nav-link.active { color: #C85A32; font-weight: 700; }
+    
+    .container { max-width: 860px; margin: 40px auto; padding: 0 20px; }
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .page-title { font-size: 26px; font-weight: 700; color: #2C221E; }
+    .encryption-notice { font-size: 12px; color: #786C65; background: #FAF7F2; padding: 6px 12px; border-radius: 20px; border: 1px solid #E8E2D9; display: flex; align-items: center; gap: 6px; }
+    
+    .conversations-card { background: #FFFFFF; border: 1px solid #E8E2D9; border-radius: 12px; box-shadow: 0 2px 12px rgba(74, 46, 43, 0.05); overflow: hidden; }
+    
+    .conv-item { padding: 20px 24px; border-bottom: 1px solid #E8E2D9; display: flex; justify-content: space-between; align-items: center; text-decoration: none; color: inherit; transition: background 0.2s; }
+    .conv-item:last-child { border-bottom: none; }
+    .conv-item:hover { background: #FAF7F2; }
+    .conv-item.unread { background: #FFF9F4; }
+    
+    .user-info { display: flex; gap: 16px; align-items: center; }
+    .avatar { width: 52px; height: 52px; border-radius: 50%; background: #F4ECE1; color: #703817; border: 2px solid #C85A32; display: flex; justify-content: center; align-items: center; font-size: 18px; font-weight: 700; }
+    
+    .name-line { font-size: 16px; font-weight: 700; color: #2C221E; margin-bottom: 2px; }
+    .origin-tag { font-size: 12px; color: #703817; font-weight: 600; margin-bottom: 4px; }
+    .last-msg { font-size: 14px; color: #4A3E39; max-width: 450px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .conv-item.unread .last-msg { font-weight: 600; color: #2C221E; }
+    
+    .meta-col { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+    .time { font-size: 12px; color: #786C65; }
+    .unread-badge { background: #C85A32; color: #fff; font-size: 11px; font-weight: bold; width: 20px; height: 20px; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">FELAG</div>
+    <div class="nav-links">
+      <a href="../trips/trips-list-web.html" class="nav-link">Viatges</a>
+      <a href="../matching/trip-matches-web.html" class="nav-link">Coincidències</a>
+      <a href="conversations-web.html" class="nav-link active">Xats 💬</a>
+      <a href="../matching/notifications-web.html" class="nav-link">Notificacions 🔔</a>
+      <a href="../profile/profile-web.html" class="nav-link">Perfil</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="page-header">
+      <h1 class="page-title">Missatges</h1>
+      <div class="encryption-notice">
+        <span>🔒 Xifrat en repòs AES-256</span>
+      </div>
+    </div>
+
+    <div class="conversations-card">
+      <a href="chat-web.html" class="conv-item unread">
+        <div class="user-info">
+          <div class="avatar">MM</div>
+          <div>
+            <div class="name-line">Mireia Masnou</div>
+            <div class="origin-tag">📍 Vic (Catalunya) • Coincidència a Estocolm</div>
+            <div class="last-msg">Hola! Jo també estaré a Estocolm de l'11 al 15. Fem un cafè? ☕</div>
+          </div>
+        </div>
+        <div class="meta-col">
+          <span class="time">15:42</span>
+          <span class="unread-badge">1</span>
+        </div>
+      </a>
+
+      <a href="chat-web.html" class="conv-item">
+        <div class="user-info">
+          <div class="avatar">JR</div>
+          <div>
+            <div class="name-line">Jordi Ribas</div>
+            <div class="origin-tag">📍 Girona (Catalunya) • Coincidència a Oslo</div>
+            <div class="last-msg">Perfecte, ens veiem el dia 17 a la zona del port. Bon viatge!</div>
+          </div>
+        </div>
+        <div class="meta-col">
+          <span class="time">Ahir</span>
+        </div>
+      </a>
+    </div>
+  </div>
+
+</body>
+</html>

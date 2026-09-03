@@ -10,24 +10,38 @@ import (
 	"strings"
 )
 
-var ErrProfileNotFound = errors.New("PROFILE_NOT_FOUND")
+var (
+	ErrProfileNotFound = errors.New("PROFILE_NOT_FOUND")
+	ErrForbidden       = errors.New("FORBIDDEN")
+)
 
 type Service interface {
 	GetProfile(userID string) (*Profile, error)
+	GetPublicProfile(requesterID, targetUserID string) (*PublicProfile, error)
 	UpdateProfile(userID string, req UpdateProfileRequest) (*Profile, error)
 	UploadAvatar(userID string, fileHeader *multipart.FileHeader) (string, error)
 	UpdateOrigin(userID, townID string) (*Profile, error)
 	GetCountries() ([]Country, error)
 	GetRegionsByCountry(countryID string) ([]Region, error)
 	GetTownsByRegion(regionID string) ([]Town, error)
+	SetModerationService(mod moderationChecker)
+}
+
+type moderationChecker interface {
+	IsBlocked(userA, userB string) (bool, error)
 }
 
 type service struct {
-	repo Repository
+	repo          Repository
+	moderationSvc moderationChecker
 }
 
 func NewService(repo Repository) Service {
 	return &service{repo: repo}
+}
+
+func (s *service) SetModerationService(mod moderationChecker) {
+	s.moderationSvc = mod
 }
 
 func (s *service) GetProfile(userID string) (*Profile, error) {
@@ -38,6 +52,34 @@ func (s *service) GetProfile(userID string) (*Profile, error) {
 	if p == nil {
 		return nil, ErrProfileNotFound
 	}
+	return p, nil
+}
+
+func (s *service) GetPublicProfile(requesterID, targetUserID string) (*PublicProfile, error) {
+	if s.moderationSvc != nil {
+		blocked, err := s.moderationSvc.IsBlocked(requesterID, targetUserID)
+		if err != nil {
+			return nil, err
+		}
+		if blocked {
+			return nil, ErrForbidden
+		}
+	}
+
+	p, err := s.repo.GetPublicProfile(targetUserID)
+	if err != nil {
+		return nil, err
+	}
+	if p == nil {
+		return nil, ErrProfileNotFound
+	}
+
+	trips, err := s.repo.GetPublicTrips(targetUserID)
+	if err != nil {
+		return nil, err
+	}
+	p.PublicTrips = trips
+
 	return p, nil
 }
 

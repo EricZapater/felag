@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FELAG — Xats (Mobile)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
+    body { background-color: #E8E2D9; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+    .mobile-frame { background: #F9F6F0; width: 375px; height: 750px; border-radius: 36px; border: 12px solid #3E2723; box-shadow: 0 10px 30px rgba(62, 39, 35, 0.2); display: flex; flex-direction: column; overflow: hidden; position: relative; }
+    .status-bar { height: 40px; background: #FFFFFF; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; font-size: 12px; font-weight: bold; color: #4A3E39; }
+    .app-header { background: #FFFFFF; padding: 16px 20px; font-size: 16px; font-weight: 700; border-bottom: 1px solid #E8E2D9; display: flex; justify-content: space-between; align-items: center; }
+    
+    .content { flex: 1; overflow-y: auto; }
+    
+    .conv-item { padding: 14px 16px; background: #FFFFFF; border-bottom: 1px solid #E8E2D9; display: flex; justify-content: space-between; align-items: center; text-decoration: none; color: inherit; }
+    .conv-item.unread { background: #FFF9F4; }
+    
+    .user-left { display: flex; gap: 12px; align-items: center; flex: 1; min-width: 0; }
+    .avatar { width: 44px; height: 44px; border-radius: 50%; background: #F4ECE1; color: #703817; border: 2px solid #C85A32; display: flex; justify-content: center; align-items: center; font-size: 15px; font-weight: 700; flex-shrink: 0; }
+    
+    .name-line { font-size: 14px; font-weight: 700; color: #2C221E; }
+    .origin-line { font-size: 11px; color: #703817; font-weight: 600; }
+    .msg-preview { font-size: 12px; color: #786C65; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; margin-top: 2px; }
+    .conv-item.unread .msg-preview { color: #2C221E; font-weight: 600; }
+    
+    .right-col { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .time { font-size: 11px; color: #786C65; }
+    .badge { background: #C85A32; color: #fff; font-size: 10px; font-weight: bold; width: 18px; height: 18px; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
+    
+    .nav-bar { height: 60px; background: #FFFFFF; border-top: 1px solid #E8E2D9; display: flex; justify-content: space-around; align-items: center; }
+    .nav-item { font-size: 11px; color: #786C65; display: flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; }
+    .nav-item.active { color: #C85A32; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <div class="mobile-frame">
+    <div class="status-bar">
+      <span>9:41</span>
+      <span>100%</span>
+    </div>
+
+    <div class="app-header">
+      <span style="color: #2C221E;">Missatges</span>
+      <span style="font-size: 11px; color: #786C65;">🔒 AES-256</span>
+    </div>
+
+    <div class="content">
+      <a href="chat-mobile.html" class="conv-item unread">
+        <div class="user-left">
+          <div class="avatar">MM</div>
+          <div style="min-width: 0;">
+            <div class="name-line">Mireia Masnou</div>
+            <div class="origin-line">📍 Vic • Estocolm (11-15 Oct)</div>
+            <div class="msg-preview">Hola! Jo també estaré a Estocolm...</div>
+          </div>
+        </div>
+        <div class="right-col">
+          <span class="time">15:42</span>
+          <span class="badge">1</span>
+        </div>
+      </a>
+
+      <a href="chat-mobile.html" class="conv-item">
+        <div class="user-left">
+          <div class="avatar">JR</div>
+          <div style="min-width: 0;">
+            <div class="name-line">Jordi Ribas</div>
+            <div class="origin-line">📍 Girona • Oslo (16-19 Oct)</div>
+            <div class="msg-preview">Perfecte, ens veiem el dia 17!</div>
+          </div>
+        </div>
+        <div class="right-col">
+          <span class="time">Ahir</span>
+        </div>
+      </a>
+    </div>
+
+    <div class="nav-bar">
+      <a href="../trips/trips-list-mobile.html" class="nav-item"><span>✈️</span>Viatges</a>
+      <a href="conversations-mobile.html" class="nav-item active"><span>💬</span>Xats</a>
+      <a href="../matching/notifications-mobile.html" class="nav-item"><span>🔔</span>Avisos</a>
+      <a href="../profile/profile-mobile.html" class="nav-item"><span>👤</span>Perfil</a>
+    </div>
+  </div>
+
+</body>
+</html>
