@@ -1,0 +1,14 @@
+.github/workflows/deploy.yml
+  h_42175f19913982 1,9-10,26,35-36,38-39,47-141
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "9191cb3043514dfc3b0ed0fd98046acd5ba92726",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
