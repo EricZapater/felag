@@ -1,0 +1,20 @@
+.gitignore
+  h_42175f19913982 11-12
+backend/.dockerignore
+  h_42175f19913982 1-9
+backend/Dockerfile
+  h_42175f19913982 3
+backend/go.mod
+  h_42175f19913982 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "7cb7de6ab19f02872ab01607191e96c435e10bb0",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
