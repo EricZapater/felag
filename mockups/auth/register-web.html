@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FELAG — Registra't (Web)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
+    body { background-color: #F9F6F0; display: flex; justify-content: center; align-items: center; min-height: 100vh; color: #2C221E; }
+    .card { background: #ffffff; width: 100%; max-width: 440px; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(74, 46, 43, 0.08); border: 1px solid #E8E2D9; }
+    .logo { text-align: center; margin-bottom: 8px; font-size: 28px; font-weight: 700; color: #C85A32; letter-spacing: 2px; }
+    .subtitle { text-align: center; color: #786C65; font-size: 14px; margin-bottom: 28px; }
+    .form-group { margin-bottom: 18px; }
+    label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 500; color: #4A3E39; }
+    input { width: 100%; padding: 12px 14px; border: 1px solid #DDCFBF; border-radius: 6px; font-size: 15px; outline: none; background: #FAF7F2; color: #2C221E; transition: border-color 0.2s; }
+    input:focus { border-color: #C85A32; background: #FFFFFF; }
+    .btn { width: 100%; padding: 14px; background-color: #C85A32; color: #fff; border: none; border-radius: 6px; font-size: 16px; font-weight: 500; cursor: pointer; transition: background 0.2s; margin-top: 10px; }
+    .btn:hover { background-color: #A0471D; }
+    .footer-text { text-align: center; margin-top: 24px; font-size: 14px; color: #786C65; }
+    .footer-text a { color: #C85A32; text-decoration: none; font-weight: 500; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="logo">FELAG</div>
+    <div class="subtitle">Crea el teu compte i connecta amb la teva gent</div>
+
+    <form onsubmit="return false;">
+      <div class="form-group">
+        <label for="name">Nom complet</label>
+        <input type="text" id="name" placeholder="Oriol Soler" value="Oriol Soler">
+      </div>
+      <div class="form-group">
+        <label for="email">Correu electrònic</label>
+        <input type="email" id="email" placeholder="nom@exemple.cat" value="oriol@exemple.cat">
+      </div>
+      <div class="form-group">
+        <label for="password">Contrasenya</label>
+        <input type="password" id="password" placeholder="Mínim 8 caràcters" value="password123">
+      </div>
+      <button type="submit" class="btn">Crear compte</button>
+    </form>
+
+    <div class="footer-text">
+      Ja tens compte? <a href="login-web.html">Inicia sessió</a>
+    </div>
+  </div>
+
+</body>
+</html>

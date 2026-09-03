@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FELAG — Selecció d'Origen (Web)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
+    body { background-color: #F9F6F0; color: #2C221E; }
+    header { background: #FFFFFF; border-bottom: 1px solid #E8E2D9; padding: 16px 40px; display: flex; justify-content: space-between; align-items: center; }
+    .brand { font-size: 22px; font-weight: 700; color: #C85A32; letter-spacing: 1px; }
+    
+    .container { max-width: 700px; margin: 40px auto; padding: 0 20px; }
+    .card { background: #FFFFFF; border-radius: 12px; padding: 32px; box-shadow: 0 2px 12px rgba(74, 46, 43, 0.06); border: 1px solid #E8E2D9; }
+    
+    .title { font-size: 22px; font-weight: 700; margin-bottom: 8px; color: #2C221E; }
+    .description { color: #786C65; font-size: 14px; margin-bottom: 28px; line-height: 1.5; }
+    
+    .step-box { background: #FAF7F2; border: 1px solid #E8E2D9; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+    .step-title { font-size: 14px; font-weight: 600; text-transform: uppercase; color: #C85A32; margin-bottom: 12px; letter-spacing: 0.5px; }
+    
+    select { width: 100%; padding: 12px; border: 1px solid #DDCFBF; border-radius: 6px; font-size: 15px; background: white; color: #2C221E; outline: none; }
+    select:focus { border-color: #C85A32; }
+    
+    .summary-box { background: #F4ECE1; border: 1px solid #DDCFBF; border-radius: 8px; padding: 16px; margin-top: 24px; color: #703817; font-weight: 500; font-size: 15px; display: flex; align-items: center; gap: 10px; }
+    
+    .actions { margin-top: 32px; display: flex; justify-content: flex-end; gap: 12px; }
+    .btn-cancel { background: transparent; border: 1px solid #DDCFBF; padding: 12px 24px; border-radius: 6px; font-size: 14px; cursor: pointer; text-decoration: none; color: #555; }
+    .btn-save { background: #C85A32; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; }
+    .btn-save:hover { background: #A0471D; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">FELAG</div>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <div class="title">Selecciona el teu origen</div>
+      <div class="description">
+        Selecciona la teva procedència seguint la jerarquia oficial. Aquesta informació permetrà al sistema trobar altres viatgers de la teva terra.
+      </div>
+
+      <div class="step-box">
+        <div class="step-title">1. País d'origen</div>
+        <select id="country">
+          <option value="es" selected>Espanya</option>
+          <option value="fr">França</option>
+          <option value="it">Itàlia</option>
+          <option value="ad">Andorra</option>
+        </select>
+      </div>
+
+      <div class="step-box">
+        <div class="step-title">2. Regió / Comunitat d'origen</div>
+        <select id="region">
+          <option value="cat" selected>Catalunya</option>
+          <option value="val">Comunitat Valenciana</option>
+          <option value="bal">Illes Balears</option>
+        </select>
+      </div>
+
+      <div class="step-box">
+        <div class="step-title">3. Poble / Ciutat d'origen</div>
+        <select id="town">
+          <option value="vic" selected>Vic</option>
+          <option value="bcn">Barcelona</option>
+          <option value="gir">Girona</option>
+          <option value="man">Manresa</option>
+        </select>
+      </div>
+
+      <div class="summary-box">
+        <span>📍</span> Origen seleccionat: <strong>Espanya ➔ Catalunya ➔ Vic</strong>
+      </div>
+
+      <div class="actions">
+        <a href="profile-web.html" class="btn-cancel">Cancel·lar</a>
+        <button class="btn-save">Confirmar origen</button>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

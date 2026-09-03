@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FELAG — Inicia Sessió (Mobile)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
+    body { background-color: #E8E2D9; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+    .mobile-frame { background: #FFFFFF; width: 375px; height: 750px; border-radius: 36px; border: 12px solid #3E2723; box-shadow: 0 10px 30px rgba(62, 39, 35, 0.2); display: flex; flex-direction: column; overflow: hidden; position: relative; }
+    .status-bar { height: 40px; background: #FFFFFF; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; font-size: 12px; font-weight: bold; color: #4A3E39; }
+    .content { padding: 32px 24px; flex: 1; display: flex; flex-direction: column; justify-content: center; background: #F9F6F0; }
+    .logo { text-align: center; margin-bottom: 12px; font-size: 32px; font-weight: 700; color: #C85A32; letter-spacing: 2px; }
+    .subtitle { text-align: center; color: #786C65; font-size: 14px; margin-bottom: 40px; }
+    .form-group { margin-bottom: 24px; }
+    label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 500; color: #4A3E39; text-transform: uppercase; letter-spacing: 0.5px; }
+    input { width: 100%; padding: 14px; border: 1px solid #DDCFBF; border-radius: 8px; font-size: 16px; outline: none; background: #FFFFFF; color: #2C221E; }
+    .btn { width: 100%; padding: 16px; background-color: #C85A32; color: #fff; border: none; border-radius: 28px; font-size: 16px; font-weight: 600; cursor: pointer; text-align: center; margin-top: 12px; }
+    .footer-text { text-align: center; margin-top: 32px; font-size: 14px; color: #786C65; }
+    .footer-text a { color: #C85A32; text-decoration: none; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  <div class="mobile-frame">
+    <div class="status-bar">
+      <span>9:41</span>
+      <span>100%</span>
+    </div>
+
+    <div class="content">
+      <div class="logo">FELAG</div>
+      <div class="subtitle">Troba gent de la teva terra allà on viatgis</div>
+
+      <form onsubmit="return false;">
+        <div class="form-group">
+          <label for="email">Correu electrònic</label>
+          <input type="email" id="email" placeholder="nom@exemple.cat" value="oriol@exemple.cat">
+        </div>
+        <div class="form-group">
+          <label for="password">Contrasenya</label>
+          <input type="password" id="password" placeholder="••••••••" value="password123">
+        </div>
+        <button type="submit" class="btn">Inicia sessió</button>
+      </form>
+
+      <div class="footer-text">
+        No tens un compte? <a href="register-mobile.html">Registra't</a>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

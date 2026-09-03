@@ -1,0 +1,42 @@
+# Node / pnpm
+node_modules/
+.pnpm-store/
+dist/
+build/
+.output/
+
+# Go
+backend/bin/
+backend/tmp/
+*.exe
+*.test
+*.prof
+
+# Expo / React Native
+mobile/.expo/
+mobile/web-build/
+mobile/.eas/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Coverage / Logs
+coverage/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+

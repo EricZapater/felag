@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FELAG — El meu perfil (Web)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
+    body { background-color: #F9F6F0; color: #2C221E; }
+    header { background: #FFFFFF; border-bottom: 1px solid #E8E2D9; padding: 16px 40px; display: flex; justify-content: space-between; align-items: center; }
+    .brand { font-size: 22px; font-weight: 700; color: #C85A32; letter-spacing: 1px; }
+    .nav-user { display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 500; color: #4A3E39; }
+    .nav-avatar { width: 36px; height: 36px; border-radius: 50%; background: #C85A32; color: #fff; display: flex; justify-content: center; align-items: center; font-weight: bold; }
+    
+    .container { max-width: 800px; margin: 40px auto; padding: 0 20px; }
+    .card { background: #FFFFFF; border-radius: 12px; padding: 32px; box-shadow: 0 2px 12px rgba(74, 46, 43, 0.05); border: 1px solid #E8E2D9; margin-bottom: 24px; }
+    
+    .profile-header { display: flex; align-items: center; gap: 24px; margin-bottom: 32px; border-bottom: 1px solid #F0ECE4; padding-bottom: 24px; }
+    .avatar-wrapper { position: relative; }
+    .avatar { width: 100px; height: 100px; border-radius: 50%; background-color: #F4ECE1; object-fit: cover; display: flex; justify-content: center; align-items: center; font-size: 36px; color: #703817; border: 3px solid #C85A32; }
+    .btn-upload { position: absolute; bottom: 0; right: 0; background: #C85A32; color: white; border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 14px; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+    
+    .profile-info h2 { font-size: 24px; margin-bottom: 6px; color: #2C221E; }
+    .profile-info p { color: #786C65; font-size: 14px; }
+    
+    .section-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: #3E2723; }
+    
+    .origin-box { background: #F4ECE1; border: 1px solid #DDCFBF; border-radius: 8px; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
+    .origin-details { display: flex; flex-direction: column; gap: 4px; }
+    .origin-path { font-size: 16px; font-weight: 700; color: #703817; }
+    .origin-label { font-size: 12px; color: #8C7A70; text-transform: uppercase; letter-spacing: 0.5px; }
+    .btn-outline { background: transparent; border: 1px solid #C85A32; color: #C85A32; padding: 10px 18px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; text-decoration: none; display: inline-block; transition: background 0.2s; }
+    .btn-outline:hover { background: #F4ECE1; }
+
+    .form-group { margin-bottom: 20px; }
+    label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 500; color: #4A3E39; }
+    input, textarea { width: 100%; padding: 12px; border: 1px solid #DDCFBF; border-radius: 6px; font-size: 14px; background: #FAF7F2; color: #2C221E; }
+    textarea { resize: vertical; height: 100px; }
+    .help-text { font-size: 12px; color: #786C65; margin-top: 4px; }
+    .btn-save { background: #C85A32; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s; }
+    .btn-save:hover { background: #A0471D; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">FELAG</div>
+    <div class="nav-user">
+      <div class="nav-avatar">OS</div>
+      <span>Oriol Soler</span>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <div class="profile-header">
+        <div class="avatar-wrapper">
+          <div class="avatar">OS</div>
+          <button class="btn-upload" title="Pujar foto a Cloudflare R2">📷</button>
+        </div>
+        <div class="profile-info">
+          <h2>Oriol Soler</h2>
+          <p>oriol@exemple.cat</p>
+        </div>
+      </div>
+
+      <div class="section-title">Origen definit (Jerarquia)</div>
+      <div class="origin-box">
+        <div class="origin-details">
+          <span class="origin-label">Origen actual</span>
+          <span class="origin-path">Espanya ➔ Catalunya ➔ Vic</span>
+        </div>
+        <a href="origin-selector-web.html" class="btn-outline">Canviar origen</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Informació del perfil</div>
+      <form onsubmit="return false;">
+        <div class="form-group">
+          <label>Nom complet</label>
+          <input type="text" value="Oriol Soler">
+        </div>
+        <div class="form-group">
+          <label>Telèfon de contacte / MFA</label>
+          <input type="tel" placeholder="+34 612 34 56 78" value="+34 612 34 56 78">
+          <div class="help-text">Utilitzat per a la verificació en dos passos (MFA).</div>
+        </div>
+        <div class="form-group">
+          <label>Biografia curta</label>
+          <textarea placeholder="Explica una mica sobre tu...">Apassionat dels viatges i la muntanya. Sempre buscant gent de la terra pel món!</textarea>
+        </div>
+        <button class="btn-save">Desar canvis</button>
+      </form>
+    </div>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,317 @@
+openapi: 3.0.3
+info:
+  title: FELAG Profile & Origins API
+  description: Contracte OpenAPI per al mòdul de perfil, jerarquia d'orígens i telèfon per a MFA de FELAG.
+  version: 1.1.0
+servers:
+  - url: http://localhost:8080
+    description: Servidor de desenvolupament local
+
+paths:
+  /api/v1/profile:
+    get:
+      summary: Obtenir el perfil de l'usuari autenticat
+      operationId: getProfile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Perfil de l'usuari amb el seu origen i telèfon MFA
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    put:
+      summary: Actualitzar la informació del perfil (Nom, Bio, Telèfon MFA)
+      operationId: updateProfile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Perfil actualitzat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/profile/avatar:
+    post:
+      summary: Pujar foto de perfil a Cloudflare R2
+      operationId: uploadAvatar
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Foto pujada amb èxit a R2
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - avatar_url
+                properties:
+                  avatar_url:
+                    type: string
+                    format: uri
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/profile/origin:
+    put:
+      summary: Assignar o modificar l'origen de l'usuari (Jerarquia)
+      operationId: updateOrigin
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - town_id
+              properties:
+                town_id:
+                  type: string
+                  format: uuid
+                  example: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '200':
+          description: Origen assignat amb èxit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/origins/countries:
+    get:
+      summary: Obtenir la llista de països precarregats
+      operationId: getCountries
+      responses:
+        '200':
+          description: Llista de països
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Country'
+
+  /api/v1/origins/countries/{country_id}/regions:
+    get:
+      summary: Obtenir les regions d'un país
+      operationId: getRegionsByCountry
+      parameters:
+        - name: country_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Llista de regions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Region'
+        '404':
+          description: País no trobat
+
+  /api/v1/origins/regions/{region_id}/towns:
+    get:
+      summary: Obtenir les ciutats/pobles d'una regió
+      operationId: getTownsByRegion
+      parameters:
+        - name: region_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Llista de ciutats/pobles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Town'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Profile:
+      type: object
+      required:
+        - id
+        - name
+        - email
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone_number:
+          type: string
+          nullable: true
+          example: "+34612345678"
+        avatar_url:
+          type: string
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+        origin:
+          $ref: '#/components/schemas/OriginHierarchy'
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        phone_number:
+          type: string
+          example: "+34612345678"
+        bio:
+          type: string
+
+    OriginHierarchy:
+      type: object
+      nullable: true
+      required:
+        - country
+        - region
+        - town
+      properties:
+        country:
+          $ref: '#/components/schemas/Country'
+        region:
+          $ref: '#/components/schemas/Region'
+        town:
+          $ref: '#/components/schemas/Town'
+
+    Country:
+      type: object
+      required:
+        - id
+        - name
+        - code
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Espanya
+        code:
+          type: string
+          example: ES
+
+    Region:
+      type: object
+      required:
+        - id
+        - name
+        - country_id
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Catalunya
+        country_id:
+          type: string
+          format: uuid
+
+    Town:
+      type: object
+      required:
+        - id
+        - name
+        - region_id
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Vic
+        region_id:
+          type: string
+          format: uuid
+
+  responses:
+    BadRequestError:
+      description: Dades d'entrada invàlides
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - code
+              - message
+            properties:
+              code:
+                type: string
+              message:
+                type: string
+
+    UnauthorizedError:
+      description: Token invàlid o no proporcionat
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - code
+              - message
+            properties:
+              code:
+                type: string
+              message:
+                type: string
