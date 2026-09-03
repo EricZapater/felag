@@ -1,0 +1,18 @@
+.github/workflows/ci.yml
+  h_42175f19913982 34
+.github/workflows/mobile-build.yml
+  h_42175f19913982 36
+frontend/Dockerfile
+  h_42175f19913982 2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "500b3eb8cef0ff164972c3cd7e6e4c32f77e86d8",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
