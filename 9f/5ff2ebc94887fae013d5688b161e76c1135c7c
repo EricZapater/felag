@@ -1,0 +1,138 @@
+CHANGELOG.md
+  h_42175f19913982 7-19,24-27,32,37,42
+VERSION
+  h_42175f19913982 1
+backend/cmd/api/main.go
+  h_42175f19913982 13,17,116-124,190,198-208,211-213
+backend/internal/db/migrations/000007_create_post_trip_and_celebration.down.sql
+  h_42175f19913982 1-6
+backend/internal/db/migrations/000007_create_post_trip_and_celebration.up.sql
+  h_42175f19913982 1-60
+backend/internal/explore/handler.go
+  h_42175f19913982 1-33
+backend/internal/explore/model.go
+  h_42175f19913982 1-24
+backend/internal/explore/repository.go
+  h_42175f19913982 1-226
+backend/internal/explore/service.go
+  h_42175f19913982 1-24
+backend/internal/explore/service_test.go
+  h_42175f19913982 1-62
+backend/internal/posttrip/handler.go
+  h_42175f19913982 1-328
+backend/internal/posttrip/model.go
+  h_42175f19913982 1-107
+backend/internal/posttrip/repository.go
+  h_42175f19913982 1-857
+backend/internal/posttrip/service.go
+  h_42175f19913982 1-342
+backend/internal/posttrip/service_test.go
+  h_42175f19913982 1-415
+contracts/post-trip.openapi.yaml
+  h_42175f19913982 1-493
+frontend/src/components/AppHeader.tsx
+  h_42175f19913982 28,80-93
+frontend/src/modules/explore/api.ts
+  h_42175f19913982 1-9
+frontend/src/modules/explore/store.ts
+  h_42175f19913982 1-37
+frontend/src/modules/explore/types.ts
+  h_42175f19913982 1-12
+frontend/src/modules/explore/views/ExploreDestinationsView.tsx
+  h_42175f19913982 1-291
+frontend/src/modules/posttrip/api.ts
+  h_42175f19913982 1-73
+frontend/src/modules/posttrip/components/ActiveTripHubCard.tsx
+  h_42175f19913982 1-404
+frontend/src/modules/posttrip/components/InstagramStoriesCard.tsx
+  h_42175f19913982 1-452
+frontend/src/modules/posttrip/store.ts
+  h_42175f19913982 1-191
+frontend/src/modules/posttrip/types.ts
+  h_42175f19913982 1-107
+frontend/src/modules/posttrip/views/CelebrationCardGeneratorView.tsx
+  h_42175f19913982 1-571
+frontend/src/modules/posttrip/views/TripGalleryView.tsx
+  h_42175f19913982 1-506
+frontend/src/modules/posttrip/views/TripWrapupView.tsx
+  h_42175f19913982 1-483
+frontend/src/modules/trips/views/TripDetailView.tsx
+  h_42175f19913982 27,152-162
+frontend/src/modules/trips/views/TripsListView.tsx
+  h_42175f19913982 24-25,76,81-82,243-247
+frontend/src/router/index.tsx
+  h_42175f19913982 18-21,76-107
+mobile/src/modules/community/screens/DestinationsListScreen.tsx
+  h_42175f19913982 158-171,399-431
+mobile/src/modules/explore/api.ts
+  h_42175f19913982 1-9
+mobile/src/modules/explore/screens/ExploreDestinationsScreen.tsx
+  h_42175f19913982 1-298
+mobile/src/modules/explore/store.ts
+  h_42175f19913982 1-38
+mobile/src/modules/explore/types.ts
+  h_42175f19913982 1-13
+mobile/src/modules/posttrip/api.ts
+  h_42175f19913982 1-70
+mobile/src/modules/posttrip/components/ActiveTripHubCard.tsx
+  h_42175f19913982 1-257
+mobile/src/modules/posttrip/screens/CelebrationCardScreen.tsx
+  h_42175f19913982 1-540
+mobile/src/modules/posttrip/screens/InstagramStoriesScreen.tsx
+  h_42175f19913982 1-375
+mobile/src/modules/posttrip/screens/TripGalleryScreen.tsx
+  h_42175f19913982 1-647
+mobile/src/modules/posttrip/screens/TripWrapupScreen.tsx
+  h_42175f19913982 1-579
+mobile/src/modules/posttrip/store.ts
+  h_42175f19913982 1-254
+mobile/src/modules/posttrip/types.ts
+  h_42175f19913982 1-112
+mobile/src/modules/trips/screens/TripDetailScreen.tsx
+  h_42175f19913982 13-14,31,37,39,150-153,237-294,486-523
+mobile/src/modules/trips/screens/TripsListScreen.tsx
+  h_42175f19913982 13-14,25,29-30,34,194-197
+mobile/src/navigation/index.tsx
+  h_42175f19913982 23-27,141-155
+mockups/approvals.md
+  h_42175f19913982 35-44
+mockups/post-trip/active-hub-mobile.html
+  h_42175f19913982 1-130
+mockups/post-trip/active-hub-web.html
+  h_42175f19913982 1-125
+mockups/post-trip/celebration-card-mobile.html
+  h_42175f19913982 1-94
+mockups/post-trip/celebration-card-web.html
+  h_42175f19913982 1-114
+mockups/post-trip/explore-destinations-mobile.html
+  h_42175f19913982 1-105
+mockups/post-trip/explore-destinations-web.html
+  h_42175f19913982 1-109
+mockups/post-trip/trip-gallery-mobile.html
+  h_42175f19913982 1-115
+mockups/post-trip/trip-gallery-web.html
+  h_42175f19913982 1-97
+mockups/post-trip/wrapup-and-stories-mobile.html
+  h_42175f19913982 1-116
+mockups/post-trip/wrapup-and-stories-web.html
+  h_42175f19913982 1-196
+qa-reports/post-trip.md
+  h_42175f19913982 1-62
+roadmap.md
+  h_42175f19913982 175-176,180,183,189-190
+specs/post-trip.md
+  h_42175f19913982 1-98
+ux-reports/post-trip.md
+  h_42175f19913982 1-122
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "9f5ff2ebc94887fae013d5688b161e76c1135c7c",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
