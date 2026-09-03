@@ -1,0 +1,28 @@
+backend/go.mod
+  h_42175f19913982 24
+backend/go.sum
+  h_42175f19913982 35-36
+backend/internal/db/migrations/000004_populate_geographic_data.down.sql
+  h_42175f19913982 1-2
+backend/internal/db/migrations/000004_populate_geographic_data.up.sql
+  h_42175f19913982 1-158789
+data/cities.csv
+  h_42175f19913982 1-152971
+data/countries.csv
+  h_42175f19913982 1-251
+data/states.csv
+  h_42175f19913982 1-5309
+scripts/generate_migration.go
+  h_42175f19913982 1-232
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "375a43be2a24c3e8b25c2d17ccdfab66023e2e7c",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
