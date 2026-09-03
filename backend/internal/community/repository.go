@@ -301,6 +301,28 @@ func (r *repository) GetDestinationStats(info *DestinationInfo, currentUserID st
 				detail.UserPhotoSharingMode = psm
 			}
 		}
+
+		// Dynamic Community Banner: 1) top-voted recommendation photo, 2) latest live moment
+		var townBanner sql.NullString
+		bannerQuery := `
+			SELECT image_url FROM destination_recommendations
+			WHERE town_id = $1 AND image_url IS NOT NULL AND image_url != ''
+			ORDER BY useful_votes_count DESC, created_at DESC
+			LIMIT 1
+		`
+		if err := r.db.QueryRow(bannerQuery, info.TownID).Scan(&townBanner); err == nil && townBanner.Valid && townBanner.String != "" {
+			detail.BannerURL = &townBanner.String
+		} else {
+			momentBannerQuery := `
+				SELECT image_url FROM destination_live_moments
+				WHERE town_id = $1 AND image_url IS NOT NULL AND image_url != ''
+				ORDER BY created_at DESC
+				LIMIT 1
+			`
+			if err := r.db.QueryRow(momentBannerQuery, info.TownID).Scan(&townBanner); err == nil && townBanner.Valid && townBanner.String != "" {
+				detail.BannerURL = &townBanner.String
+			}
+		}
 	} else {
 		detail.ID = info.CountryCode
 		detail.Name = info.CountryName
@@ -352,6 +374,23 @@ func (r *repository) GetDestinationStats(info *DestinationInfo, currentUserID st
 				detail.UserIsTravellingNow = true
 				detail.UserPhotoSharingMode = psm
 			}
+		}
+
+		// Dynamic Country Banner: top-voted recommendation photo
+		var countryBanner sql.NullString
+		cBannerQuery := `
+			SELECT dr.image_url
+			FROM destination_recommendations dr
+			LEFT JOIN towns t ON dr.town_id = t.id
+			LEFT JOIN regions r ON t.region_id = r.id
+			LEFT JOIN countries dc ON r.country_id = dc.id
+			WHERE (dr.country_code = $1 OR dc.code = $1)
+			  AND dr.image_url IS NOT NULL AND dr.image_url != ''
+			ORDER BY dr.useful_votes_count DESC, dr.created_at DESC
+			LIMIT 1
+		`
+		if err := r.db.QueryRow(cBannerQuery, info.CountryCode).Scan(&countryBanner); err == nil && countryBanner.Valid && countryBanner.String != "" {
+			detail.BannerURL = &countryBanner.String
 		}
 	}
 

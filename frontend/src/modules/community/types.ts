@@ -22,6 +22,7 @@ export interface DestinationSummary {
   country_name?: string;
   country_code?: string;
   type: DestinationType;
+  banner_url?: string;
   recommendations_count?: number;
   active_felagis_count?: number;
 }
@@ -33,6 +34,7 @@ export interface DestinationDetail {
   country_name?: string;
   country_code: string;
   flag_emoji?: string;
+  banner_url?: string;
   total_recommendations?: number;
   active_felagis_count?: number;
   total_visitors_count?: number;

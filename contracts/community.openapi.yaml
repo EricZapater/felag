@@ -314,6 +314,9 @@ components:
           type: integer
         active_felagis_count:
           type: integer
+        banner_url:
+          type: string
+          description: Dynamic community banner image URL
 
     DestinationDetail:
       type: object
@@ -331,6 +334,9 @@ components:
           type: string
         flag_emoji:
           type: string
+        banner_url:
+          type: string
+          description: Dynamic community banner image URL
         total_recommendations:
           type: integer
         active_felagis_count:

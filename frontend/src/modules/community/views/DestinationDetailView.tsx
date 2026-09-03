@@ -210,7 +210,9 @@ export default function DestinationDetailView() {
       {/* Hero Banner with Earth Dark Gradient & Backdrop */}
       <Box
         sx={{
-          background: `linear-gradient(180deg, rgba(44, 34, 30, 0.75) 0%, rgba(44, 34, 30, 0.95) 100%), url('https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=1400&auto=format&fit=crop&q=80') center/cover`,
+          background: `linear-gradient(180deg, rgba(44, 34, 30, 0.75) 0%, rgba(44, 34, 30, 0.95) 100%), url('${
+            currentDestination?.banner_url || 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=1400&auto=format&fit=crop&q=80'
+          }') center/cover`,
           color: '#FFFFFF',
           pt: 4,
           pb: 5,

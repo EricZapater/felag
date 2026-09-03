@@ -4,6 +4,7 @@ import {
   Alert,
   FlatList,
   Image,
+  ImageBackground,
   Modal,
   RefreshControl,
   ScrollView,
@@ -243,8 +244,16 @@ export default function DestinationDetailScreen({ navigation, route }: Props) {
 
   return (
     <View style={styles.container}>
-      {/* Hero Header */}
-      <View style={styles.hero}>
+      {/* Hero Header with Dynamic Community Banner */}
+      <ImageBackground
+        source={{
+          uri:
+            currentDestination?.banner_url ||
+            'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=800&auto=format&fit=crop&q=80',
+        }}
+        style={styles.hero}
+        imageStyle={{ opacity: 0.45 }}
+      >
         <View style={styles.heroTop}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.btnBack}>
             <Text style={styles.btnBackText}>‹</Text>
@@ -266,7 +275,7 @@ export default function DestinationDetailScreen({ navigation, route }: Props) {
             {totalTips} consells • {activeFelagis} FELAGIS ara mateix
           </Text>
         </View>
-      </View>
+      </ImageBackground>
 
       {/* Live Alert Chip */}
       <View style={styles.liveChipContainer}>

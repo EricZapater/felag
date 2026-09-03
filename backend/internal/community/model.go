@@ -11,6 +11,7 @@ type DestinationSummary struct {
 	Type                 string  `json:"type"` // "town" | "country"
 	RecommendationsCount int     `json:"recommendations_count"`
 	ActiveFelagisCount   int     `json:"active_felagis_count"`
+	BannerURL            *string `json:"banner_url,omitempty"`
 }
 
 type DestinationDetail struct {
@@ -20,6 +21,7 @@ type DestinationDetail struct {
 	CountryName          string  `json:"country_name"`
 	CountryCode          string  `json:"country_code"`
 	FlagEmoji            *string `json:"flag_emoji,omitempty"`
+	BannerURL            *string `json:"banner_url,omitempty"`
 	TotalRecommendations int     `json:"total_recommendations"`
 	ActiveFelagisCount   int     `json:"active_felagis_count"`
 	TotalVisitorsCount   int     `json:"total_visitors_count"`
