@@ -73,7 +73,7 @@ func main() {
 	header, _ := reader.Read() // skip header
 	_ = header
 
-	countryMap := make(map[string]string) // iso2 -> UUID
+	countryMap := make(map[string]bool) // iso2 -> exists
 	countryRows := []string{}
 
 	for {
@@ -91,9 +91,8 @@ func main() {
 			continue
 		}
 
-		countryID := deterministicUUID("country", iso2)
-		countryMap[iso2] = countryID
-		countryRows = append(countryRows, fmt.Sprintf("('%s', '%s', '%s')", countryID, name, iso2))
+		countryMap[iso2] = true
+		countryRows = append(countryRows, fmt.Sprintf("('%s', '%s')", name, iso2))
 	}
 	log.Printf("Parsed %d countries.", len(countryRows))
 
@@ -125,14 +124,13 @@ func main() {
 		name := escapeSQL(strings.TrimSpace(record[1]))
 		countryCode := strings.TrimSpace(record[3])
 
-		countryID, ok := countryMap[countryCode]
-		if !ok || name == "" {
+		if !countryMap[countryCode] || name == "" {
 			continue
 		}
 
 		regionID := deterministicUUID("state", rawStateID)
 		stateMap[rawStateID] = regionID
-		regionRows = append(regionRows, fmt.Sprintf("('%s', '%s', '%s')", regionID, name, countryID))
+		regionRows = append(regionRows, fmt.Sprintf("('%s'::uuid, '%s', '%s')", regionID, name, countryCode))
 	}
 	log.Printf("Parsed %d states/regions.", len(regionRows))
 
@@ -168,7 +166,7 @@ func main() {
 		}
 
 		townID := deterministicUUID("city", rawCityID)
-		townRows = append(townRows, fmt.Sprintf("('%s', '%s', '%s')", townID, name, regionID))
+		townRows = append(townRows, fmt.Sprintf("('%s'::uuid, '%s', '%s'::uuid)", townID, name, regionID))
 	}
 	log.Printf("Parsed %d cities/towns.", len(townRows))
 
@@ -193,10 +191,10 @@ func main() {
 			end = len(countryRows)
 		}
 		chunk := countryRows[i:end]
-		outFile.WriteString(fmt.Sprintf("INSERT INTO countries (id, name, code) VALUES\n  %s\nON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name;\n\n", strings.Join(chunk, ",\n  ")))
+		outFile.WriteString(fmt.Sprintf("INSERT INTO countries (name, code) VALUES\n  %s\nON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name;\n\n", strings.Join(chunk, ",\n  ")))
 	}
 
-	// 2. Regions
+	// 2. Regions (JOIN with countries by code to guarantee foreign key integrity)
 	outFile.WriteString("-- 2. Insert Regions\n")
 	batchSize = 1000
 	for i := 0; i < len(regionRows); i += batchSize {
@@ -205,10 +203,18 @@ func main() {
 			end = len(regionRows)
 		}
 		chunk := regionRows[i:end]
-		outFile.WriteString(fmt.Sprintf("INSERT INTO regions (id, name, country_id) VALUES\n  %s\nON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;\n\n", strings.Join(chunk, ",\n  ")))
+		outFile.WriteString(fmt.Sprintf(`INSERT INTO regions (id, name, country_id)
+SELECT r.id, r.name, c.id
+FROM (VALUES
+  %s
+) AS r(id, name, country_code)
+JOIN countries c ON c.code = r.country_code
+ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, country_id = EXCLUDED.country_id;
+
+`, strings.Join(chunk, ",\n  ")))
 	}
 
-	// 3. Towns
+	// 3. Towns (JOIN with regions by id to guarantee foreign key integrity)
 	outFile.WriteString("-- 3. Insert Towns / Cities\n")
 	batchSize = 2000
 	for i := 0; i < len(townRows); i += batchSize {
@@ -217,7 +223,15 @@ func main() {
 			end = len(townRows)
 		}
 		chunk := townRows[i:end]
-		outFile.WriteString(fmt.Sprintf("INSERT INTO towns (id, name, region_id) VALUES\n  %s\nON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;\n\n", strings.Join(chunk, ",\n  ")))
+		outFile.WriteString(fmt.Sprintf(`INSERT INTO towns (id, name, region_id)
+SELECT t.id, t.name, r.id
+FROM (VALUES
+  %s
+) AS t(id, name, region_id)
+JOIN regions r ON r.id = t.region_id
+ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, region_id = EXCLUDED.region_id;
+
+`, strings.Join(chunk, ",\n  ")))
 	}
 
 	// Down migration
