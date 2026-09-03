@@ -1,0 +1,126 @@
+.env.backend.example
+  h_42175f19913982 26
+CHANGELOG.md
+  h_42175f19913982 7-18,23-26,31-33
+VERSION
+  h_42175f19913982 1
+backend/cmd/api/main.go
+  h_42175f19913982 11-12,77-89,92,134-147
+backend/internal/db/migrations/000003_create_matching_and_notifications.down.sql
+  h_42175f19913982 1-5
+backend/internal/db/migrations/000003_create_matching_and_notifications.up.sql
+  h_42175f19913982 1-48
+backend/internal/matching/handler.go
+  h_42175f19913982 1-59
+backend/internal/matching/model.go
+  h_42175f19913982 1-76
+backend/internal/matching/repository.go
+  h_42175f19913982 1-356
+backend/internal/matching/service.go
+  h_42175f19913982 1-266
+backend/internal/matching/service_test.go
+  h_42175f19913982 1-271
+backend/internal/matching/worker.go
+  h_42175f19913982 1-89
+backend/internal/matching/worker_test.go
+  h_42175f19913982 1-127
+backend/internal/notification/handler.go
+  h_42175f19913982 1-131
+backend/internal/notification/model.go
+  h_42175f19913982 1-58
+backend/internal/notification/repository.go
+  h_42175f19913982 1-175
+backend/internal/notification/service.go
+  h_42175f19913982 1-179
+backend/internal/notification/service_test.go
+  h_42175f19913982 1-201
+backend/internal/shared/events.go
+  h_42175f19913982 1-11
+backend/internal/trip/service.go
+  h_42175f19913982 9-10,24,28-29,36-39,122-135,272-279
+contracts/matching.openapi.yaml
+  h_42175f19913982 1-344
+docker-compose.yml
+  h_42175f19913982 34
+frontend/src/components/AppHeader.tsx
+  h_42175f19913982 1-134
+frontend/src/modules/matching/api.ts
+  h_42175f19913982 1-14
+frontend/src/modules/matching/store.ts
+  h_42175f19913982 1-51
+frontend/src/modules/matching/types.ts
+  h_42175f19913982 1-27
+frontend/src/modules/matching/views/TripMatchesView.tsx
+  h_42175f19913982 1-347
+frontend/src/modules/notifications/api.ts
+  h_42175f19913982 1-33
+frontend/src/modules/notifications/store.ts
+  h_42175f19913982 1-72
+frontend/src/modules/notifications/types.ts
+  h_42175f19913982 1-26
+frontend/src/modules/notifications/views/NotificationsView.tsx
+  h_42175f19913982 1-233
+frontend/src/modules/profile/views/ProfileView.tsx
+  h_42175f19913982 18-19,23,69-71
+frontend/src/modules/trips/views/TripCreateView.tsx
+  h_42175f19913982 22,146
+frontend/src/modules/trips/views/TripDetailView.tsx
+  h_42175f19913982 23,25,132,290-292,298,301,304-322,329-351
+frontend/src/modules/trips/views/TripsListView.tsx
+  h_42175f19913982 20-21,235
+frontend/src/router/index.tsx
+  h_42175f19913982 10-11,58-73
+mobile/src/modules/auth/store.ts
+  h_42175f19913982 5-8,43-44,64-65,75
+mobile/src/modules/matching/api.ts
+  h_42175f19913982 1-14
+mobile/src/modules/matching/screens/TripMatchesScreen.tsx
+  h_42175f19913982 1-456
+mobile/src/modules/matching/store.ts
+  h_42175f19913982 1-47
+mobile/src/modules/matching/types.ts
+  h_42175f19913982 1-32
+mobile/src/modules/notifications/api.ts
+  h_42175f19913982 1-43
+mobile/src/modules/notifications/screens/NotificationsScreen.tsx
+  h_42175f19913982 1-268
+mobile/src/modules/notifications/services/pushTokenService.ts
+  h_42175f19913982 1-66
+mobile/src/modules/notifications/store.ts
+  h_42175f19913982 1-64
+mobile/src/modules/notifications/types.ts
+  h_42175f19913982 1-26
+mobile/src/modules/trips/screens/TripDetailScreen.tsx
+  h_42175f19913982 202-211,213,215-216,369-374,379-383
+mobile/src/navigation/index.tsx
+  h_42175f19913982 1,5,13-14,18,23-28,35,63-66,78-81,102-127,170-174,179-195
+mockups/approvals.md
+  h_42175f19913982 19-22
+mockups/matching/notifications-mobile.html
+  h_42175f19913982 1-89
+mockups/matching/notifications-web.html
+  h_42175f19913982 1-89
+mockups/matching/trip-matches-mobile.html
+  h_42175f19913982 1-101
+mockups/matching/trip-matches-web.html
+  h_42175f19913982 1-108
+qa-reports/matching.md
+  h_42175f19913982 1-79
+roadmap.md
+  h_42175f19913982 93-100,119-121
+specs/matching.md
+  h_42175f19913982 1-154
+ux-reports/matching.md
+  h_42175f19913982 1-92
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "b933903141cd9e6ea11c225d6319006f1ef144de",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
