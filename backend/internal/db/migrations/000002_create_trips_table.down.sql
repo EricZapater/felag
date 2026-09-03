@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS trip_stages;
+DROP TABLE IF EXISTS trips;

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FELAG — Detall del viatge (Web)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
+    body { background-color: #F9F6F0; color: #2C221E; }
+    header { background: #FFFFFF; border-bottom: 1px solid #E8E2D9; padding: 16px 40px; display: flex; justify-content: space-between; align-items: center; }
+    .brand { font-size: 22px; font-weight: 700; color: #C85A32; letter-spacing: 1px; }
+    .nav-links { display: flex; gap: 24px; align-items: center; }
+    .nav-link { color: #786C65; text-decoration: none; font-weight: 500; font-size: 15px; }
+    .nav-link.active { color: #C85A32; font-weight: 700; }
+    
+    .container { max-width: 850px; margin: 40px auto; padding: 0 20px; }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; color: #C85A32; text-decoration: none; font-weight: 600; margin-bottom: 20px; font-size: 14px; }
+    
+    .card { background: #FFFFFF; border: 1px solid #E8E2D9; border-radius: 12px; padding: 32px; box-shadow: 0 2px 12px rgba(74, 46, 43, 0.05); margin-bottom: 24px; }
+    
+    .trip-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+    .trip-title { font-size: 28px; font-weight: 700; color: #2C221E; }
+    .badge { padding: 6px 12px; border-radius: 16px; font-size: 13px; font-weight: 600; background: #E8F5E9; color: #2E7D32; }
+    
+    .trip-meta { display: flex; gap: 24px; font-size: 15px; color: #786C65; margin-bottom: 24px; }
+    
+    .section-title { font-size: 18px; font-weight: 700; color: #3E2723; margin-bottom: 16px; }
+    
+    .timeline { position: relative; padding-left: 32px; }
+    .timeline::before { content: ''; position: absolute; left: 10px; top: 12px; bottom: 12px; width: 2px; background: #DDCFBF; }
+    
+    .timeline-item { position: relative; margin-bottom: 28px; }
+    .timeline-item:last-child { margin-bottom: 0; }
+    .timeline-dot { position: absolute; left: -32px; top: 4px; width: 22px; height: 22px; border-radius: 50%; background: #C85A32; color: #fff; display: flex; justify-content: center; align-items: center; font-size: 11px; font-weight: bold; border: 2px solid #FFFFFF; box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
+    
+    .timeline-content { background: #FAF7F2; border: 1px solid #E8E2D9; border-radius: 8px; padding: 18px 20px; }
+    .timeline-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .timeline-city { font-size: 17px; font-weight: 700; color: #2C221E; }
+    .timeline-dates { font-size: 14px; color: #703817; font-weight: 600; }
+    
+    .matching-banner { background: #F4ECE1; border: 1px solid #DDCFBF; border-radius: 8px; padding: 20px; margin-top: 24px; display: flex; justify-content: space-between; align-items: center; }
+    .matching-text { font-size: 15px; color: #703817; font-weight: 600; }
+    .matching-subtext { font-size: 13px; color: #8C7A70; margin-top: 4px; }
+    
+    .actions { display: flex; justify-content: flex-end; gap: 12px; }
+    .btn-edit { background: #C85A32; color: #FFFFFF; border: none; padding: 10px 20px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; }
+    .btn-delete { background: transparent; border: 1px solid #d32f2f; color: #d32f2f; padding: 10px 20px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">FELAG</div>
+    <div class="nav-links">
+      <a href="trips-list-web.html" class="nav-link active">Viatges</a>
+      <a href="../profile/profile-web.html" class="nav-link">Perfil</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <a href="trips-list-web.html" class="back-link">‹ Tornar a la llista de viatges</a>
+
+    <div class="card">
+      <div class="trip-top">
+        <div>
+          <h1 class="trip-title">Ruta per Escandinàvia</h1>
+          <div class="trip-meta">
+            <span>📅 10 Oct – 24 Oct 2026</span>
+            <span>📍 3 etapes</span>
+            <span>👁️ Públic (Matching)</span>
+          </div>
+        </div>
+        <span class="badge">Pla actiu</span>
+      </div>
+
+      <div class="section-title">Itinerari detallat</div>
+
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-dot">1</div>
+          <div class="timeline-content">
+            <div class="timeline-header">
+              <span class="timeline-city">Estocolm (Suècia)</span>
+              <span class="timeline-dates">10 Oct – 15 Oct (5 dies)</span>
+            </div>
+            <p style="font-size: 13px; color: #786C65;">Arribada a l'aeroport d'Arlanda. Visita Gamla Stan i museus.</p>
+          </div>
+        </div>
+
+        <div class="timeline-item">
+          <div class="timeline-dot">2</div>
+          <div class="timeline-content">
+            <div class="timeline-header">
+              <span class="timeline-city">Oslo (Noruega)</span>
+              <span class="timeline-dates">15 Oct – 20 Oct (5 dies)</span>
+            </div>
+            <p style="font-size: 13px; color: #786C65;">Tren d'Estocolm a Oslo.</p>
+          </div>
+        </div>
+
+        <div class="timeline-item">
+          <div class="timeline-dot">3</div>
+          <div class="timeline-content">
+            <div class="timeline-header">
+              <span class="timeline-city">Bergen (Noruega)</span>
+              <span class="timeline-dates">20 Oct – 24 Oct (4 dies)</span>
+            </div>
+            <p style="font-size: 13px; color: #786C65;">Ruta pels fiords noruecs i tornada.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="matching-banner">
+        <div>
+          <div class="matching-text">✨ FELAG Matching (Fase 3)</div>
+          <div class="matching-subtext">Aquest viatge buscarà coincidències amb altres usuaris d'Osona / Catalunya que coincideixin en aquestes dates.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn-delete">Eliminar viatge</button>
+      <a href="trip-create-web.html" class="btn-edit">Editar viatge</a>
+    </div>
+  </div>
+
+</body>
+</html>

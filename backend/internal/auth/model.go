@@ -3,15 +3,15 @@ package auth
 import "time"
 
 type User struct {
-	ID           string    `json:"id"`
-	Email        string    `json:"email"`
-	Name         string    `json:"name"`
-	PhoneNumber  *string   `json:"phone_number,omitempty"`
-	AvatarURL    *string   `json:"avatar_url,omitempty"`
-	Bio          *string   `json:"bio,omitempty"`
-	TownID       *string   `json:"town_id,omitempty"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID          string    `json:"id"`
+	Email       string    `json:"email"`
+	Name        string    `json:"name"`
+	PhoneNumber *string   `json:"phone_number,omitempty"`
+	AvatarURL   *string   `json:"avatar_url,omitempty"`
+	Bio         *string   `json:"bio,omitempty"`
+	TownID      *string   `json:"town_id,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type RegisterRequest struct {

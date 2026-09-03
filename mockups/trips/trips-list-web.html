@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FELAG — Els meus viatges (Web)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
+    body { background-color: #F9F6F0; color: #2C221E; }
+    header { background: #FFFFFF; border-bottom: 1px solid #E8E2D9; padding: 16px 40px; display: flex; justify-content: space-between; align-items: center; }
+    .brand { font-size: 22px; font-weight: 700; color: #C85A32; letter-spacing: 1px; }
+    .nav-links { display: flex; gap: 24px; align-items: center; }
+    .nav-link { color: #786C65; text-decoration: none; font-weight: 500; font-size: 15px; }
+    .nav-link.active { color: #C85A32; font-weight: 700; }
+    
+    .container { max-width: 900px; margin: 40px auto; padding: 0 20px; }
+    .header-action { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .page-title { font-size: 26px; font-weight: 700; color: #2C221E; }
+    
+    .btn-primary { background-color: #C85A32; color: #FFFFFF; border: none; padding: 12px 24px; border-radius: 8px; font-size: 15px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; transition: background 0.2s; }
+    .btn-primary:hover { background-color: #A0471D; }
+    
+    .section-title { font-size: 18px; font-weight: 700; color: #3E2723; margin: 32px 0 16px 0; }
+    
+    .trips-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 20px; }
+    .trip-card { background: #FFFFFF; border: 1px solid #E8E2D9; border-radius: 12px; padding: 24px; box-shadow: 0 2px 10px rgba(74, 46, 43, 0.04); transition: transform 0.2s, box-shadow 0.2s; position: relative; }
+    .trip-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(74, 46, 43, 0.08); }
+    
+    .trip-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .trip-title { font-size: 19px; font-weight: 700; color: #2C221E; text-decoration: none; }
+    .trip-title:hover { color: #C85A32; }
+    .badge { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+    .badge-public { background: #E8F5E9; color: #2E7D32; }
+    .badge-ongoing { background: #FFF3E0; color: #E65100; }
+    
+    .trip-dates { font-size: 14px; color: #786C65; margin-bottom: 16px; display: flex; align-items: center; gap: 6px; }
+    
+    .stages-list { background: #FAF7F2; border: 1px solid #E8E2D9; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; }
+    .stage-item { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #4A3E39; margin-bottom: 6px; }
+    .stage-item:last-child { margin-bottom: 0; }
+    .stage-bullet { color: #C85A32; font-weight: bold; }
+    
+    .trip-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #F0ECE4; pt: 12px; margin-top: 12px; font-size: 13px; color: #786C65; }
+    .btn-detail { color: #C85A32; text-decoration: none; font-weight: 600; font-size: 14px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">FELAG</div>
+    <div class="nav-links">
+      <a href="trips-list-web.html" class="nav-link active">Viatges</a>
+      <a href="../profile/profile-web.html" class="nav-link">Perfil</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="header-action">
+      <h1 class="page-title">Els meus viatges</h1>
+      <a href="trip-create-web.html" class="btn-primary">＋ Nou viatge</a>
+    </div>
+
+    <div class="section-title">Viatges propers i en curs</div>
+    <div class="trips-grid">
+      <div class="trip-card">
+        <div class="trip-header">
+          <a href="trip-detail-web.html" class="trip-title">Ruta per Escandinàvia</a>
+          <span class="badge badge-public">Públic (Matching)</span>
+        </div>
+        <div class="trip-dates">📅 10 Oct 2026 – 24 Oct 2026 (14 dies)</div>
+        <div class="stages-list">
+          <div class="stage-item"><span class="stage-bullet">1.</span> Estocolm (SE) — 10 a 15 Oct</div>
+          <div class="stage-item"><span class="stage-bullet">2.</span> Oslo (NO) — 15 a 20 Oct</div>
+          <div class="stage-item"><span class="stage-bullet">3.</span> Bergen (NO) — 20 a 24 Oct</div>
+        </div>
+        <div class="trip-footer">
+          <span>📍 3 destinacions</span>
+          <a href="trip-detail-web.html" class="btn-detail">Veure itinerari ➔</a>
+        </div>
+      </div>
+
+      <div class="trip-card">
+        <div class="trip-header">
+          <a href="trip-detail-web.html" class="trip-title">Escapada a Tòquio</a>
+          <span class="badge badge-public">Públic (Matching)</span>
+        </div>
+        <div class="trip-dates">📅 05 Nov 2026 – 15 Nov 2026 (10 dies)</div>
+        <div class="stages-list">
+          <div class="stage-item"><span class="stage-bullet">1.</span> Tòquio (JP) — 05 a 15 Nov</div>
+        </div>
+        <div class="trip-footer">
+          <span>📍 1 destinació</span>
+          <a href="trip-detail-web.html" class="btn-detail">Veure itinerari ➔</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">Viatges passats</div>
+    <div class="trips-grid">
+      <div class="trip-card" style="opacity: 0.85;">
+        <div class="trip-header">
+          <a href="trip-detail-web.html" class="trip-title">Cap de setmana a Roma</a>
+          <span class="badge" style="background:#E0E0E0; color:#555;">Finalitzat</span>
+        </div>
+        <div class="trip-dates">📅 12 Maig 2026 – 15 Maig 2026</div>
+        <div class="stages-list">
+          <div class="stage-item"><span class="stage-bullet">1.</span> Roma (IT)</div>
+        </div>
+        <div class="trip-footer">
+          <span>📍 1 destinació</span>
+          <a href="trip-detail-web.html" class="btn-detail">Veure resum ➔</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

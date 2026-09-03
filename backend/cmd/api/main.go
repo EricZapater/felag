@@ -9,6 +9,7 @@ import (
 	"felag/backend/internal/db"
 	"felag/backend/internal/profile"
 	"felag/backend/internal/shared"
+	"felag/backend/internal/trip"
 
 	"github.com/gin-gonic/gin"
 )
@@ -64,6 +65,10 @@ func main() {
 	profileService := profile.NewService(profileRepo)
 	profileHandler := profile.NewHandler(profileService)
 
+	tripRepo := trip.NewRepository(database)
+	tripService := trip.NewService(tripRepo)
+	tripHandler := trip.NewHandler(tripService)
+
 	// API Routes (matching OpenAPI specs)
 	v1 := r.Group("/api/v1")
 	{
@@ -94,6 +99,16 @@ func main() {
 			protected.PUT("/profile", profileHandler.UpdateProfile)
 			protected.POST("/profile/avatar", profileHandler.UploadAvatar)
 			protected.PUT("/profile/origin", profileHandler.UpdateOrigin)
+
+			// Trips routes
+			tripGroup := protected.Group("/trips")
+			{
+				tripGroup.GET("", tripHandler.ListTrips)
+				tripGroup.POST("", tripHandler.CreateTrip)
+				tripGroup.GET("/:trip_id", tripHandler.GetTripByID)
+				tripGroup.PUT("/:trip_id", tripHandler.UpdateTrip)
+				tripGroup.DELETE("/:trip_id", tripHandler.DeleteTrip)
+			}
 		}
 	}
 

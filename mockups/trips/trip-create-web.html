@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FELAG — Nou viatge (Web)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
+    body { background-color: #F9F6F0; color: #2C221E; }
+    header { background: #FFFFFF; border-bottom: 1px solid #E8E2D9; padding: 16px 40px; display: flex; justify-content: space-between; align-items: center; }
+    .brand { font-size: 22px; font-weight: 700; color: #C85A32; letter-spacing: 1px; }
+    
+    .container { max-width: 800px; margin: 40px auto; padding: 0 20px; }
+    .card { background: #FFFFFF; border: 1px solid #E8E2D9; border-radius: 12px; padding: 32px; box-shadow: 0 2px 12px rgba(74, 46, 43, 0.05); }
+    
+    .title { font-size: 24px; font-weight: 700; margin-bottom: 8px; color: #2C221E; }
+    .subtitle { color: #786C65; font-size: 14px; margin-bottom: 28px; }
+    
+    .form-group { margin-bottom: 20px; }
+    label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 500; color: #4A3E39; }
+    input, select, textarea { width: 100%; padding: 12px; border: 1px solid #DDCFBF; border-radius: 6px; font-size: 14px; background: #FAF7F2; color: #2C221E; outline: none; }
+    input:focus, select:focus { border-color: #C85A32; background: #FFFFFF; }
+    
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    
+    .section-divider { margin: 32px 0 20px 0; border-top: 1px solid #E8E2D9; }
+    .stages-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .stages-title { font-size: 17px; font-weight: 700; color: #3E2723; }
+    .btn-add-stage { background: transparent; border: 1px dashed #C85A32; color: #C85A32; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .btn-add-stage:hover { background: #F4ECE1; }
+    
+    .stage-card { background: #FAF7F2; border: 1px solid #E8E2D9; border-radius: 8px; padding: 16px; margin-bottom: 12px; position: relative; }
+    .stage-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 14px; font-weight: 700; color: #C85A32; }
+    .btn-remove-stage { color: #d32f2f; background: transparent; border: none; font-size: 13px; cursor: pointer; }
+    
+    .actions { margin-top: 32px; display: flex; justify-content: flex-end; gap: 12px; }
+    .btn-cancel { background: transparent; border: 1px solid #DDCFBF; color: #555; padding: 12px 24px; border-radius: 6px; font-size: 14px; cursor: pointer; text-decoration: none; }
+    .btn-save { background: #C85A32; color: white; border: none; padding: 12px 28px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .btn-save:hover { background: #A0471D; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">FELAG</div>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <h1 class="title">Crear un nou viatge</h1>
+      <p class="subtitle">Indica les teves dates i les etapes del viatge per trobar viatgers de la teva terra.</p>
+
+      <form onsubmit="return false;">
+        <div class="form-group">
+          <label for="title">Títol del viatge</label>
+          <input type="text" id="title" placeholder="Ex: Ruta per Escandinàvia" value="Ruta per Escandinàvia">
+        </div>
+
+        <div class="grid-2 form-group">
+          <div>
+            <label for="start_date">Data d'inici</label>
+            <input type="date" id="start_date" value="2026-10-10">
+          </div>
+          <div>
+            <label for="end_date">Data de finalització</label>
+            <input type="date" id="end_date" value="2026-10-24">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="visibility">Visibilitat i Matching</label>
+          <select id="visibility">
+            <option value="public" selected>Públic — Visible per a matching amb tothom de la meva terra</option>
+            <option value="contacts_only">Només contactes — Visible només per a contactes directes</option>
+            <option value="private">Privat — Només per a ús personal (sense matching)</option>
+          </select>
+        </div>
+
+        <div class="section-divider"></div>
+
+        <div class="stages-header">
+          <div class="stages-title">Destinacions / Etapes del viatge</div>
+          <button type="button" class="btn-add-stage">＋ Afegir etapa</button>
+        </div>
+
+        <!-- Etapa 1 -->
+        <div class="stage-card">
+          <div class="stage-card-header">
+            <span>Etapa 1</span>
+            <button type="button" class="btn-remove-stage">Eliminar</button>
+          </div>
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label>Ciutat / Destinació</label>
+            <input type="text" placeholder="Ex: Estocolm" value="Estocolm">
+          </div>
+          <div class="grid-2">
+            <div>
+              <label>Arribada</label>
+              <input type="date" value="2026-10-10">
+            </div>
+            <div>
+              <label>Sortida</label>
+              <input type="date" value="2026-10-15">
+            </div>
+          </div>
+        </div>
+
+        <!-- Etapa 2 -->
+        <div class="stage-card">
+          <div class="stage-card-header">
+            <span>Etapa 2</span>
+            <button type="button" class="btn-remove-stage">Eliminar</button>
+          </div>
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label>Ciutat / Destinació</label>
+            <input type="text" placeholder="Ex: Oslo" value="Oslo">
+          </div>
+          <div class="grid-2">
+            <div>
+              <label>Arribada</label>
+              <input type="date" value="2026-10-15">
+            </div>
+            <div>
+              <label>Sortida</label>
+              <input type="date" value="2026-10-20">
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <a href="trips-list-web.html" class="btn-cancel">Cancel·lar</a>
+          <button type="submit" class="btn-save">Guardar viatge</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</body>
+</html>

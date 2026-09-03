@@ -74,9 +74,48 @@ export default function ProfileView() {
     <Box sx={{ minHeight: '100vh', bgcolor: '#F9F6F0', py: 4 }}>
       <Container maxWidth="md">
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h5" sx={{ color: '#C85A32', fontWeight: 700, letterSpacing: 1 }}>
-            FELAG
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Typography
+              component={RouterLink}
+              to="/trips"
+              variant="h5"
+              sx={{
+                color: '#C85A32',
+                fontWeight: 700,
+                letterSpacing: 1,
+                textDecoration: 'none',
+              }}
+            >
+              FELAG
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 3 }}>
+              <Typography
+                component={RouterLink}
+                to="/trips"
+                sx={{
+                  color: '#786C65',
+                  textDecoration: 'none',
+                  fontWeight: 500,
+                  fontSize: 15,
+                  '&:hover': { color: '#C85A32' },
+                }}
+              >
+                Viatges
+              </Typography>
+              <Typography
+                component={RouterLink}
+                to="/profile"
+                sx={{
+                  color: '#C85A32',
+                  textDecoration: 'none',
+                  fontWeight: 700,
+                  fontSize: 15,
+                }}
+              >
+                Perfil
+              </Typography>
+            </Box>
+          </Box>
           <Button variant="outlined" color="error" onClick={handleLogout}>
             Tancar sessió
           </Button>

@@ -21,16 +21,16 @@ The core differentiator is the matching between:
 
 Goal: establish the project structure and development foundations.
 
-- [ ] Monorepo structure
-- [ ] Development environments
-- [ ] CI/CD
-- [ ] Environment configuration
-- [ ] Database foundation
-- [ ] API foundation
-- [ ] Authentication foundation
-- [ ] Shared contracts
-- [ ] Basic observability
-- [ ] Agent documentation and rules
+- [x] Monorepo structure
+- [x] Development environments
+- [x] CI/CD
+- [x] Environment configuration
+- [x] Database foundation
+- [x] API foundation
+- [x] Authentication foundation
+- [x] Shared contracts
+- [x] Basic observability
+- [x] Agent documentation and rules
 
 Definition of done:
 - All applications can run locally.
@@ -45,13 +45,13 @@ Goal: users can create an identity and define where they are from.
 
 ## User profile
 
-- [ ] Registration
-- [ ] Login
-- [ ] User profile
-- [ ] Profile picture
-- [ ] Country of origin
-- [ ] Region/community of origin
-- [ ] Town/city of origin
+- [x] Registration
+- [x] Login
+- [x] User profile
+- [x] Profile picture
+- [x] Country of origin
+- [x] Region/community of origin
+- [x] Town/city of origin
 
 ## Origin hierarchy
 
@@ -68,15 +68,15 @@ Definition of done:
 
 Goal: users can tell FELAG where and when they are travelling.
 
-- [ ] Create trip
-- [ ] Start date
-- [ ] End date
-- [ ] Destination
-- [ ] Multiple destinations
-- [ ] Itinerary / trip stages
-- [ ] Edit trip
-- [ ] Delete trip
-- [ ] Privacy settings
+- [x] Create trip
+- [x] Start date
+- [x] End date
+- [x] Destination
+- [x] Multiple destinations
+- [x] Itinerary / trip stages
+- [x] Edit trip
+- [x] Delete trip
+- [x] Privacy settings
 
 Definition of done:
 - A user can create a complete trip.

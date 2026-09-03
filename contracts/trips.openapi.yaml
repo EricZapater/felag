@@ -1,0 +1,358 @@
+openapi: 3.0.3
+info:
+  title: FELAG Trips API
+  description: Contracte OpenAPI per al mòdul de gestió de viatges i itineraris multietapa (trips) de FELAG.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Servidor de desenvolupament local
+
+paths:
+  /api/v1/trips:
+    get:
+      summary: Llistar els viatges de l'usuari autenticat
+      operationId: listMyTrips
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: filter
+          in: query
+          description: Filtrar per estat temporal dels viatges
+          required: false
+          schema:
+            type: string
+            enum: [all, upcoming, past]
+            default: all
+      responses:
+        '200':
+          description: Llista de viatges de l'usuari
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trip'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    post:
+      summary: Crear un nou viatge amb etapes
+      operationId: createTrip
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTripRequest'
+      responses:
+        '201':
+          description: Viatge creat amb èxit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/trips/{trip_id}:
+    get:
+      summary: Obtenir el detall d'un viatge i el seu itinerari
+      operationId: getTripById
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: trip_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detall del viatge amb les seves etapes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    put:
+      summary: Actualitzar un viatge existent i el seu itinerari
+      operationId: updateTrip
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: trip_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTripRequest'
+      responses:
+        '200':
+          description: Viatge actualitzat amb èxit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    delete:
+      summary: Eliminar un viatge
+      operationId: deleteTrip
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: trip_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Viatge eliminat amb èxit
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    TripStage:
+      type: object
+      required:
+        - id
+        - trip_id
+        - stage_order
+        - destination_name
+        - start_date
+        - end_date
+      properties:
+        id:
+          type: string
+          format: uuid
+        trip_id:
+          type: string
+          format: uuid
+        stage_order:
+          type: integer
+          example: 1
+        destination_name:
+          type: string
+          example: Estocolm
+        country_code:
+          type: string
+          nullable: true
+          example: SE
+        start_date:
+          type: string
+          format: date
+          example: "2026-10-10"
+        end_date:
+          type: string
+          format: date
+          example: "2026-10-15"
+        notes:
+          type: string
+          nullable: true
+
+    TripStageInput:
+      type: object
+      required:
+        - stage_order
+        - destination_name
+        - start_date
+        - end_date
+      properties:
+        stage_order:
+          type: integer
+          example: 1
+        destination_name:
+          type: string
+          example: Estocolm
+        country_code:
+          type: string
+          nullable: true
+          example: SE
+        start_date:
+          type: string
+          format: date
+          example: "2026-10-10"
+        end_date:
+          type: string
+          format: date
+          example: "2026-10-15"
+        notes:
+          type: string
+          nullable: true
+
+    Trip:
+      type: object
+      required:
+        - id
+        - user_id
+        - title
+        - start_date
+        - end_date
+        - visibility
+        - status
+        - stages
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          example: Ruta per Escandinàvia
+        description:
+          type: string
+          nullable: true
+        start_date:
+          type: string
+          format: date
+          example: "2026-10-10"
+        end_date:
+          type: string
+          format: date
+          example: "2026-10-24"
+        visibility:
+          type: string
+          enum: [public, contacts_only, private]
+          example: public
+        status:
+          type: string
+          enum: [planned, ongoing, completed, cancelled]
+          example: planned
+        stages:
+          type: array
+          items:
+            $ref: '#/components/schemas/TripStage'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateTripRequest:
+      type: object
+      required:
+        - title
+        - start_date
+        - end_date
+        - visibility
+        - stages
+      properties:
+        title:
+          type: string
+          example: Ruta per Escandinàvia
+        description:
+          type: string
+          nullable: true
+        start_date:
+          type: string
+          format: date
+          example: "2026-10-10"
+        end_date:
+          type: string
+          format: date
+          example: "2026-10-24"
+        visibility:
+          type: string
+          enum: [public, contacts_only, private]
+          default: public
+        stages:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/TripStageInput'
+
+    UpdateTripRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          example: Ruta per Escandinàvia (Actualitzat)
+        description:
+          type: string
+          nullable: true
+        start_date:
+          type: string
+          format: date
+          example: "2026-10-10"
+        end_date:
+          type: string
+          format: date
+          example: "2026-10-24"
+        visibility:
+          type: string
+          enum: [public, contacts_only, private]
+        stages:
+          type: array
+          items:
+            $ref: '#/components/schemas/TripStageInput'
+
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: INVALID_INPUT
+        message:
+          type: string
+          example: La data d'inici ha de ser anterior a la data de fi.
+
+  responses:
+    BadRequestError:
+      description: Dades invàlides
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    UnauthorizedError:
+      description: Token invàlid o no proporcionat
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFoundError:
+      description: Viatge no trobat
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

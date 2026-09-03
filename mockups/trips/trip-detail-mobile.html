@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FELAG — Detall del viatge (Mobile)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
+    body { background-color: #E8E2D9; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+    .mobile-frame { background: #F9F6F0; width: 375px; height: 750px; border-radius: 36px; border: 12px solid #3E2723; box-shadow: 0 10px 30px rgba(62, 39, 35, 0.2); display: flex; flex-direction: column; overflow: hidden; position: relative; }
+    .status-bar { height: 40px; background: #FFFFFF; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; font-size: 12px; font-weight: bold; color: #4A3E39; }
+    .app-header { background: #FFFFFF; padding: 16px 20px; font-size: 16px; font-weight: 700; border-bottom: 1px solid #E8E2D9; display: flex; justify-content: space-between; align-items: center; }
+    .back-btn { text-decoration: none; color: #C85A32; font-size: 14px; font-weight: 600; }
+    
+    .content { flex: 1; overflow-y: auto; padding: 16px; }
+    .card { background: #FFFFFF; border-radius: 12px; padding: 16px; border: 1px solid #E8E2D9; margin-bottom: 16px; }
+    
+    .trip-title { font-size: 20px; font-weight: 700; color: #2C221E; margin-bottom: 6px; }
+    .trip-dates { font-size: 13px; color: #786C65; margin-bottom: 12px; }
+    
+    .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; color: #786C65; margin: 16px 0 10px 0; letter-spacing: 0.5px; }
+    
+    .stage-item { background: #FAF7F2; border-radius: 8px; border: 1px solid #E8E2D9; padding: 12px; margin-bottom: 10px; }
+    .stage-title { font-size: 15px; font-weight: 700; color: #2C221E; }
+    .stage-dates { font-size: 12px; color: #703817; font-weight: 600; margin-top: 2px; }
+    
+    .matching-box { background: #F4ECE1; border: 1px solid #DDCFBF; border-radius: 8px; padding: 12px; margin-top: 16px; }
+    .matching-title { font-size: 13px; font-weight: 700; color: #703817; margin-bottom: 4px; }
+    .matching-sub { font-size: 11px; color: #8C7A70; }
+    
+    .actions { margin-top: 20px; display: flex; flex-direction: column; gap: 8px; }
+    .btn-edit { background: #C85A32; color: #fff; padding: 14px; border-radius: 28px; text-align: center; text-decoration: none; font-weight: 600; font-size: 14px; }
+    .btn-del { color: #d32f2f; padding: 10px; text-align: center; text-decoration: none; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+  <div class="mobile-frame">
+    <div class="status-bar">
+      <span>9:41</span>
+      <span>100%</span>
+    </div>
+
+    <div class="app-header">
+      <a href="trips-list-mobile.html" class="back-btn">‹ Viatges</a>
+      <span>Detall</span>
+      <span style="width: 45px;"></span>
+    </div>
+
+    <div class="content">
+      <div class="card">
+        <div class="trip-title">Ruta per Escandinàvia</div>
+        <div class="trip-dates">📅 10 Oct – 24 Oct 2026 (14 dies)</div>
+        <div style="font-size: 12px; color: #2E7D32; font-weight: 600;">👁️ Públic (Aptat per matching)</div>
+
+        <div class="section-title">Etapes de la ruta</div>
+
+        <div class="stage-item">
+          <div class="stage-title">1. Estocolm (Suècia)</div>
+          <div class="stage-dates">10 Oct – 15 Oct (5 dies)</div>
+        </div>
+
+        <div class="stage-item">
+          <div class="stage-title">2. Oslo (Noruega)</div>
+          <div class="stage-dates">15 Oct – 20 Oct (5 dies)</div>
+        </div>
+
+        <div class="stage-item">
+          <div class="stage-title">3. Bergen (Noruega)</div>
+          <div class="stage-dates">20 Oct – 24 Oct (4 dies)</div>
+        </div>
+
+        <div class="matching-box">
+          <div class="matching-title">✨ Matching actiu (Fase 3)</div>
+          <div class="matching-sub">T'avisarem quan viatgers de la teva terra coincideixin amb tu.</div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <a href="trip-create-mobile.html" class="btn-edit">Editar viatge</a>
+        <a href="#" class="btn-del">Eliminar viatge</a>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
