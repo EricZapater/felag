@@ -1,0 +1,196 @@
+.agent/backend-agent.md
+  h_42175f19913982 1-85
+.agent/frontend-agent.md
+  h_42175f19913982 1-91
+.agent/infra-agent.md
+  h_42175f19913982 1-128
+.agent/mobile-agent.md
+  h_42175f19913982 1-106
+.agent/mockup-agent.md
+  h_42175f19913982 1-104
+.agent/orchestrator.md
+  h_42175f19913982 1-116
+.agent/qa-agent.md
+  h_42175f19913982 1-178
+.agent/ux-agent.md
+  h_42175f19913982 1-135
+.env.example
+  h_42175f19913982 1-14
+.github/workflows/ci.yml
+  h_42175f19913982 1-39
+.github/workflows/deploy.yml
+  h_42175f19913982 1-49
+.gitignore
+  h_42175f19913982 1-42
+CHANGELOG.md
+  h_42175f19913982 1-18
+VERSION
+  h_42175f19913982 1
+backend/.env.example
+  h_42175f19913982 1-8
+backend/Dockerfile
+  h_42175f19913982 1-15
+backend/cmd/api/main.go
+  h_42175f19913982 1-104
+backend/go.mod
+  h_42175f19913982 1-41
+backend/go.sum
+  h_42175f19913982 1-93
+backend/internal/auth/handler.go
+  h_42175f19913982 1-104
+backend/internal/auth/model.go
+  h_42175f19913982 1-46
+backend/internal/auth/repository.go
+  h_42175f19913982 1-121
+backend/internal/auth/service.go
+  h_42175f19913982 1-139
+backend/internal/db/db.go
+  h_42175f19913982 1-30
+backend/internal/db/migrations/000001_create_origins_and_users.down.sql
+  h_42175f19913982 1-5
+backend/internal/db/migrations/000001_create_origins_and_users.up.sql
+  h_42175f19913982 1-89
+backend/internal/profile/handler.go
+  h_42175f19913982 1-132
+backend/internal/profile/model.go
+  h_42175f19913982 1-45
+backend/internal/profile/repository.go
+  h_42175f19913982 1-162
+backend/internal/profile/service.go
+  h_42175f19913982 1-101
+backend/internal/shared/env.go
+  h_42175f19913982 1-60
+backend/internal/shared/middleware.go
+  h_42175f19913982 1-101
+backend/internal/shared/response.go
+  h_42175f19913982 1-33
+constitution.md
+  h_42175f19913982 1-358
+contracts/auth.openapi.yaml
+  h_42175f19913982 1-244
+contracts/profile.openapi.yaml
+  h_42175f19913982 1-317
+docker-compose.prod.yml
+  h_42175f19913982 1-34
+frontend/Dockerfile
+  h_42175f19913982 1-16
+frontend/index.html
+  h_42175f19913982 1-17
+frontend/nginx.conf
+  h_42175f19913982 1-15
+frontend/package.json
+  h_42175f19913982 1-30
+frontend/src/App.tsx
+  h_42175f19913982 1-5
+frontend/src/api/client.ts
+  h_42175f19913982 1-29
+frontend/src/main.tsx
+  h_42175f19913982 1-25
+frontend/src/modules/auth/api.ts
+  h_42175f19913982 1-23
+frontend/src/modules/auth/store.ts
+  h_42175f19913982 1-104
+frontend/src/modules/auth/types.ts
+  h_42175f19913982 1-38
+frontend/src/modules/auth/views/LoginView.tsx
+  h_42175f19913982 1-84
+frontend/src/modules/auth/views/RegisterView.tsx
+  h_42175f19913982 1-97
+frontend/src/modules/profile/api.ts
+  h_42175f19913982 1-43
+frontend/src/modules/profile/store.ts
+  h_42175f19913982 1-102
+frontend/src/modules/profile/types.ts
+  h_42175f19913982 1-39
+frontend/src/modules/profile/views/OriginSelectorView.tsx
+  h_42175f19913982 1-165
+frontend/src/modules/profile/views/ProfileView.tsx
+  h_42175f19913982 1-214
+frontend/src/router/index.tsx
+  h_42175f19913982 1-49
+frontend/src/vite-env.d.ts
+  h_42175f19913982 1
+frontend/tsconfig.json
+  h_42175f19913982 1-29
+frontend/vite.config.ts
+  h_42175f19913982 1-15
+mobile/App.tsx
+  h_42175f19913982 1-13
+mobile/app.json
+  h_42175f19913982 1-30
+mobile/eas.json
+  h_42175f19913982 1-18
+mobile/package.json
+  h_42175f19913982 1-27
+mobile/src/api/client.ts
+  h_42175f19913982 1-24
+mobile/src/modules/auth/api.ts
+  h_42175f19913982 1-23
+mobile/src/modules/auth/screens/LoginScreen.tsx
+  h_42175f19913982 1-104
+mobile/src/modules/auth/screens/RegisterScreen.tsx
+  h_42175f19913982 1-114
+mobile/src/modules/auth/store.ts
+  h_42175f19913982 1-82
+mobile/src/modules/auth/types.ts
+  h_42175f19913982 1-38
+mobile/src/modules/profile/api.ts
+  h_42175f19913982 1-34
+mobile/src/modules/profile/screens/OriginSelectorScreen.tsx
+  h_42175f19913982 1-191
+mobile/src/modules/profile/screens/ProfileScreen.tsx
+  h_42175f19913982 1-195
+mobile/src/modules/profile/store.ts
+  h_42175f19913982 1-87
+mobile/src/modules/profile/types.ts
+  h_42175f19913982 1-39
+mobile/src/navigation/index.tsx
+  h_42175f19913982 1-46
+mobile/tsconfig.json
+  h_42175f19913982 1-10
+mockups/approvals.md
+  h_42175f19913982 1-12
+mockups/auth/login-mobile.html
+  h_42175f19913982 1-55
+mockups/auth/login-web.html
+  h_42175f19913982 1-48
+mockups/auth/register-mobile.html
+  h_42175f19913982 1-59
+mockups/auth/register-web.html
+  h_42175f19913982 1-52
+mockups/profile/origin-selector-mobile.html
+  h_42175f19913982 1-86
+mockups/profile/origin-selector-web.html
+  h_42175f19913982 1-88
+mockups/profile/profile-mobile.html
+  h_42175f19913982 1-78
+mockups/profile/profile-web.html
+  h_42175f19913982 1-100
+package.json
+  h_42175f19913982 1-14
+pnpm-lock.yaml
+  h_42175f19913982 1-9903
+pnpm-workspace.yaml
+  h_42175f19913982 1-3
+qa-reports/identity.md
+  h_42175f19913982 1-56
+roadmap.md
+  h_42175f19913982 1-208
+specs/auth.md
+  h_42175f19913982 1-71
+specs/profile.md
+  h_42175f19913982 1-84
+ux-reports/identity.md
+  h_42175f19913982 1-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "2a577c58b860870d40304af585a88c01259ad134",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
