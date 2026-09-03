@@ -1,0 +1,534 @@
+openapi: 3.0.3
+info:
+  title: FELAG Community Knowledge & Real-Time Moments API
+  version: 0.5.0
+  description: Endpoints for destination guides, categorized recommendations, helpful votes, arrival privacy prompts, live photo feeds, and community moderation.
+paths:
+  /api/v1/destinations:
+    get:
+      summary: Search and list destinations
+      description: Returns cities and countries from the geographic database matching query.
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Search term for city, region or country name
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of destinations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DestinationSummary'
+
+  /api/v1/destinations/{id}:
+    get:
+      summary: Get destination detail by Town ID or Country Code
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Town ID (integer as string) or Country Code (2 letters)
+      responses:
+        '200':
+          description: Destination detail with visitor statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DestinationDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/destinations/{id}/recommendations:
+    get:
+      summary: Get recommendations for a destination
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [all, food, hidden_gem, transport, practical_tip, anecdote]
+            default: all
+        - name: origin_filter
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [all, same_origin, same_town]
+            default: all
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [useful, recent]
+            default: useful
+      responses:
+        '200':
+          description: List of recommendations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Recommendation'
+
+    post:
+      summary: Create a new recommendation for a destination
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRecommendationRequest'
+      responses:
+        '201':
+          description: Recommendation created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recommendation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/recommendations/{id}/vote:
+    post:
+      summary: Toggle helpful vote on a recommendation
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Vote status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoteResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/recommendations/{id}/comments:
+    get:
+      summary: Get comments on a recommendation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Comments list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Comment'
+
+    post:
+      summary: Add a comment to a recommendation
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCommentRequest'
+      responses:
+        '201':
+          description: Comment added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/destinations/{id}/live-feed:
+    get:
+      summary: Get ephemeral live photos for active travellers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Live moments stream
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiveFeedResponse'
+        '403':
+          description: User does not have an active trip to this destination or privacy restriction applies
+
+    post:
+      summary: Share a live photo in destination feed
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLiveMomentRequest'
+      responses:
+        '201':
+          description: Photo published to live feed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiveMoment'
+        '403':
+          description: Not allowed to post (no active trip in destination)
+
+  /api/v1/trips/{id}/photo-sharing:
+    put:
+      summary: Update trip photo sharing privacy mode
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [photo_sharing_mode]
+              properties:
+                photo_sharing_mode:
+                  type: string
+                  enum: [all_felagis, close_origin, none]
+      responses:
+        '200':
+          description: Photo sharing mode updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /api/v1/community/report:
+    post:
+      summary: Report inappropriate recommendation, comment or photo
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommunityReportRequest'
+      responses:
+        '201':
+          description: Report submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    DestinationSummary:
+      type: object
+      required: [id, name, type]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        region_name:
+          type: string
+        country_name:
+          type: string
+        country_code:
+          type: string
+        type:
+          type: string
+          enum: [town, country]
+        recommendations_count:
+          type: integer
+        active_felagis_count:
+          type: integer
+
+    DestinationDetail:
+      type: object
+      required: [id, name, country_code]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        region_name:
+          type: string
+        country_name:
+          type: string
+        country_code:
+          type: string
+        flag_emoji:
+          type: string
+        total_recommendations:
+          type: integer
+        active_felagis_count:
+          type: integer
+        total_visitors_count:
+          type: integer
+        user_is_travelling_now:
+          type: boolean
+        user_photo_sharing_mode:
+          type: string
+          enum: [all_felagis, close_origin, none]
+
+    Recommendation:
+      type: object
+      required: [id, category, title, description, useful_votes_count, author, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        destination_id:
+          type: string
+        category:
+          type: string
+          enum: [food, hidden_gem, transport, practical_tip, anecdote]
+        title:
+          type: string
+        description:
+          type: string
+        image_url:
+          type: string
+        location_name:
+          type: string
+        useful_votes_count:
+          type: integer
+        user_has_voted:
+          type: boolean
+        comments_count:
+          type: integer
+        author:
+          $ref: '#/components/schemas/AuthorSummary'
+        created_at:
+          type: string
+          format: date-time
+
+    AuthorSummary:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        avatar_url:
+          type: string
+        town_name:
+          type: string
+        region_name:
+          type: string
+        country_name:
+          type: string
+
+    CreateRecommendationRequest:
+      type: object
+      required: [category, title, description]
+      properties:
+        category:
+          type: string
+          enum: [food, hidden_gem, transport, practical_tip, anecdote]
+        title:
+          type: string
+          maxLength: 120
+        description:
+          type: string
+          maxLength: 2000
+        image_url:
+          type: string
+        location_name:
+          type: string
+
+    VoteResponse:
+      type: object
+      required: [voted, useful_votes_count]
+      properties:
+        voted:
+          type: boolean
+        useful_votes_count:
+          type: integer
+
+    Comment:
+      type: object
+      required: [id, content, author, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        content:
+          type: string
+        author:
+          $ref: '#/components/schemas/AuthorSummary'
+        created_at:
+          type: string
+          format: date-time
+
+    CreateCommentRequest:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          maxLength: 500
+
+    LiveFeedResponse:
+      type: object
+      required: [active_felagis_count, moments]
+      properties:
+        active_felagis_count:
+          type: integer
+        moments:
+          type: array
+          items:
+            $ref: '#/components/schemas/LiveMoment'
+
+    LiveMoment:
+      type: object
+      required: [id, image_url, author, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        image_url:
+          type: string
+        caption:
+          type: string
+        author:
+          $ref: '#/components/schemas/AuthorSummary'
+        created_at:
+          type: string
+          format: date-time
+
+    CreateLiveMomentRequest:
+      type: object
+      required: [image_url]
+      properties:
+        image_url:
+          type: string
+        caption:
+          type: string
+          maxLength: 280
+
+    CommunityReportRequest:
+      type: object
+      required: [target_type, target_id, reason]
+      properties:
+        target_type:
+          type: string
+          enum: [recommendation, comment, live_moment]
+        target_id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          enum: [spam, inappropriate_content, false_information, harassment, other]
+        details:
+          type: string
+
+    SuccessResponse:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Invalid payload or parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Bearer token is missing or invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Destination or resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

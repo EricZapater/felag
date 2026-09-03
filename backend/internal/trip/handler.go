@@ -63,6 +63,9 @@ func (h *Handler) GetTripByID(c *gin.Context) {
 	}
 
 	tripID := c.Param("trip_id")
+	if tripID == "" {
+		tripID = c.Param("id")
+	}
 	trip, err := h.service.GetTripByID(tripID, userIDVal.(string))
 	if err != nil {
 		if errors.Is(err, ErrTripNotFound) {
@@ -84,6 +87,9 @@ func (h *Handler) UpdateTrip(c *gin.Context) {
 	}
 
 	tripID := c.Param("trip_id")
+	if tripID == "" {
+		tripID = c.Param("id")
+	}
 
 	var req UpdateTripRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -112,6 +118,9 @@ func (h *Handler) DeleteTrip(c *gin.Context) {
 	}
 
 	tripID := c.Param("trip_id")
+	if tripID == "" {
+		tripID = c.Param("id")
+	}
 	if err := h.service.DeleteTrip(tripID, userIDVal.(string)); err != nil {
 		if errors.Is(err, ErrTripNotFound) {
 			shared.ErrorResponse(c, http.StatusNotFound, "NOT_FOUND", "Viatge no trobat.")
@@ -122,4 +131,37 @@ func (h *Handler) DeleteTrip(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+func (h *Handler) UpdatePhotoSharingMode(c *gin.Context) {
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		shared.ErrorResponse(c, http.StatusUnauthorized, "UNAUTHORIZED", "Sessió no vàlida.")
+		return
+	}
+
+	tripID := c.Param("trip_id")
+	if tripID == "" {
+		tripID = c.Param("id")
+	}
+
+	var req UpdatePhotoSharingModeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		shared.ErrorResponse(c, http.StatusBadRequest, "INVALID_INPUT", err.Error())
+		return
+	}
+
+	if err := h.service.UpdatePhotoSharingMode(tripID, userIDVal.(string), req.PhotoSharingMode); err != nil {
+		if errors.Is(err, ErrTripNotFound) {
+			shared.ErrorResponse(c, http.StatusNotFound, "NOT_FOUND", "Viatge no trobat.")
+			return
+		}
+		shared.ErrorResponse(c, http.StatusBadRequest, "INVALID_INPUT", err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Mode de compartició de fotos actualitzat correctament",
+	})
 }

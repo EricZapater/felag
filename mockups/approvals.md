@@ -26,3 +26,9 @@
 | connect | chat | mobile | Aprovada | 2026-09-03 |
 | connect | felagi-profile | web | Aprovada | 2026-09-03 |
 | connect | felagi-profile | mobile | Aprovada | 2026-09-03 |
+| community | destination-detail | web | Aprovada | 2026-09-03 |
+| community | destination-detail | mobile | Aprovada | 2026-09-03 |
+| community | arrival-popup | web | Aprovada | 2026-09-03 |
+| community | arrival-popup | mobile | Aprovada | 2026-09-03 |
+| community | live-feed | web | Aprovada | 2026-09-03 |
+| community | live-feed | mobile | Aprovada | 2026-09-03 |

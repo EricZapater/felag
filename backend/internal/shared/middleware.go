@@ -99,3 +99,27 @@ func AuthMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+func OptionalAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		if authHeader != "" {
+			parts := strings.SplitN(authHeader, " ", 2)
+			if len(parts) == 2 && parts[0] == "Bearer" {
+				tokenStr := parts[1]
+				claims := &JWTClaims{}
+				token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+					if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+						return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+					}
+					return GetJWTSecret(), nil
+				})
+				if err == nil && token.Valid {
+					c.Set("user_id", claims.UserID)
+					c.Set("user_email", claims.Email)
+				}
+			}
+		}
+		c.Next()
+	}
+}

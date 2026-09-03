@@ -19,6 +19,7 @@ import {
 } from 'react-native-paper';
 import { useTripsStore } from '../store';
 import { CreateTripRequest, TripStageInput, TripVisibility } from '../types';
+import DestinationPickerModal from '../components/DestinationPickerModal';
 
 interface Props {
   navigation: {
@@ -48,6 +49,7 @@ export default function TripCreateScreen({ navigation, route }: Props) {
 
   // Modal for adding / editing a stage
   const [modalVisible, setModalVisible] = useState(false);
+  const [pickerVisible, setPickerVisible] = useState(false);
   const [stageDest, setStageDest] = useState('');
   const [stageCountry, setStageCountry] = useState('');
   const [stageStart, setStageStart] = useState('');
@@ -361,15 +363,33 @@ export default function TripCreateScreen({ navigation, route }: Props) {
                 </HelperText>
               ) : null}
 
-              <TextInput
-                label="Nom de la ciutat / destinació *"
-                placeholder="Ex: Estocolm"
-                value={stageDest}
-                onChangeText={setStageDest}
-                style={styles.input}
-                activeOutlineColor="#C85A32"
-                mode="outlined"
-              />
+              <View style={{ marginBottom: 12 }}>
+                <TextInput
+                  label="Nom de la ciutat / destinació *"
+                  placeholder="Ex: Estocolm"
+                  value={stageDest}
+                  onChangeText={setStageDest}
+                  style={styles.input}
+                  activeOutlineColor="#C85A32"
+                  mode="outlined"
+                  right={
+                    <TextInput.Icon
+                      icon="magnify"
+                      color="#C85A32"
+                      onPress={() => setPickerVisible(true)}
+                    />
+                  }
+                />
+                <Button
+                  mode="text"
+                  icon="map-search"
+                  textColor="#C85A32"
+                  style={{ alignSelf: 'flex-start', marginTop: -6 }}
+                  onPress={() => setPickerVisible(true)}
+                >
+                  Cercar a la BD geogràfica
+                </Button>
+              </View>
 
               <TextInput
                 label="Codi de país (2 lletres ISO, ex: SE, JP, ES)"
@@ -440,6 +460,17 @@ export default function TripCreateScreen({ navigation, route }: Props) {
           </Card>
         </View>
       </Modal>
+
+      <DestinationPickerModal
+        visible={pickerVisible}
+        onClose={() => setPickerVisible(false)}
+        onSelect={(dest) => {
+          setStageDest(dest.name);
+          if (dest.country_code) {
+            setStageCountry(dest.country_code);
+          }
+        }}
+      />
     </View>
   );
 }

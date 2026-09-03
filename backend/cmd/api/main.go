@@ -8,6 +8,7 @@ import (
 
 	"felag/backend/internal/auth"
 	"felag/backend/internal/chat"
+	"felag/backend/internal/community"
 	"felag/backend/internal/db"
 	"felag/backend/internal/matching"
 	"felag/backend/internal/moderation"
@@ -106,6 +107,10 @@ func main() {
 	chatService.SetNotificationService(notificationService)
 	chatHandler := chat.NewHandler(chatService)
 
+	communityRepo := community.NewRepository(database)
+	communityService := community.NewService(communityRepo)
+	communityHandler := community.NewHandler(communityService)
+
 	// API Routes (matching OpenAPI specs)
 	v1 := r.Group("/api/v1")
 	{
@@ -124,6 +129,18 @@ func main() {
 			originsGroup.GET("/countries/:country_id/regions", profileHandler.GetRegionsByCountry)
 			originsGroup.GET("/regions/:region_id/towns", profileHandler.GetTownsByRegion)
 		}
+
+		// Destinations public / optional auth routes
+		destinationsGroup := v1.Group("/destinations")
+		destinationsGroup.Use(shared.OptionalAuthMiddleware())
+		{
+			destinationsGroup.GET("", communityHandler.SearchDestinations)
+			destinationsGroup.GET("/:id", communityHandler.GetDestinationDetail)
+			destinationsGroup.GET("/:id/recommendations", communityHandler.ListRecommendations)
+		}
+
+		// Recommendation public routes
+		v1.GET("/recommendations/:id/comments", communityHandler.ListComments)
 
 		// WebSocket route for real-time chat (handles auth token via query param or header)
 		v1.GET("/ws/chat", chatHandler.HandleWebSocket)
@@ -165,6 +182,7 @@ func main() {
 				tripGroup.PUT("/:trip_id", tripHandler.UpdateTrip)
 				tripGroup.DELETE("/:trip_id", tripHandler.DeleteTrip)
 				tripGroup.GET("/:trip_id/matches", matchingHandler.GetTripMatches)
+				tripGroup.PUT("/:trip_id/photo-sharing", tripHandler.UpdatePhotoSharingMode)
 			}
 
 			// Matches routes
@@ -179,6 +197,14 @@ func main() {
 				notificationsGroup.PUT("/:notification_id/read", notificationHandler.MarkNotificationAsRead)
 				notificationsGroup.PUT("/read-all", notificationHandler.MarkAllNotificationsAsRead)
 			}
+
+			// Community protected routes
+			protected.POST("/destinations/:id/recommendations", communityHandler.CreateRecommendation)
+			protected.POST("/recommendations/:id/vote", communityHandler.ToggleVote)
+			protected.POST("/recommendations/:id/comments", communityHandler.CreateComment)
+			protected.GET("/destinations/:id/live-feed", communityHandler.GetLiveFeed)
+			protected.POST("/destinations/:id/live-feed", communityHandler.CreateLiveMoment)
+			protected.POST("/community/report", communityHandler.CreateReport)
 		}
 	}
 

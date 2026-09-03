@@ -21,6 +21,7 @@ type Service interface {
 	ListMyTrips(userID string, filter string) ([]Trip, error)
 	UpdateTrip(tripID string, userID string, req UpdateTripRequest) (*Trip, error)
 	DeleteTrip(tripID string, userID string) error
+	UpdatePhotoSharingMode(tripID string, userID string, mode string) error
 	SetEventListener(listener shared.TripEventListener)
 }
 
@@ -68,6 +69,15 @@ func (s *service) CreateTrip(userID string, req CreateTripRequest) (*Trip, error
 		return nil, fmt.Errorf("visibilitat invàlida: ha de ser 'public', 'contacts_only' o 'private'")
 	}
 
+	photoSharingMode := "none"
+	if req.PhotoSharingMode != nil {
+		psm := strings.TrimSpace(*req.PhotoSharingMode)
+		if psm != "all_felagis" && psm != "close_origin" && psm != "none" {
+			return nil, fmt.Errorf("mode de compartició de fotos invàlid: ha de ser 'all_felagis', 'close_origin' o 'none'")
+		}
+		photoSharingMode = psm
+	}
+
 	if len(req.Stages) == 0 {
 		return nil, fmt.Errorf("el viatge ha de tenir almenys una etapa")
 	}
@@ -105,6 +115,8 @@ func (s *service) CreateTrip(userID string, req CreateTripRequest) (*Trip, error
 			StageOrder:      order,
 			DestinationName: strings.TrimSpace(st.DestinationName),
 			CountryCode:     st.CountryCode,
+			TownID:          st.TownID,
+			RegionID:        st.RegionID,
 			StartDate:       sStart.Format("2006-01-02"),
 			EndDate:         sEnd.Format("2006-01-02"),
 			Notes:           st.Notes,
@@ -112,11 +124,12 @@ func (s *service) CreateTrip(userID string, req CreateTripRequest) (*Trip, error
 	}
 
 	trip := &Trip{
-		UserID:      userID,
-		Title:       strings.TrimSpace(req.Title),
-		Description: req.Description,
-		Visibility:  visibility,
-		Status:      "planned",
+		UserID:           userID,
+		Title:            strings.TrimSpace(req.Title),
+		Description:      req.Description,
+		Visibility:       visibility,
+		Status:           "planned",
+		PhotoSharingMode: photoSharingMode,
 	}
 
 	createdTrip, err := s.repo.Create(trip, stages)
@@ -218,6 +231,14 @@ func (s *service) UpdateTrip(tripID string, userID string, req UpdateTripRequest
 		updateTrip.Visibility = vis
 	}
 
+	if req.PhotoSharingMode != nil {
+		psm := strings.TrimSpace(*req.PhotoSharingMode)
+		if psm != "all_felagis" && psm != "close_origin" && psm != "none" {
+			return nil, fmt.Errorf("mode de compartició de fotos invàlid: ha de ser 'all_felagis', 'close_origin' o 'none'")
+		}
+		updateTrip.PhotoSharingMode = psm
+	}
+
 	var stagesSlice *[]TripStage
 	if req.Stages != nil {
 		stgs := make([]TripStage, 0, len(*req.Stages))
@@ -253,6 +274,8 @@ func (s *service) UpdateTrip(tripID string, userID string, req UpdateTripRequest
 				StageOrder:      order,
 				DestinationName: strings.TrimSpace(st.DestinationName),
 				CountryCode:     st.CountryCode,
+				TownID:          st.TownID,
+				RegionID:        st.RegionID,
 				StartDate:       sStart.Format("2006-01-02"),
 				EndDate:         sEnd.Format("2006-01-02"),
 				Notes:           st.Notes,
@@ -282,6 +305,19 @@ func (s *service) UpdateTrip(tripID string, userID string, req UpdateTripRequest
 
 func (s *service) DeleteTrip(tripID string, userID string) error {
 	err := s.repo.Delete(tripID, userID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrTripNotFound
+	}
+	return err
+}
+
+func (s *service) UpdatePhotoSharingMode(tripID string, userID string, mode string) error {
+	cleanMode := strings.TrimSpace(mode)
+	if cleanMode != "all_felagis" && cleanMode != "close_origin" && cleanMode != "none" {
+		return fmt.Errorf("mode de compartició de fotos invàlid: ha de ser 'all_felagis', 'close_origin' o 'none'")
+	}
+
+	err := s.repo.UpdatePhotoSharingMode(tripID, userID, cleanMode)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrTripNotFound
 	}

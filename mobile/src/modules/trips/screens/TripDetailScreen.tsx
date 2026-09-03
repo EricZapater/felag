@@ -180,11 +180,23 @@ export default function TripDetailScreen({ navigation, route }: Props) {
                   .map((stage) => {
                     const stageDays = calculateDays(stage.start_date, stage.end_date);
                     return (
-                      <View key={stage.id || stage.stage_order} style={styles.stageItem}>
-                        <Text style={styles.stageTitle}>
-                          {stage.stage_order}. {stage.destination_name}
-                          {stage.country_code ? ` (${stage.country_code})` : ''}
-                        </Text>
+                      <TouchableOpacity
+                        key={stage.id || stage.stage_order}
+                        style={styles.stageItem}
+                        activeOpacity={0.7}
+                        onPress={() =>
+                          navigation.navigate('DestinationDetail', {
+                            destinationId: stage.destination_name,
+                          })
+                        }
+                      >
+                        <View style={styles.stageHeaderRow}>
+                          <Text style={styles.stageTitle}>
+                            {stage.stage_order}. {stage.destination_name}
+                            {stage.country_code ? ` (${stage.country_code})` : ''}
+                          </Text>
+                          <Text style={styles.stageExploreBtn}>Guia 🗺️ ›</Text>
+                        </View>
                         <Text style={styles.stageDates}>
                           {formatDate(stage.start_date)} – {formatDate(stage.end_date)} ({stageDays}{' '}
                           {stageDays === 1 ? 'dia' : 'dies'})
@@ -192,7 +204,7 @@ export default function TripDetailScreen({ navigation, route }: Props) {
                         {stage.notes ? (
                           <Text style={styles.stageNotes}>💬 {stage.notes}</Text>
                         ) : null}
-                      </View>
+                      </TouchableOpacity>
                     );
                   })
               ) : (
@@ -336,10 +348,28 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 10,
   },
+  stageHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
   stageTitle: {
     fontSize: 15,
     fontWeight: '700',
     color: '#2C221E',
+    flex: 1,
+  },
+  stageExploreBtn: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#C85A32',
+    backgroundColor: '#FDF7F4',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#F1DDD6',
   },
   stageDates: {
     fontSize: 12,

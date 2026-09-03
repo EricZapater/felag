@@ -9,6 +9,8 @@ export interface TripStage {
   trip_id: string;
   stage_order: number;
   destination_name: string;
+  town_id?: string | null;
+  region_id?: string | null;
   country_code?: string | null;
   start_date: string;
   end_date: string;
@@ -18,6 +20,8 @@ export interface TripStage {
 export interface TripStageInput {
   stage_order: number;
   destination_name: string;
+  town_id?: string | null;
+  region_id?: string | null;
   country_code?: string | null;
   start_date: string;
   end_date: string;

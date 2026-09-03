@@ -25,6 +25,7 @@ export default function AppHeader() {
   };
 
   const isTripsActive = location.pathname.startsWith('/trips');
+  const isDestinationsActive = location.pathname.startsWith('/destinations');
   const isChatsActive = location.pathname.startsWith('/chats');
   const isNotificationsActive = location.pathname.startsWith('/notifications');
   const isProfileActive = location.pathname.startsWith('/profile') || location.pathname.startsWith('/origin');
@@ -71,6 +72,20 @@ export default function AppHeader() {
             }}
           >
             Viatges
+          </Typography>
+
+          <Typography
+            component={RouterLink}
+            to="/destinations"
+            sx={{
+              color: isDestinationsActive ? '#C85A32' : '#786C65',
+              textDecoration: 'none',
+              fontWeight: isDestinationsActive ? 700 : 500,
+              fontSize: 15,
+              '&:hover': { color: '#C85A32' },
+            }}
+          >
+            Destins 🗺️
           </Typography>
 
           <Box

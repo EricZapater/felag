@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FELAG — Feed en Viu: Tòquio (Web)</title>
+  <style>
+    :root {
+      --terracotta: #C85A32;
+      --sand-light: #F9F6F0;
+      --sand-medium: #FAF7F2;
+      --sand-dark: #E8E2D9;
+      --earth-brown: #2C221E;
+      --text-muted: #6B5E57;
+      --white: #FFFFFF;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--sand-light); color: var(--earth-brown); }
+    header { background: var(--white); border-bottom: 1px solid var(--sand-dark); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-size: 1.4rem; font-weight: 800; color: var(--terracotta); text-decoration: none; }
+    nav a { margin-left: 1.5rem; text-decoration: none; color: var(--earth-brown); font-weight: 600; }
+
+    .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+    .feed-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+    .feed-title { font-size: 1.8rem; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+    .badge-live { background: #E65100; color: var(--white); font-size: 0.75rem; font-weight: 800; padding: 4px 10px; border-radius: 12px; }
+    .btn-upload { background: var(--terracotta); color: var(--white); border: none; padding: 0.75rem 1.25rem; border-radius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+
+    .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.25rem; }
+    .photo-card { background: var(--white); border-radius: 16px; border: 1px solid var(--sand-dark); overflow: hidden; }
+    .photo-img { width: 100%; height: 260px; object-fit: cover; }
+    .photo-meta { padding: 12px; }
+    .photo-caption { font-size: 0.9rem; font-weight: 600; margin-bottom: 6px; color: var(--earth-brown); }
+    .photo-author { font-size: 0.75rem; color: var(--text-muted); display: flex; justify-content: space-between; }
+    .author-pill { background: #FFF3E0; color: #E65100; padding: 2px 6px; border-radius: 6px; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="#" class="logo">FELAG</a>
+    <nav>
+      <a href="#">Viatges ✈️</a>
+      <a href="#">Destins 🗺️</a>
+      <a href="#">Xats 💬</a>
+      <a href="#">Perfil 👤</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <div class="feed-header">
+      <div>
+        <h1 class="feed-title">📸 Feed en Viu: Tòquio <span class="badge-live">EN DIRECTE</span></h1>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">Moments fotogràfics dels 8 FELAGIS que estan a Tòquio ara mateix.</p>
+      </div>
+      <button class="btn-upload">📷 Compartir Foto</button>
+    </div>
+
+    <div class="photo-grid">
+      <div class="photo-card">
+        <img class="photo-img" src="https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=500&auto=format&fit=crop&q=80" alt="Shibuya">
+        <div class="photo-meta">
+          <div class="photo-caption">Creuant Shibuya de nit, brutal l'ambient! 🏙️</div>
+          <div class="photo-author">
+            <span><strong>Marc Soler</strong> • fa 2h</span>
+            <span class="author-pill">📍 Terrassa</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="photo-card">
+        <img class="photo-img" src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=500&auto=format&fit=crop&q=80" alt="Temple">
+        <div class="photo-meta">
+          <div class="photo-caption">Mati de calma a Asakusa Sensō-ji ⛩️</div>
+          <div class="photo-author">
+            <span><strong>Laia Puig</strong> • fa 5h</span>
+            <span class="author-pill">📍 Girona</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="photo-card">
+        <img class="photo-img" src="https://images.unsplash.com/photo-1557872943-16a5ac26437e?w=500&auto=format&fit=crop&q=80" alt="Ramen">
+        <div class="photo-meta">
+          <div class="photo-caption">Fent cas a la recomanació de Fuunji, boníssim! 🍜</div>
+          <div class="photo-author">
+            <span><strong>Jordi Font</strong> • fa 8h</span>
+            <span class="author-pill">📍 Manresa</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

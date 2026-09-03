@@ -7,12 +7,13 @@ import (
 )
 
 type mockRepository struct {
-	trips     map[string]*Trip
-	createFn  func(trip *Trip, stages []TripStage) (*Trip, error)
-	getByIDFn func(tripID string) (*Trip, error)
-	listByFn  func(userID string, filter string) ([]Trip, error)
-	updateFn  func(tripID, userID string, update *Trip, stages *[]TripStage) (*Trip, error)
-	deleteFn  func(tripID, userID string) error
+	trips         map[string]*Trip
+	createFn      func(trip *Trip, stages []TripStage) (*Trip, error)
+	getByIDFn     func(tripID string) (*Trip, error)
+	listByFn      func(userID string, filter string) ([]Trip, error)
+	updateFn      func(tripID, userID string, update *Trip, stages *[]TripStage) (*Trip, error)
+	deleteFn      func(tripID, userID string) error
+	updatePhotoFn func(tripID, userID string, mode string) error
 }
 
 func (m *mockRepository) Create(trip *Trip, stages []TripStage) (*Trip, error) {
@@ -67,6 +68,9 @@ func (m *mockRepository) Update(tripID, userID string, update *Trip, stages *[]T
 	if update.EndDate != "" {
 		t.EndDate = update.EndDate
 	}
+	if update.PhotoSharingMode != "" {
+		t.PhotoSharingMode = update.PhotoSharingMode
+	}
 	if stages != nil {
 		t.Stages = *stages
 	}
@@ -82,6 +86,18 @@ func (m *mockRepository) Delete(tripID, userID string) error {
 		return ErrTripNotFound
 	}
 	delete(m.trips, tripID)
+	return nil
+}
+
+func (m *mockRepository) UpdatePhotoSharingMode(tripID, userID string, mode string) error {
+	if m.updatePhotoFn != nil {
+		return m.updatePhotoFn(tripID, userID, mode)
+	}
+	t, ok := m.trips[tripID]
+	if !ok || t.UserID != userID {
+		return ErrTripNotFound
+	}
+	t.PhotoSharingMode = mode
 	return nil
 }
 
@@ -152,14 +168,17 @@ func TestCreateTripValidation(t *testing.T) {
 		t.Errorf("expected error for stage start after stage end, got nil")
 	}
 
-	// Test valid creation
+	// Test valid creation with town_id and photo_sharing_mode
+	townID := "5a236619-1683-502f-b53d-4096336c35ab"
+	psm := "all_felagis"
 	created, err := svc.CreateTrip("user-1", CreateTripRequest{
-		Title:      "Ruta Escandinava",
-		StartDate:  "2026-10-10",
-		EndDate:    "2026-10-20",
-		Visibility: "public",
+		Title:            "Ruta Escandinava",
+		StartDate:        "2026-10-10",
+		EndDate:          "2026-10-20",
+		Visibility:       "public",
+		PhotoSharingMode: &psm,
 		Stages: []TripStageInput{
-			{StageOrder: 1, DestinationName: "Oslo", StartDate: "2026-10-10", EndDate: "2026-10-15"},
+			{StageOrder: 1, DestinationName: "Oslo", TownID: &townID, StartDate: "2026-10-10", EndDate: "2026-10-15"},
 			{StageOrder: 2, DestinationName: "Bergen", StartDate: "2026-10-15", EndDate: "2026-10-20"},
 		},
 	})
@@ -168,6 +187,12 @@ func TestCreateTripValidation(t *testing.T) {
 	}
 	if created.Title != "Ruta Escandinava" || len(created.Stages) != 2 {
 		t.Errorf("unexpected trip data: %+v", created)
+	}
+	if created.PhotoSharingMode != "all_felagis" {
+		t.Errorf("expected photo sharing mode all_felagis, got %s", created.PhotoSharingMode)
+	}
+	if created.Stages[0].TownID == nil || *created.Stages[0].TownID != townID {
+		t.Errorf("expected townID %s, got %v", townID, created.Stages[0].TownID)
 	}
 }
 
@@ -219,12 +244,13 @@ func TestUpdateTrip(t *testing.T) {
 	repo := &mockRepository{
 		trips: map[string]*Trip{
 			"trip-1": {
-				ID:         "trip-1",
-				UserID:     "user-1",
-				Title:      "Original Title",
-				StartDate:  "2026-10-10",
-				EndDate:    "2026-10-20",
-				Visibility: "public",
+				ID:               "trip-1",
+				UserID:           "user-1",
+				Title:            "Original Title",
+				StartDate:        "2026-10-10",
+				EndDate:          "2026-10-20",
+				Visibility:       "public",
+				PhotoSharingMode: "none",
 				Stages: []TripStage{
 					{StageOrder: 1, DestinationName: "Oslo", StartDate: "2026-10-10", EndDate: "2026-10-20"},
 				},
@@ -247,5 +273,14 @@ func TestUpdateTrip(t *testing.T) {
 	}
 	if updated.Title != "Updated Title" {
 		t.Errorf("expected title Updated Title, got %s", updated.Title)
+	}
+
+	// Update photo sharing mode
+	err = svc.UpdatePhotoSharingMode("trip-1", "user-1", "close_origin")
+	if err != nil {
+		t.Fatalf("unexpected error updating photo sharing mode: %v", err)
+	}
+	if repo.trips["trip-1"].PhotoSharingMode != "close_origin" {
+		t.Errorf("expected photo sharing mode close_origin, got %s", repo.trips["trip-1"].PhotoSharingMode)
 	}
 }

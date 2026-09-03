@@ -20,12 +20,15 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddIcon from '@mui/icons-material/Add';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader';
+import DestinationAutocomplete from '../components/DestinationAutocomplete';
 import { useTripStore } from '../store';
 import { TripStageInput, TripVisibility } from '../types';
 
 interface StageFormState {
   destination_name: string;
   country_code: string;
+  town_id?: string;
+  region_id?: string;
   start_date: string;
   end_date: string;
   notes: string;
@@ -78,6 +81,23 @@ export default function TripCreateView() {
     });
   };
 
+  const handleStageDestinationChange = (
+    index: number,
+    data: { destination_name: string; country_code: string; town_id?: string; region_id?: string }
+  ) => {
+    setStages((prev) => {
+      const updated = [...prev];
+      updated[index] = {
+        ...updated[index],
+        destination_name: data.destination_name,
+        country_code: data.country_code,
+        town_id: data.town_id,
+        region_id: data.region_id,
+      };
+      return updated;
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError(null);
@@ -120,6 +140,8 @@ export default function TripCreateView() {
     const payloadStages: TripStageInput[] = stages.map((st, idx) => ({
       stage_order: idx + 1,
       destination_name: st.destination_name.trim(),
+      town_id: st.town_id || null,
+      region_id: st.region_id || null,
       country_code: st.country_code.trim() ? st.country_code.trim().toUpperCase() : null,
       start_date: st.start_date,
       end_date: st.end_date,
@@ -306,15 +328,12 @@ export default function TripCreateView() {
 
                   <Grid container spacing={2} sx={{ mb: 2 }}>
                     <Grid item xs={12} sm={8}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="Ciutat / Destinació"
-                        placeholder="Ex: Estocolm"
+                      <DestinationAutocomplete
                         value={stage.destination_name}
-                        onChange={(e) => handleStageChange(idx, 'destination_name', e.target.value)}
+                        countryCode={stage.country_code}
+                        townId={stage.town_id}
+                        onChange={(data) => handleStageDestinationChange(idx, data)}
                         required
-                        sx={{ bgcolor: '#FFFFFF' }}
                       />
                     </Grid>
                     <Grid item xs={12} sm={4}>

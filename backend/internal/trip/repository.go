@@ -12,6 +12,7 @@ type Repository interface {
 	ListByUserID(userID string, filter string) ([]Trip, error)
 	Update(tripID, userID string, update *Trip, stages *[]TripStage) (*Trip, error)
 	Delete(tripID, userID string) error
+	UpdatePhotoSharingMode(tripID, userID string, mode string) error
 }
 
 type repository struct {
@@ -34,14 +35,19 @@ func (r *repository) Create(trip *Trip, stages []TripStage) (*Trip, error) {
 	defer tx.Rollback()
 
 	queryTrip := `
-		INSERT INTO trips (user_id, title, description, start_date, end_date, visibility, status)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		RETURNING id, user_id, title, description, start_date, end_date, visibility, status, created_at, updated_at
+		INSERT INTO trips (user_id, title, description, start_date, end_date, visibility, status, photo_sharing_mode)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		RETURNING id, user_id, title, description, start_date, end_date, visibility, status, photo_sharing_mode, created_at, updated_at
 	`
 
 	var desc sql.NullString
 	if trip.Description != nil {
 		desc = sql.NullString{String: *trip.Description, Valid: true}
+	}
+
+	photoSharing := trip.PhotoSharingMode
+	if photoSharing == "" {
+		photoSharing = "none"
 	}
 
 	var createdTrip Trip
@@ -57,6 +63,7 @@ func (r *repository) Create(trip *Trip, stages []TripStage) (*Trip, error) {
 		trip.EndDate,
 		trip.Visibility,
 		trip.Status,
+		photoSharing,
 	).Scan(
 		&createdTrip.ID,
 		&createdTrip.UserID,
@@ -66,6 +73,7 @@ func (r *repository) Create(trip *Trip, stages []TripStage) (*Trip, error) {
 		&endDate,
 		&createdTrip.Visibility,
 		&createdTrip.Status,
+		&createdTrip.PhotoSharingMode,
 		&createdTrip.CreatedAt,
 		&createdTrip.UpdatedAt,
 	)
@@ -81,15 +89,21 @@ func (r *repository) Create(trip *Trip, stages []TripStage) (*Trip, error) {
 	createdTrip.Stages = make([]TripStage, 0, len(stages))
 
 	queryStage := `
-		INSERT INTO trip_stages (trip_id, stage_order, destination_name, country_code, start_date, end_date, notes)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		RETURNING id, trip_id, stage_order, destination_name, country_code, start_date, end_date, notes
+		INSERT INTO trip_stages (trip_id, stage_order, destination_name, country_code, town_id, region_id, start_date, end_date, notes)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		RETURNING id, trip_id, stage_order, destination_name, country_code, town_id, region_id, start_date, end_date, notes
 	`
 
 	for _, s := range stages {
-		var cc, notes sql.NullString
+		var cc, townID, regionID, notes sql.NullString
 		if s.CountryCode != nil {
 			cc = sql.NullString{String: *s.CountryCode, Valid: true}
+		}
+		if s.TownID != nil && *s.TownID != "" {
+			townID = sql.NullString{String: *s.TownID, Valid: true}
+		}
+		if s.RegionID != nil && *s.RegionID != "" {
+			regionID = sql.NullString{String: *s.RegionID, Valid: true}
 		}
 		if s.Notes != nil {
 			notes = sql.NullString{String: *s.Notes, Valid: true}
@@ -97,7 +111,7 @@ func (r *repository) Create(trip *Trip, stages []TripStage) (*Trip, error) {
 
 		var createdStage TripStage
 		var sStart, sEnd time.Time
-		var resCC, resNotes sql.NullString
+		var resCC, resTownID, resRegionID, resNotes sql.NullString
 
 		err = tx.QueryRow(
 			queryStage,
@@ -105,6 +119,8 @@ func (r *repository) Create(trip *Trip, stages []TripStage) (*Trip, error) {
 			s.StageOrder,
 			s.DestinationName,
 			cc,
+			townID,
+			regionID,
 			s.StartDate,
 			s.EndDate,
 			notes,
@@ -114,6 +130,8 @@ func (r *repository) Create(trip *Trip, stages []TripStage) (*Trip, error) {
 			&createdStage.StageOrder,
 			&createdStage.DestinationName,
 			&resCC,
+			&resTownID,
+			&resRegionID,
 			&sStart,
 			&sEnd,
 			&resNotes,
@@ -124,6 +142,12 @@ func (r *repository) Create(trip *Trip, stages []TripStage) (*Trip, error) {
 
 		if resCC.Valid {
 			createdStage.CountryCode = &resCC.String
+		}
+		if resTownID.Valid {
+			createdStage.TownID = &resTownID.String
+		}
+		if resRegionID.Valid {
+			createdStage.RegionID = &resRegionID.String
 		}
 		if resNotes.Valid {
 			createdStage.Notes = &resNotes.String
@@ -147,7 +171,7 @@ func (r *repository) GetByID(tripID string) (*Trip, error) {
 	}
 
 	queryTrip := `
-		SELECT id, user_id, title, description, start_date, end_date, visibility, status, created_at, updated_at
+		SELECT id, user_id, title, description, start_date, end_date, visibility, status, photo_sharing_mode, created_at, updated_at
 		FROM trips
 		WHERE id = $1
 	`
@@ -165,6 +189,7 @@ func (r *repository) GetByID(tripID string) (*Trip, error) {
 		&endDate,
 		&trip.Visibility,
 		&trip.Status,
+		&trip.PhotoSharingMode,
 		&trip.CreatedAt,
 		&trip.UpdatedAt,
 	)
@@ -183,7 +208,7 @@ func (r *repository) GetByID(tripID string) (*Trip, error) {
 	trip.Stages = make([]TripStage, 0)
 
 	queryStages := `
-		SELECT id, trip_id, stage_order, destination_name, country_code, start_date, end_date, notes
+		SELECT id, trip_id, stage_order, destination_name, country_code, town_id, region_id, start_date, end_date, notes
 		FROM trip_stages
 		WHERE trip_id = $1
 		ORDER BY stage_order ASC
@@ -198,7 +223,7 @@ func (r *repository) GetByID(tripID string) (*Trip, error) {
 	for rows.Next() {
 		var s TripStage
 		var sStart, sEnd time.Time
-		var cc, notes sql.NullString
+		var cc, townID, regionID, notes sql.NullString
 
 		if err := rows.Scan(
 			&s.ID,
@@ -206,6 +231,8 @@ func (r *repository) GetByID(tripID string) (*Trip, error) {
 			&s.StageOrder,
 			&s.DestinationName,
 			&cc,
+			&townID,
+			&regionID,
 			&sStart,
 			&sEnd,
 			&notes,
@@ -215,6 +242,12 @@ func (r *repository) GetByID(tripID string) (*Trip, error) {
 
 		if cc.Valid {
 			s.CountryCode = &cc.String
+		}
+		if townID.Valid {
+			s.TownID = &townID.String
+		}
+		if regionID.Valid {
+			s.RegionID = &regionID.String
 		}
 		if notes.Valid {
 			s.Notes = &notes.String
@@ -241,21 +274,21 @@ func (r *repository) ListByUserID(userID string, filter string) ([]Trip, error) 
 	switch filter {
 	case "upcoming":
 		queryTrips = `
-			SELECT id, user_id, title, description, start_date, end_date, visibility, status, created_at, updated_at
+			SELECT id, user_id, title, description, start_date, end_date, visibility, status, photo_sharing_mode, created_at, updated_at
 			FROM trips
 			WHERE user_id = $1 AND end_date >= CURRENT_DATE
 			ORDER BY start_date ASC
 		`
 	case "past":
 		queryTrips = `
-			SELECT id, user_id, title, description, start_date, end_date, visibility, status, created_at, updated_at
+			SELECT id, user_id, title, description, start_date, end_date, visibility, status, photo_sharing_mode, created_at, updated_at
 			FROM trips
 			WHERE user_id = $1 AND end_date < CURRENT_DATE
 			ORDER BY start_date DESC
 		`
 	default: // "all" or any other
 		queryTrips = `
-			SELECT id, user_id, title, description, start_date, end_date, visibility, status, created_at, updated_at
+			SELECT id, user_id, title, description, start_date, end_date, visibility, status, photo_sharing_mode, created_at, updated_at
 			FROM trips
 			WHERE user_id = $1
 			ORDER BY start_date DESC
@@ -286,6 +319,7 @@ func (r *repository) ListByUserID(userID string, filter string) ([]Trip, error) 
 			&endDate,
 			&trip.Visibility,
 			&trip.Status,
+			&trip.PhotoSharingMode,
 			&trip.CreatedAt,
 			&trip.UpdatedAt,
 		); err != nil {
@@ -316,7 +350,7 @@ func (r *repository) ListByUserID(userID string, filter string) ([]Trip, error) 
 
 	// Fetch all stages for these trips
 	queryStages := `
-		SELECT ts.id, ts.trip_id, ts.stage_order, ts.destination_name, ts.country_code, ts.start_date, ts.end_date, ts.notes
+		SELECT ts.id, ts.trip_id, ts.stage_order, ts.destination_name, ts.country_code, ts.town_id, ts.region_id, ts.start_date, ts.end_date, ts.notes
 		FROM trip_stages ts
 		JOIN trips t ON ts.trip_id = t.id
 		WHERE t.user_id = $1
@@ -332,7 +366,7 @@ func (r *repository) ListByUserID(userID string, filter string) ([]Trip, error) 
 	for sRows.Next() {
 		var s TripStage
 		var sStart, sEnd time.Time
-		var cc, notes sql.NullString
+		var cc, townID, regionID, notes sql.NullString
 
 		if err := sRows.Scan(
 			&s.ID,
@@ -340,6 +374,8 @@ func (r *repository) ListByUserID(userID string, filter string) ([]Trip, error) 
 			&s.StageOrder,
 			&s.DestinationName,
 			&cc,
+			&townID,
+			&regionID,
 			&sStart,
 			&sEnd,
 			&notes,
@@ -349,6 +385,12 @@ func (r *repository) ListByUserID(userID string, filter string) ([]Trip, error) 
 
 		if cc.Valid {
 			s.CountryCode = &cc.String
+		}
+		if townID.Valid {
+			s.TownID = &townID.String
+		}
+		if regionID.Valid {
+			s.RegionID = &regionID.String
 		}
 		if notes.Valid {
 			s.Notes = &notes.String
@@ -390,7 +432,7 @@ func (r *repository) Update(tripID, userID string, update *Trip, stages *[]TripS
 		return nil, nil // Not found or not owned
 	}
 
-	var titleParam, descParam, startParam, endParam, visParam interface{}
+	var titleParam, descParam, startParam, endParam, visParam, photoSharingParam interface{}
 	if update.Title != "" {
 		titleParam = update.Title
 	}
@@ -406,6 +448,9 @@ func (r *repository) Update(tripID, userID string, update *Trip, stages *[]TripS
 	if update.Visibility != "" {
 		visParam = update.Visibility
 	}
+	if update.PhotoSharingMode != "" {
+		photoSharingParam = update.PhotoSharingMode
+	}
 
 	updateQuery := `
 		UPDATE trips
@@ -414,9 +459,10 @@ func (r *repository) Update(tripID, userID string, update *Trip, stages *[]TripS
 		    start_date = COALESCE($5, start_date),
 		    end_date = COALESCE($6, end_date),
 		    visibility = COALESCE($7, visibility),
+		    photo_sharing_mode = COALESCE($8, photo_sharing_mode),
 		    updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1 AND user_id = $2
-		RETURNING id, user_id, title, description, start_date, end_date, visibility, status, created_at, updated_at
+		RETURNING id, user_id, title, description, start_date, end_date, visibility, status, photo_sharing_mode, created_at, updated_at
 	`
 
 	var updatedTrip Trip
@@ -432,6 +478,7 @@ func (r *repository) Update(tripID, userID string, update *Trip, stages *[]TripS
 		startParam,
 		endParam,
 		visParam,
+		photoSharingParam,
 	).Scan(
 		&updatedTrip.ID,
 		&updatedTrip.UserID,
@@ -441,6 +488,7 @@ func (r *repository) Update(tripID, userID string, update *Trip, stages *[]TripS
 		&endDate,
 		&updatedTrip.Visibility,
 		&updatedTrip.Status,
+		&updatedTrip.PhotoSharingMode,
 		&updatedTrip.CreatedAt,
 		&updatedTrip.UpdatedAt,
 	)
@@ -462,14 +510,20 @@ func (r *repository) Update(tripID, userID string, update *Trip, stages *[]TripS
 		}
 
 		queryStage := `
-			INSERT INTO trip_stages (trip_id, stage_order, destination_name, country_code, start_date, end_date, notes)
-			VALUES ($1, $2, $3, $4, $5, $6, $7)
+			INSERT INTO trip_stages (trip_id, stage_order, destination_name, country_code, town_id, region_id, start_date, end_date, notes)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		`
 
 		for _, s := range *stages {
-			var cc, notes sql.NullString
+			var cc, townID, regionID, notes sql.NullString
 			if s.CountryCode != nil {
 				cc = sql.NullString{String: *s.CountryCode, Valid: true}
+			}
+			if s.TownID != nil && *s.TownID != "" {
+				townID = sql.NullString{String: *s.TownID, Valid: true}
+			}
+			if s.RegionID != nil && *s.RegionID != "" {
+				regionID = sql.NullString{String: *s.RegionID, Valid: true}
 			}
 			if s.Notes != nil {
 				notes = sql.NullString{String: *s.Notes, Valid: true}
@@ -481,6 +535,8 @@ func (r *repository) Update(tripID, userID string, update *Trip, stages *[]TripS
 				s.StageOrder,
 				s.DestinationName,
 				cc,
+				townID,
+				regionID,
 				s.StartDate,
 				s.EndDate,
 				notes,
@@ -493,7 +549,7 @@ func (r *repository) Update(tripID, userID string, update *Trip, stages *[]TripS
 
 	// Fetch current stages
 	queryCurrentStages := `
-		SELECT id, trip_id, stage_order, destination_name, country_code, start_date, end_date, notes
+		SELECT id, trip_id, stage_order, destination_name, country_code, town_id, region_id, start_date, end_date, notes
 		FROM trip_stages
 		WHERE trip_id = $1
 		ORDER BY stage_order ASC
@@ -508,7 +564,7 @@ func (r *repository) Update(tripID, userID string, update *Trip, stages *[]TripS
 	for sRows.Next() {
 		var s TripStage
 		var sStart, sEnd time.Time
-		var cc, notes sql.NullString
+		var cc, townID, regionID, notes sql.NullString
 
 		if err := sRows.Scan(
 			&s.ID,
@@ -516,6 +572,8 @@ func (r *repository) Update(tripID, userID string, update *Trip, stages *[]TripS
 			&s.StageOrder,
 			&s.DestinationName,
 			&cc,
+			&townID,
+			&regionID,
 			&sStart,
 			&sEnd,
 			&notes,
@@ -525,6 +583,12 @@ func (r *repository) Update(tripID, userID string, update *Trip, stages *[]TripS
 
 		if cc.Valid {
 			s.CountryCode = &cc.String
+		}
+		if townID.Valid {
+			s.TownID = &townID.String
+		}
+		if regionID.Valid {
+			s.RegionID = &regionID.String
 		}
 		if notes.Valid {
 			s.Notes = &notes.String
@@ -554,6 +618,29 @@ func (r *repository) Delete(tripID, userID string) error {
 	res, err := r.db.Exec(query, tripID, userID)
 	if err != nil {
 		return fmt.Errorf("error deleting trip: %w", err)
+	}
+
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error checking rows affected: %w", err)
+	}
+
+	if rows == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
+func (r *repository) UpdatePhotoSharingMode(tripID, userID string, mode string) error {
+	if r.db == nil {
+		return fmt.Errorf("database connection is nil")
+	}
+
+	query := `UPDATE trips SET photo_sharing_mode = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND user_id = $2`
+	res, err := r.db.Exec(query, tripID, userID, mode)
+	if err != nil {
+		return fmt.Errorf("error updating photo sharing mode: %w", err)
 	}
 
 	rows, err := res.RowsAffected()

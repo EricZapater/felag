@@ -267,10 +267,28 @@ export default function TripDetailView() {
                         </Typography>
                       </Box>
                       {stage.notes && (
-                        <Typography variant="body2" sx={{ color: '#786C65', mt: 1 }}>
+                        <Typography variant="body2" sx={{ color: '#786C65', mt: 0.5, mb: 1 }}>
                           {stage.notes}
                         </Typography>
                       )}
+                      <Box sx={{ mt: 1 }}>
+                        <Button
+                          component={RouterLink}
+                          to={`/destinations/${stage.town_id || stage.country_code || encodeURIComponent(stage.destination_name)}`}
+                          size="small"
+                          sx={{
+                            color: '#C85A32',
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            fontSize: '0.8rem',
+                            p: 0,
+                            minWidth: 0,
+                            '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' },
+                          }}
+                        >
+                          🗺️ Veure guia i recomanacions de {stage.destination_name}
+                        </Button>
+                      </Box>
                     </Box>
                   </Box>
                 ))}

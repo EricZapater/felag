@@ -11,6 +11,9 @@ import TripMatchesView from '@/modules/matching/views/TripMatchesView';
 import NotificationsView from '@/modules/notifications/views/NotificationsView';
 import ConversationsView from '@/modules/chat/views/ConversationsView';
 import ChatRoomView from '@/modules/chat/views/ChatRoomView';
+import DestinationsListView from '@/modules/community/views/DestinationsListView';
+import DestinationDetailView from '@/modules/community/views/DestinationDetailView';
+import LiveFeedView from '@/modules/community/views/LiveFeedView';
 import PublicProfileView from '@/modules/users/views/PublicProfileView';
 import { useAuthStore } from '@/modules/auth/store';
 
@@ -63,6 +66,30 @@ export default function AppRouter() {
           element={
             <ProtectedRoute>
               <TripMatchesView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/destinations"
+          element={
+            <ProtectedRoute>
+              <DestinationsListView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/destinations/:id"
+          element={
+            <ProtectedRoute>
+              <DestinationDetailView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/destinations/:id/live"
+          element={
+            <ProtectedRoute>
+              <LiveFeedView />
             </ProtectedRoute>
           }
         />

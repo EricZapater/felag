@@ -16,6 +16,10 @@ import NotificationsScreen from '@/modules/notifications/screens/NotificationsSc
 import ConversationsScreen from '@/modules/chat/screens/ConversationsScreen';
 import ChatRoomScreen from '@/modules/chat/screens/ChatRoomScreen';
 import PublicProfileScreen from '@/modules/users/screens/PublicProfileScreen';
+import DestinationsListScreen from '@/modules/community/screens/DestinationsListScreen';
+import DestinationDetailScreen from '@/modules/community/screens/DestinationDetailScreen';
+import RecommendationCreateScreen from '@/modules/community/screens/RecommendationCreateScreen';
+import LiveFeedScreen from '@/modules/community/screens/LiveFeedScreen';
 
 export default function AppNavigation() {
   const { isAuthenticated, accessToken } = useAuthStore();
@@ -55,6 +59,7 @@ export default function AppNavigation() {
     // If switching between bottom tabs, replace stack
     if (
       screenName === 'TripsList' ||
+      screenName === 'DestinationsList' ||
       screenName === 'Conversations' ||
       screenName === 'Notifications' ||
       screenName === 'Profile'
@@ -88,6 +93,7 @@ export default function AppNavigation() {
 
   const isMainTab =
     currentScreen === 'TripsList' ||
+    currentScreen === 'DestinationsList' ||
     currentScreen === 'Conversations' ||
     currentScreen === 'Notifications' ||
     currentScreen === 'Profile';
@@ -104,6 +110,18 @@ export default function AppNavigation() {
         )}
         {currentScreen === 'TripMatches' && (
           <TripMatchesScreen navigation={navigation} route={{ params: currentParams }} />
+        )}
+        {currentScreen === 'DestinationsList' && (
+          <DestinationsListScreen navigation={navigation} />
+        )}
+        {currentScreen === 'DestinationDetail' && (
+          <DestinationDetailScreen navigation={navigation} route={{ params: currentParams }} />
+        )}
+        {currentScreen === 'RecommendationCreate' && (
+          <RecommendationCreateScreen navigation={navigation} route={{ params: currentParams }} />
+        )}
+        {currentScreen === 'LiveFeed' && (
+          <LiveFeedScreen navigation={navigation} route={{ params: currentParams }} />
         )}
         {currentScreen === 'Conversations' && <ConversationsScreen navigation={navigation} />}
         {currentScreen === 'ChatRoom' && (
@@ -130,6 +148,29 @@ export default function AppNavigation() {
             </Text>
             <Text style={[styles.navLabel, currentScreen === 'TripsList' && styles.navActiveText]}>
               Viatges
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.navItem}
+            onPress={() => navigate('DestinationsList')}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[
+                styles.navIcon,
+                currentScreen === 'DestinationsList' && styles.navActiveText,
+              ]}
+            >
+              🗺️
+            </Text>
+            <Text
+              style={[
+                styles.navLabel,
+                currentScreen === 'DestinationsList' && styles.navActiveText,
+              ]}
+            >
+              Destins
             </Text>
           </TouchableOpacity>
 
