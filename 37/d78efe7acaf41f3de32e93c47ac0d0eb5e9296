@@ -1,0 +1,22 @@
+.env.backend.example
+  h_42175f19913982 1-13,15-19,21-34,39
+backend/.env.example
+  h_42175f19913982 1-13,15-19,21-37,39
+backend/cmd/api/main.go
+  h_42175f19913982 7,51-57
+backend/internal/db/db.go
+  h_42175f19913982 13-35,38
+backend/internal/profile/service.go
+  h_42175f19913982 10,58-59,61-67,70,81-92
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "37d78efe7acaf41f3de32e93c47ac0d0eb5e9296",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
