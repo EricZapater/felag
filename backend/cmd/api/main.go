@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"felag/backend/internal/auth"
 	"felag/backend/internal/db"
@@ -47,7 +48,13 @@ func main() {
 	r.Use(CORSMiddleware())
 
 	// Static route for uploaded avatars
-	r.Static("/static/avatars", "./uploads/avatars")
+	uploadDir := os.Getenv("UPLOAD_DIR")
+	if uploadDir == "" {
+		uploadDir = "./uploads"
+	}
+	avatarDir := filepath.Join(uploadDir, "avatars")
+	_ = os.MkdirAll(avatarDir, 0755)
+	r.Static("/static/avatars", avatarDir)
 
 	// Health check
 	r.GET("/health", func(c *gin.Context) {

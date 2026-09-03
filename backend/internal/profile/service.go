@@ -7,6 +7,7 @@ import (
 	"mime/multipart"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 var ErrProfileNotFound = errors.New("PROFILE_NOT_FOUND")
@@ -54,15 +55,19 @@ func (s *service) UploadAvatar(userID string, fileHeader *multipart.FileHeader) 
 	}
 	defer file.Close()
 
+	fileName := fmt.Sprintf("%s_%s", userID, filepath.Base(fileHeader.Filename))
+
 	// Ensure uploads directory exists for fallback/local development
-	uploadDir := "uploads/avatars"
-	if err := os.MkdirAll(uploadDir, 0755); err != nil {
-		return "", fmt.Errorf("error creating upload directory: %w", err)
+	uploadDir := os.Getenv("UPLOAD_DIR")
+	if uploadDir == "" {
+		uploadDir = "./uploads"
+	}
+	avatarDir := filepath.Join(uploadDir, "avatars")
+	if err := os.MkdirAll(avatarDir, 0755); err != nil {
+		return "", fmt.Errorf("error creating avatar dir: %w", err)
 	}
 
-	fileName := fmt.Sprintf("%s_%s", userID, filepath.Base(fileHeader.Filename))
-	dstPath := filepath.Join(uploadDir, fileName)
-
+	dstPath := filepath.Join(avatarDir, fileName)
 	dst, err := os.Create(dstPath)
 	if err != nil {
 		return "", fmt.Errorf("error creating destination file: %w", err)
@@ -73,7 +78,18 @@ func (s *service) UploadAvatar(userID string, fileHeader *multipart.FileHeader) 
 		return "", fmt.Errorf("error writing file: %w", err)
 	}
 
-	avatarURL := fmt.Sprintf("http://localhost:8080/static/avatars/%s", fileName)
+	var avatarURL string
+	r2URL := os.Getenv("R2_PUBLIC_URL")
+	if r2URL != "" {
+		avatarURL = fmt.Sprintf("%s/%s", strings.TrimRight(r2URL, "/"), fileName)
+	} else {
+		baseURL := os.Getenv("BASE_URL")
+		if baseURL == "" {
+			baseURL = "http://localhost:8080"
+		}
+		avatarURL = fmt.Sprintf("%s/static/avatars/%s", strings.TrimRight(baseURL, "/"), fileName)
+	}
+
 	if err := s.repo.UpdateAvatar(userID, avatarURL); err != nil {
 		return "", fmt.Errorf("error saving avatar url: %w", err)
 	}
