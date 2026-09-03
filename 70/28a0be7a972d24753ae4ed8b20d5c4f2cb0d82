@@ -1,0 +1,20 @@
+.github/workflows/deploy.yml
+  h_42175f19913982 188
+.github/workflows/mobile-build.yml
+  h_42175f19913982 55
+mobile/app.json
+  h_42175f19913982 5
+mobile/eas.json
+  h_42175f19913982 3-4,12-15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "7028a0be7a972d24753ae4ed8b20d5c4f2cb0d82",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
