@@ -185,4 +185,5 @@ jobs:
         if: steps.expo-check.outputs.has_token == 'true'
         run: |
           cd mobile
+          eas init --account felag --non-interactive || true
           eas build --profile preview --platform android --non-interactive

@@ -52,6 +52,7 @@ jobs:
       - name: Run EAS Build
         run: |
           cd mobile
+          eas init --account felag --non-interactive || true
           if [ "${{ inputs.platform }}" = "all" ]; then
             eas build --profile ${{ inputs.profile }} --platform all --non-interactive
           else
