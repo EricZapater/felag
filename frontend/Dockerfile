@@ -2,9 +2,9 @@
 FROM node:22-alpine AS builder
 RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* ./
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* .npmrc* ./
 COPY frontend/package.json ./frontend/
-RUN pnpm install --filter frontend... --registry=https://registry.npmjs.org/
+RUN pnpm install --filter frontend... --registry=https://registry.npmjs.org/ --config.minimum-release-age=0
 COPY frontend ./frontend
 RUN pnpm --filter frontend build
 
