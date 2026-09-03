@@ -1,0 +1,493 @@
+openapi: 3.0.3
+info:
+  title: FELAG Post-Trip Experience & Active Hub API
+  version: 0.6.0
+  description: Endpoints for Active Trip Hub, Trip Photo Gallery, Celebration Cards, Post-Trip Wrap-up, Instagram 9:16 Stories Report, and Global Destination Exploration.
+paths:
+  /api/v1/trips/active-hub:
+    get:
+      summary: Get active trip hub summary
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Active trip details and hub indicators
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActiveTripHubResponse'
+
+  /api/v1/trips/{id}/photos:
+    get:
+      summary: Get photo gallery for a trip
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of trip photos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TripPhoto'
+
+    post:
+      summary: Add a photo to trip gallery
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddTripPhotoRequest'
+      responses:
+        '201':
+          description: Photo added to album
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripPhoto'
+
+  /api/v1/trips/{id}/photos/{photo_id}/feature:
+    put:
+      summary: Toggle featured status for Instagram 9:16 stories card
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: photo_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Photo featured status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripPhoto'
+
+  /api/v1/trips/{id}/photos/{photo_id}:
+    delete:
+      summary: Delete a photo from trip gallery
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: photo_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Photo removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /api/v1/trips/{id}/celebration-cards:
+    get:
+      summary: Get celebration cards created for this trip
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of celebration cards
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CelebrationCard'
+
+    post:
+      summary: Create and share a Celebration Card ("We Met! 📸") in real time
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCelebrationCardRequest'
+      responses:
+        '201':
+          description: Celebration card generated and shared to chat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CelebrationCard'
+
+  /api/v1/trips/{id}/wrapup-status:
+    get:
+      summary: Get status of post-trip wrapup ritual tasks
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Wrapup tasks status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WrapupStatus'
+
+  /api/v1/trips/{id}/feedback:
+    post:
+      summary: Submit trip feedback rating and optional destination tips
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripFeedbackRequest'
+      responses:
+        '201':
+          description: Feedback recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /api/v1/trips/{id}/stories-card-data:
+    get:
+      summary: Get formatted data for 9:16 Instagram Stories Report
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Stories card data payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoriesCardData'
+
+  /api/v1/explore/recommendations:
+    get:
+      summary: Explore popular destinations tailored to user origin affinity
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Recommended destinations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExploreDestinationItem'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ActiveTripHubResponse:
+      type: object
+      properties:
+        has_active_trip:
+          type: boolean
+        trip_id:
+          type: string
+          format: uuid
+        trip_title:
+          type: string
+        destination_name:
+          type: string
+        country_code:
+          type: string
+        country_flag:
+          type: string
+        current_day:
+          type: integer
+        total_days:
+          type: integer
+        is_final_day_or_past:
+          type: boolean
+        photo_sharing_mode:
+          type: string
+          enum: [all_felagis, close_origin, none]
+        photos_count:
+          type: integer
+        celebration_cards_count:
+          type: integer
+        active_felagis_count:
+          type: integer
+
+    TripPhoto:
+      type: object
+      required: [id, trip_id, image_url, is_featured, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        trip_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        image_url:
+          type: string
+        caption:
+          type: string
+        is_featured:
+          type: boolean
+        location_name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    AddTripPhotoRequest:
+      type: object
+      required: [image_url]
+      properties:
+        image_url:
+          type: string
+        caption:
+          type: string
+          maxLength: 280
+        is_featured:
+          type: boolean
+        location_name:
+          type: string
+
+    CelebrationCard:
+      type: object
+      required: [id, trip_id, user_1, user_2, image_url, title, headline, location_name, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        trip_id:
+          type: string
+          format: uuid
+        user_1:
+          $ref: '#/components/schemas/UserOriginSummary'
+        user_2:
+          $ref: '#/components/schemas/UserOriginSummary'
+        image_url:
+          type: string
+        title:
+          type: string
+        headline:
+          type: string
+        subheadline:
+          type: string
+        location_name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    UserOriginSummary:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        avatar_url:
+          type: string
+        town_name:
+          type: string
+        region_name:
+          type: string
+        country_name:
+          type: string
+
+    CreateCelebrationCardRequest:
+      type: object
+      required: [user_2_id, image_url, location_name]
+      properties:
+        user_2_id:
+          type: string
+          format: uuid
+        image_url:
+          type: string
+        location_name:
+          type: string
+        caption:
+          type: string
+
+    WrapupStatus:
+      type: object
+      required: [is_final_day_or_past, celebration_completed, feedback_completed, stories_ready]
+      properties:
+        is_final_day_or_past:
+          type: boolean
+        celebration_completed:
+          type: boolean
+        feedback_completed:
+          type: boolean
+        stories_ready:
+          type: boolean
+        progress_percentage:
+          type: integer
+
+    TripFeedbackRequest:
+      type: object
+      required: [rating]
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comments:
+          type: string
+        community_tips:
+          type: array
+          items:
+            type: object
+            required: [category, title, description]
+            properties:
+              category:
+                type: string
+                enum: [food, hidden_gem, transport, practical_tip, anecdote]
+              title:
+                type: string
+              description:
+                type: string
+              image_url:
+                type: string
+
+    StoriesCardData:
+      type: object
+      required: [trip_id, trip_title, author_name, total_days, stages_count, felagis_met_count, featured_photos, start_date, end_date]
+      properties:
+        trip_id:
+          type: string
+          format: uuid
+        trip_title:
+          type: string
+        destination_name:
+          type: string
+        country_flag:
+          type: string
+        author_name:
+          type: string
+        author_origin:
+          type: string
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        total_days:
+          type: integer
+        stages_count:
+          type: integer
+        felagis_met_count:
+          type: integer
+        featured_photos:
+          type: array
+          items:
+            type: string
+
+    ExploreDestinationItem:
+      type: object
+      required: [id, name, type, country_name, country_code]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        region_name:
+          type: string
+        country_name:
+          type: string
+        country_code:
+          type: string
+        flag_emoji:
+          type: string
+        banner_url:
+          type: string
+        total_recommendations:
+          type: integer
+        active_felagis_count:
+          type: integer
+        affinity_reason:
+          type: string
+
+    SuccessResponse:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string

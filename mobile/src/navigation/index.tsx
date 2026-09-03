@@ -20,6 +20,11 @@ import DestinationsListScreen from '@/modules/community/screens/DestinationsList
 import DestinationDetailScreen from '@/modules/community/screens/DestinationDetailScreen';
 import RecommendationCreateScreen from '@/modules/community/screens/RecommendationCreateScreen';
 import LiveFeedScreen from '@/modules/community/screens/LiveFeedScreen';
+import TripGalleryScreen from '@/modules/posttrip/screens/TripGalleryScreen';
+import CelebrationCardScreen from '@/modules/posttrip/screens/CelebrationCardScreen';
+import TripWrapupScreen from '@/modules/posttrip/screens/TripWrapupScreen';
+import InstagramStoriesScreen from '@/modules/posttrip/screens/InstagramStoriesScreen';
+import ExploreDestinationsScreen from '@/modules/explore/screens/ExploreDestinationsScreen';
 
 export default function AppNavigation() {
   const { isAuthenticated, accessToken } = useAuthStore();
@@ -133,6 +138,21 @@ export default function AppNavigation() {
         {currentScreen === 'Notifications' && <NotificationsScreen navigation={navigation} />}
         {currentScreen === 'Profile' && <ProfileScreen navigation={navigation} />}
         {currentScreen === 'OriginSelector' && <OriginSelectorScreen navigation={navigation} />}
+        {currentScreen === 'TripGallery' && (
+          <TripGalleryScreen navigation={navigation} route={{ params: currentParams }} />
+        )}
+        {currentScreen === 'CelebrationCard' && (
+          <CelebrationCardScreen navigation={navigation} route={{ params: currentParams }} />
+        )}
+        {currentScreen === 'TripWrapup' && (
+          <TripWrapupScreen navigation={navigation} route={{ params: currentParams }} />
+        )}
+        {currentScreen === 'InstagramStories' && (
+          <InstagramStoriesScreen navigation={navigation} route={{ params: currentParams }} />
+        )}
+        {currentScreen === 'ExploreDestinations' && (
+          <ExploreDestinationsScreen navigation={navigation} />
+        )}
       </View>
 
       {/* Bottom Navigation Bar */}

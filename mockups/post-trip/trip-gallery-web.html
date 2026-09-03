@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FELAG — Àlbum de Fotos del Viatge (Web)</title>
+  <style>
+    :root {
+      --terracotta: #C85A32;
+      --terracotta-dark: #A0471D;
+      --sand-light: #F9F6F0;
+      --sand-medium: #FAF7F2;
+      --sand-dark: #E8E2D9;
+      --earth-brown: #2C221E;
+      --text-muted: #6B5E57;
+      --white: #FFFFFF;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--sand-light); color: var(--earth-brown); }
+    header { background: var(--white); border-bottom: 1px solid var(--sand-dark); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-size: 1.4rem; font-weight: 800; color: var(--terracotta); text-decoration: none; }
+    nav a { margin-left: 1.5rem; text-decoration: none; color: var(--earth-brown); font-weight: 600; }
+
+    .container { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; }
+    .gallery-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+    .gallery-title { font-size: 1.8rem; font-weight: 800; }
+    .btn-upload { background: var(--terracotta); color: var(--white); border: none; padding: 0.75rem 1.5rem; border-radius: 10px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+
+    .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
+    .gallery-item { background: var(--white); border-radius: 14px; border: 1px solid var(--sand-dark); overflow: hidden; position: relative; }
+    .gallery-img { width: 100%; height: 200px; object-fit: cover; }
+    .featured-badge { position: absolute; top: 10px; left: 10px; background: rgba(200,90,50,0.9); color: var(--white); font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; }
+    .gallery-meta { padding: 10px 12px; font-size: 0.85rem; }
+    .gallery-caption { font-weight: 600; color: var(--earth-brown); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .gallery-sub { font-size: 0.75rem; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="#" class="logo">FELAG</a>
+    <nav>
+      <a href="#">Viatges ✈️</a>
+      <a href="#">Destins 🗺️</a>
+      <a href="#">Xats 💬</a>
+      <a href="#">Perfil 👤</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <div class="gallery-header">
+      <div>
+        <a href="#" style="color: var(--terracotta); font-weight: 700; text-decoration: none; font-size: 0.9rem;">‹ Tornar al Viatge</a>
+        <h1 class="gallery-title" style="margin-top: 4px;">🖼️ Àlbum: Japó: Tòquio i Kyoto 🇯🇵</h1>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">12 fotografies desades per compondre el reportatge final.</p>
+      </div>
+      <button class="btn-upload">📷 Afegir Fotos a l'Àlbum</button>
+    </div>
+
+    <div class="gallery-grid">
+      <div class="gallery-item">
+        <span class="featured-badge">⭐ Destacada</span>
+        <img class="gallery-img" src="https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=500&auto=format&fit=crop&q=80" alt="Shibuya">
+        <div class="gallery-meta">
+          <div class="gallery-caption">Shibuya Crossing de nit</div>
+          <div class="gallery-sub">Tòquio • 2 Set</div>
+        </div>
+      </div>
+
+      <div class="gallery-item">
+        <span class="featured-badge">⭐ Destacada</span>
+        <img class="gallery-img" src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=500&auto=format&fit=crop&q=80" alt="Sensō-ji">
+        <div class="gallery-meta">
+          <div class="gallery-caption">Temple Sensō-ji a Asakusa</div>
+          <div class="gallery-sub">Tòquio • 3 Set</div>
+        </div>
+      </div>
+
+      <div class="gallery-item">
+        <img class="gallery-img" src="https://images.unsplash.com/photo-1557872943-16a5ac26437e?w=500&auto=format&fit=crop&q=80" alt="Ramen">
+        <div class="gallery-meta">
+          <div class="gallery-caption">Ramen Fuunji a Shinjuku</div>
+          <div class="gallery-sub">Tòquio • 3 Set</div>
+        </div>
+      </div>
+
+      <div class="gallery-item">
+        <span class="featured-badge">⭐ Destacada</span>
+        <img class="gallery-img" src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=500&auto=format&fit=crop&q=80" alt="Trobada">
+        <div class="gallery-meta">
+          <div class="gallery-caption">Trobada amb en Marc Soler</div>
+          <div class="gallery-sub">Tòquio • 4 Set</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

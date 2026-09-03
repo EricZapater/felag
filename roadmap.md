@@ -172,22 +172,22 @@ Definition of done:
 Goal: guide users through the post-trip ritual on the final day of their trip (`end_date <= NOW()`) and provide open destination exploration.
 
 ## The Post-Trip Ritual (Available on the final day of the trip)
-- [ ] Final-day notification & in-app trip wrap-up panel: *"You've completed your trip to Tokyo! 🎉 Complete your trip wrap-up"*
-- [ ] **Task 1 — Celebration Card ("We Met! 📸")**:
+- [x] Final-day notification & in-app trip wrap-up panel: *"You've completed your trip to Tokyo! 🎉 Complete your trip wrap-up"*
+- [x] **Task 1 — Celebration Card ("We Met! 📸")**:
   - Upload meetup selfie taken with a matched FELAGI during the trip.
   - Automatically generate a branded Celebration Card: *"Eric (Terrassa) and Marc (Sabadell) met in Tokyo! 🗼✨"*.
   - Exportable to social networks and saved to conversation/profile.
-- [ ] **Task 2 — Trip Feedback & Community Tips**:
+- [x] **Task 2 — Trip Feedback & Community Tips**:
   - Trip rating and general feedback.
   - Option to contribute 1-2 tips/recommendations directly to the destination page from Phase 5.
-- [ ] **Task 3 — Instagram Stories Report (9:16 Album Card)**:
+- [x] **Task 3 — Instagram Stories Report (9:16 Album Card)**:
   - Visual summary card formatted for 9:16 Instagram Stories / Reels / TikTok / WhatsApp.
   - Highlights itinerary, key photos, and travel stats (*days travelled, km, FELAGIS met*).
   - Native mobile sharing sheet integration.
 
 ## Global Exploration & Destination Queries
-- [ ] Open destination search (*"What can I do in Tokyo?"*) without requiring an active trip or match.
-- [ ] *"Where can I go?"* recommendation engine based on community ratings and common origin affinities.
+- [x] Open destination search (*"What can I do in Tokyo?"*) without requiring an active trip or match.
+- [x] *"Where can I go?"* recommendation engine based on community ratings and common origin affinities.
 
 Definition of done:
 - When a trip reaches its end date, the user can complete the 3 wrap-up tasks (Celebration card, Feedback, Instagram report).

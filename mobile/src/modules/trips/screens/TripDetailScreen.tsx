@@ -10,6 +10,8 @@ import {
 import { Button, Card, Divider, HelperText, Text } from 'react-native-paper';
 import { useTripsStore } from '../store';
 import { Trip } from '../types';
+import { usePostTripStore } from '@/modules/posttrip/store';
+import ActiveTripHubCard from '@/modules/posttrip/components/ActiveTripHubCard';
 
 interface Props {
   navigation: {
@@ -26,13 +28,15 @@ interface Props {
 export default function TripDetailScreen({ navigation, route }: Props) {
   const tripId = route?.params?.tripId;
   const { currentTrip, fetchTripById, deleteTrip, isLoading, error } = useTripsStore();
+  const { activeHub, fetchActiveHub } = usePostTripStore();
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (tripId) {
       fetchTripById(tripId);
+      fetchActiveHub().catch(() => {});
     }
-  }, [tripId, fetchTripById]);
+  }, [tripId, fetchTripById, fetchActiveHub]);
 
   const formatDate = (dateStr: string) => {
     try {
@@ -143,6 +147,10 @@ export default function TripDetailScreen({ navigation, route }: Props) {
 
       {trip && (
         <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
+          {activeHub && activeHub.has_active_trip && activeHub.trip_id === trip.id && (
+            <ActiveTripHubCard data={activeHub} navigation={navigation} />
+          )}
+
           <Card style={styles.card}>
             <Card.Content>
               <Text variant="titleLarge" style={styles.tripTitle}>
@@ -226,6 +234,64 @@ export default function TripDetailScreen({ navigation, route }: Props) {
                   </Text>
                 </TouchableOpacity>
               ) : null}
+
+              {/* Post-Trip & Memories Box */}
+              <View style={styles.postTripSectionBox}>
+                <Text style={styles.postTripSectionTitle}>📸 Records & Experiència Post-Trip</Text>
+                <View style={styles.postTripBtnRow}>
+                  <TouchableOpacity
+                    style={styles.postTripBtn}
+                    onPress={() =>
+                      navigation.navigate('TripGallery', {
+                        tripId: trip.id,
+                        tripTitle: trip.title,
+                      })
+                    }
+                  >
+                    <Text style={styles.postTripBtnIcon}>🖼️</Text>
+                    <Text style={styles.postTripBtnText}>Àlbum</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.postTripBtn}
+                    onPress={() =>
+                      navigation.navigate('CelebrationCard', {
+                        tripId: trip.id,
+                        tripTitle: trip.title,
+                      })
+                    }
+                  >
+                    <Text style={styles.postTripBtnIcon}>📸</Text>
+                    <Text style={styles.postTripBtnText}>Celebration</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.postTripBtn}
+                    onPress={() =>
+                      navigation.navigate('TripWrapup', {
+                        tripId: trip.id,
+                        tripTitle: trip.title,
+                      })
+                    }
+                  >
+                    <Text style={styles.postTripBtnIcon}>✨</Text>
+                    <Text style={styles.postTripBtnText}>Ritual</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.postTripBtn}
+                    onPress={() =>
+                      navigation.navigate('InstagramStories', {
+                        tripId: trip.id,
+                        tripTitle: trip.title,
+                      })
+                    }
+                  >
+                    <Text style={styles.postTripBtnIcon}>📱</Text>
+                    <Text style={styles.postTripBtnText}>Stories</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </Card.Content>
           </Card>
 
@@ -416,6 +482,44 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#8C7A70',
     lineHeight: 16,
+  },
+  postTripSectionBox: {
+    marginTop: 16,
+    backgroundColor: '#FAF7F2',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E8E2D9',
+    padding: 12,
+  },
+  postTripSectionTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#2C221E',
+    marginBottom: 10,
+  },
+  postTripBtnRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  postTripBtn: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E8E2D9',
+    paddingVertical: 8,
+    paddingHorizontal: 2,
+    alignItems: 'center',
+  },
+  postTripBtnIcon: {
+    fontSize: 18,
+    marginBottom: 2,
+  },
+  postTripBtnText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#4A3E39',
   },
   actions: {
     marginTop: 8,

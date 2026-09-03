@@ -21,6 +21,8 @@ import { Link as RouterLink } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader';
 import { useTripStore } from '../store';
 import { Trip, TripFilter } from '../types';
+import ActiveTripHubCard from '@/modules/posttrip/components/ActiveTripHubCard';
+import { usePostTripStore } from '@/modules/posttrip/store';
 
 // Helper for date formatting without timezone shift
 function formatDate(dateStr: string): string {
@@ -71,11 +73,13 @@ function getStatusBadge(status: string): { label: string; bg: string; color: str
 
 export default function TripsListView() {
   const { trips, fetchTrips, isLoading, error } = useTripStore();
+  const { activeHub, fetchActiveHub } = usePostTripStore();
   const [filterTab, setFilterTab] = useState<TripFilter>('all');
 
   useEffect(() => {
     fetchTrips(filterTab);
-  }, [fetchTrips, filterTab]);
+    fetchActiveHub();
+  }, [fetchTrips, fetchActiveHub, filterTab]);
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: TripFilter) => {
     setFilterTab(newValue);
@@ -236,6 +240,11 @@ export default function TripsListView() {
 
       {/* Main Container */}
       <Container maxWidth="md" sx={{ py: 5 }}>
+        {/* Active Trip Hub Card if active */}
+        {activeHub?.has_active_trip && (
+          <ActiveTripHubCard hubData={activeHub} />
+        )}
+
         {/* Title and Action */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h4" sx={{ fontWeight: 700, color: '#2C221E', fontSize: { xs: '1.5rem', md: '1.75rem' } }}>

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>FELAG — Tancament & Stories (Mobile)</title>
+  <style>
+    :root {
+      --terracotta: #C85A32;
+      --sand-light: #F9F6F0;
+      --sand-medium: #FAF7F2;
+      --sand-dark: #E8E2D9;
+      --earth-brown: #2C221E;
+      --text-muted: #6B5E57;
+      --white: #FFFFFF;
+      --success: #2E7D32;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--sand-light); color: var(--earth-brown); display: flex; justify-content: center; padding: 20px 0; }
+    
+    .mobile-frame {
+      width: 375px;
+      height: 812px;
+      background: var(--sand-light);
+      border-radius: 40px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+      border: 8px solid #2C221E;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+    .status-bar { height: 44px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; font-size: 0.8rem; font-weight: 600; background: var(--white); }
+    .content-scroll { flex: 1; overflow-y: auto; padding: 16px 16px 80px; }
+
+    .hero-m { background: var(--white); border-radius: 16px; border: 1px solid var(--sand-dark); padding: 16px; margin-bottom: 16px; text-align: center; }
+    .badge-done-m { background: #E8F5E9; color: var(--success); font-size: 0.7rem; font-weight: 800; padding: 2px 8px; border-radius: 8px; display: inline-block; margin-bottom: 6px; }
+    .title-wrap-m { font-size: 1.2rem; font-weight: 800; margin-bottom: 4px; }
+    .sub-wrap-m { font-size: 0.8rem; color: var(--text-muted); }
+
+    /* 9:16 Mini Story Card in Mobile */
+    .story-card-m {
+      background: linear-gradient(180deg, #2C221E 0%, #1A1412 100%);
+      border-radius: 20px;
+      padding: 16px 14px;
+      color: var(--white);
+      margin-bottom: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    }
+    .story-m-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .story-m-brand { font-size: 0.8rem; font-weight: 800; color: var(--terracotta); }
+    .story-m-title { font-size: 1.1rem; font-weight: 800; margin-bottom: 2px; }
+    .story-m-stats { display: flex; justify-content: space-around; background: rgba(255,255,255,0.1); border-radius: 8px; padding: 6px; margin: 10px 0; }
+    .stat-m-num { font-size: 0.95rem; font-weight: 800; color: #FFE082; text-align: center; }
+    .stat-m-lbl { font-size: 0.6rem; opacity: 0.8; text-align: center; }
+    .mosaic-m { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin-bottom: 10px; }
+    .mosaic-m-img { width: 100%; height: 64px; border-radius: 6px; object-fit: cover; }
+    .story-m-footer { text-align: center; font-size: 0.65rem; color: #FFE082; font-weight: 700; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 6px; }
+
+    .btn-share-story-m {
+      background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%);
+      color: var(--white);
+      border: none;
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="mobile-frame">
+    <div class="status-bar">
+      <span>9:41</span>
+      <span>📶 5G 🔋 100%</span>
+    </div>
+
+    <div class="content-scroll">
+      <div class="hero-m">
+        <span class="badge-done-m">✨ DIA FINAL DEL VIATGE</span>
+        <h1 class="title-wrap-m">Has completat el teu viatge! 🎉</h1>
+        <p class="sub-wrap-m">Japó: Tòquio i Kyoto • 15 dies d'aventures</p>
+      </div>
+
+      <!-- 9:16 Story Preview Card -->
+      <div class="story-card-m">
+        <div class="story-m-top">
+          <span class="story-m-brand">FELAG ✈️</span>
+          <span>🇯🇵</span>
+        </div>
+        <h2 class="story-m-title">Japó: Tòquio i Kyoto</h2>
+        <div class="story-m-stats">
+          <div><div class="stat-m-num">15</div><div class="stat-m-lbl">Dies</div></div>
+          <div><div class="stat-m-num">2</div><div class="stat-m-lbl">Etapes</div></div>
+          <div><div class="stat-m-num">3</div><div class="stat-m-lbl">FELAGIS</div></div>
+        </div>
+        <div class="mosaic-m">
+          <img class="mosaic-m-img" src="https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=300&auto=format&fit=crop&q=80" alt="Shibuya">
+          <img class="mosaic-m-img" src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=300&auto=format&fit=crop&q=80" alt="Sensō-ji">
+          <img class="mosaic-m-img" src="https://images.unsplash.com/photo-1557872943-16a5ac26437e?w=300&auto=format&fit=crop&q=80" alt="Ramen">
+          <img class="mosaic-m-img" src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=300&auto=format&fit=crop&q=80" alt="Friends">
+        </div>
+        <div class="story-m-footer">
+          Viatja pel món, connecta amb la teva terra
+        </div>
+      </div>
+
+      <button class="btn-share-story-m">📲 Compartir a Instagram Stories</button>
+    </div>
+  </div>
+
+</body>
+</html>

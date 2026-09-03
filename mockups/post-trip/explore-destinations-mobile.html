@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>FELAG — Explorar Destins (Mobile)</title>
+  <style>
+    :root {
+      --terracotta: #C85A32;
+      --sand-light: #F9F6F0;
+      --sand-medium: #FAF7F2;
+      --sand-dark: #E8E2D9;
+      --earth-brown: #2C221E;
+      --text-muted: #6B5E57;
+      --white: #FFFFFF;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--sand-light); color: var(--earth-brown); display: flex; justify-content: center; padding: 20px 0; }
+    
+    .mobile-frame {
+      width: 375px;
+      height: 812px;
+      background: var(--sand-light);
+      border-radius: 40px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+      border: 8px solid #2C221E;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+    .status-bar { height: 44px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; font-size: 0.8rem; font-weight: 600; background: var(--white); }
+    .header-m { background: var(--white); padding: 12px 16px; border-bottom: 1px solid var(--sand-dark); }
+    .header-m h1 { font-size: 1.2rem; font-weight: 800; margin-bottom: 8px; }
+    .search-m-input { width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--sand-dark); font-size: 0.85rem; background: var(--sand-medium); }
+
+    .content-scroll { flex: 1; overflow-y: auto; padding: 16px 16px 80px; }
+    .section-m-lbl { font-size: 0.9rem; font-weight: 800; margin-bottom: 10px; }
+
+    .dest-m-card { background: var(--white); border-radius: 16px; border: 1px solid var(--sand-dark); margin-bottom: 14px; overflow: hidden; }
+    .dest-m-img { width: 100%; height: 140px; object-fit: cover; }
+    .dest-m-body { padding: 12px; }
+    .dest-m-name { font-size: 1.05rem; font-weight: 800; margin-bottom: 2px; }
+    .dest-m-sub { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; }
+    .dest-m-footer { display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; }
+    .badge-pop { background: #FFF3E0; color: #E65100; padding: 2px 6px; border-radius: 6px; font-weight: 700; }
+
+    .bottom-tab { height: 60px; background: var(--white); border-top: 1px solid var(--sand-dark); display: flex; justify-content: space-around; align-items: center; }
+    .tab-item { display: flex; flex-direction: column; align-items: center; font-size: 0.7rem; color: var(--text-muted); text-decoration: none; font-weight: 600; }
+    .tab-item.active { color: var(--terracotta); }
+    .tab-icon { font-size: 1.2rem; margin-bottom: 2px; }
+  </style>
+</head>
+<body>
+
+  <div class="mobile-frame">
+    <div class="status-bar">
+      <span>9:41</span>
+      <span>📶 5G 🔋 100%</span>
+    </div>
+
+    <div class="header-m">
+      <h1>Explorar Destins 🗺️✨</h1>
+      <input type="text" class="search-m-input" placeholder="🔍 Cerca ciutat o país...">
+    </div>
+
+    <div class="content-scroll">
+      <h2 class="section-m-lbl">🏡 Destins populars (Catalunya)</h2>
+
+      <div class="dest-m-card">
+        <img class="dest-m-img" src="https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=500&auto=format&fit=crop&q=80" alt="Tokyo">
+        <div class="dest-m-body">
+          <div class="dest-m-name">🇯🇵 Tòquio</div>
+          <div class="dest-m-sub">Japó • Regió de Kantō</div>
+          <div class="dest-m-footer">
+            <span>✨ 24 recomanacions</span>
+            <span class="badge-pop">8 FELAGIS</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="dest-m-card">
+        <img class="dest-m-img" src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=500&auto=format&fit=crop&q=80" alt="Kyoto">
+        <div class="dest-m-body">
+          <div class="dest-m-name">🇯🇵 Kyoto</div>
+          <div class="dest-m-sub">Japó • Regió de Kansai</div>
+          <div class="dest-m-footer">
+            <span>✨ 18 recomanacions</span>
+            <span class="badge-pop">4 FELAGIS</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-tab">
+      <a href="#" class="tab-item"><span class="tab-icon">✈️</span>Viatges</a>
+      <a href="#" class="tab-item active"><span class="tab-icon">🗺️</span>Destins</a>
+      <a href="#" class="tab-item"><span class="tab-icon">💬</span>Xats</a>
+      <a href="#" class="tab-item"><span class="tab-icon">🔔</span>Avisos</a>
+      <a href="#" class="tab-item"><span class="tab-icon">👤</span>Perfil</a>
+    </div>
+  </div>
+
+</body>
+</html>

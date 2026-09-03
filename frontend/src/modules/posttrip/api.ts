@@ -1,0 +1,73 @@
+import { apiClient } from '@/api/client';
+import {
+  ActiveTripHubResponse,
+  AddTripPhotoRequest,
+  CelebrationCard,
+  CreateCelebrationCardRequest,
+  StoriesCardData,
+  SuccessResponse,
+  TripFeedbackRequest,
+  TripPhoto,
+  WrapupStatus,
+} from './types';
+
+export const postTripApi = {
+  getActiveHub: async (): Promise<ActiveTripHubResponse> => {
+    const res = await apiClient.get<ActiveTripHubResponse>('/api/v1/trips/active-hub');
+    return res.data;
+  },
+
+  getTripPhotos: async (tripId: string): Promise<TripPhoto[]> => {
+    const res = await apiClient.get<TripPhoto[]>(`/api/v1/trips/${tripId}/photos`);
+    return res.data;
+  },
+
+  addTripPhoto: async (tripId: string, req: AddTripPhotoRequest): Promise<TripPhoto> => {
+    const res = await apiClient.post<TripPhoto>(`/api/v1/trips/${tripId}/photos`, req);
+    return res.data;
+  },
+
+  togglePhotoFeatured: async (tripId: string, photoId: string): Promise<TripPhoto> => {
+    const res = await apiClient.put<TripPhoto>(`/api/v1/trips/${tripId}/photos/${photoId}/feature`);
+    return res.data;
+  },
+
+  deleteTripPhoto: async (tripId: string, photoId: string): Promise<SuccessResponse> => {
+    const res = await apiClient.delete<SuccessResponse>(`/api/v1/trips/${tripId}/photos/${photoId}`);
+    return res.data;
+  },
+
+  getCelebrationCards: async (tripId: string): Promise<CelebrationCard[]> => {
+    const res = await apiClient.get<CelebrationCard[]>(`/api/v1/trips/${tripId}/celebration-cards`);
+    return res.data;
+  },
+
+  createCelebrationCard: async (
+    tripId: string,
+    req: CreateCelebrationCardRequest
+  ): Promise<CelebrationCard> => {
+    const res = await apiClient.post<CelebrationCard>(
+      `/api/v1/trips/${tripId}/celebration-cards`,
+      req
+    );
+    return res.data;
+  },
+
+  getWrapupStatus: async (tripId: string): Promise<WrapupStatus> => {
+    const res = await apiClient.get<WrapupStatus>(`/api/v1/trips/${tripId}/wrapup-status`);
+    return res.data;
+  },
+
+  submitTripFeedback: async (
+    tripId: string,
+    req: TripFeedbackRequest
+  ): Promise<SuccessResponse> => {
+    const res = await apiClient.post<SuccessResponse>(`/api/v1/trips/${tripId}/feedback`, req);
+    return res.data;
+  },
+
+  getStoriesCardData: async (tripId: string): Promise<StoriesCardData> => {
+    const res = await apiClient.get<StoriesCardData>(`/api/v1/trips/${tripId}/stories-card-data`);
+    return res.data;
+  },
+};

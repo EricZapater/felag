@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FELAG — Tancament de Viatge & Instagram Report (Web)</title>
+  <style>
+    :root {
+      --terracotta: #C85A32;
+      --terracotta-dark: #A0471D;
+      --sand-light: #F9F6F0;
+      --sand-medium: #FAF7F2;
+      --sand-dark: #E8E2D9;
+      --earth-brown: #2C221E;
+      --text-muted: #6B5E57;
+      --white: #FFFFFF;
+      --success: #2E7D32;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--sand-light); color: var(--earth-brown); padding-bottom: 3rem; }
+    header { background: var(--white); border-bottom: 1px solid var(--sand-dark); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-size: 1.4rem; font-weight: 800; color: var(--terracotta); text-decoration: none; }
+
+    .container { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; }
+
+    /* Header banner */
+    .wrapup-hero { background: var(--white); border: 1px solid var(--sand-dark); border-radius: 20px; padding: 2rem; margin-bottom: 2rem; text-align: center; }
+    .wrapup-badge { background: #E8F5E9; color: var(--success); font-weight: 800; font-size: 0.85rem; padding: 4px 14px; border-radius: 12px; display: inline-block; margin-bottom: 0.75rem; }
+    .wrapup-title { font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem; }
+    .wrapup-sub { font-size: 1rem; color: var(--text-muted); }
+
+    .content-cols { display: flex; gap: 2rem; flex-wrap: wrap; }
+    .tasks-col { flex: 1.2; min-width: 320px; }
+    .stories-col { flex: 0.8; min-width: 320px; display: flex; flex-direction: column; align-items: center; }
+
+    .task-card { background: var(--white); border: 1px solid var(--sand-dark); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.25rem; }
+    .task-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+    .task-num { width: 28px; height: 28px; border-radius: 14px; background: var(--terracotta); color: var(--white); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.85rem; }
+    .task-done { background: var(--success); }
+    .task-title { font-size: 1.1rem; font-weight: 800; margin-bottom: 0.25rem; }
+    .task-desc { font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; }
+
+    .stars-row { display: flex; gap: 6px; font-size: 1.5rem; color: #FFA000; margin: 10px 0; cursor: pointer; }
+    .feedback-input { width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--sand-dark); margin-bottom: 10px; font-size: 0.9rem; }
+    .btn-task { background: var(--terracotta); color: var(--white); border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 700; cursor: pointer; }
+
+    /* 9:16 Instagram Card */
+    .story-card-916 {
+      width: 300px;
+      height: 533px; /* Exact 9:16 ratio */
+      background: linear-gradient(180deg, #2C221E 0%, #1A1412 100%);
+      border-radius: 24px;
+      padding: 24px 20px;
+      color: var(--white);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+      position: relative;
+      overflow: hidden;
+      border: 4px solid var(--earth-brown);
+    }
+    .story-top { display: flex; justify-content: space-between; align-items: center; }
+    .story-brand { font-size: 0.9rem; font-weight: 800; color: var(--terracotta); letter-spacing: 1px; }
+    .story-flag { font-size: 1.2rem; }
+    
+    .story-title-box h2 { font-size: 1.4rem; font-weight: 800; margin-bottom: 4px; }
+    .story-title-box p { font-size: 0.8rem; opacity: 0.8; }
+
+    .story-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0; }
+    .stat-pill { background: rgba(255,255,255,0.1); border-radius: 10px; padding: 6px; text-align: center; }
+    .stat-val { font-size: 1.1rem; font-weight: 800; color: #FFE082; display: block; }
+    .stat-lbl { font-size: 0.65rem; opacity: 0.8; text-transform: uppercase; }
+
+    .story-mosaic { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; height: 180px; }
+    .story-img { width: 100%; height: 86px; border-radius: 8px; object-fit: cover; }
+
+    .story-footer { text-align: center; border-top: 1px solid rgba(255,255,255,0.15); pt: 10px; }
+    .story-tagline { font-size: 0.75rem; font-weight: 700; color: #FFE082; }
+    .story-sub { font-size: 0.65rem; opacity: 0.7; margin-top: 2px; }
+
+    .story-actions { display: flex; gap: 0.75rem; margin-top: 1rem; width: 300px; }
+    .btn-share-ig { flex: 1; background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%); color: var(--white); border: none; padding: 0.75rem; border-radius: 10px; font-weight: 700; font-size: 0.85rem; cursor: pointer; text-align: center; }
+    .btn-save-img { background: var(--earth-brown); color: var(--white); border: none; padding: 0.75rem; border-radius: 10px; font-weight: 700; font-size: 0.85rem; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="#" class="logo">FELAG</a>
+  </header>
+
+  <div class="container">
+
+    <div class="wrapup-hero">
+      <span class="wrapup-badge">✨ DIA FINAL DEL VIATGE</span>
+      <h1 class="wrapup-title">Has completat el teu viatge al Japó! 🎉</h1>
+      <p class="wrapup-sub">Tanca la teva aventura completant el ritual de 3 tasques i comparteix el teu àlbum oficial a xarxes socials.</p>
+    </div>
+
+    <div class="content-cols">
+
+      <div class="tasks-col">
+
+        <!-- Task 1 -->
+        <div class="task-card">
+          <div class="task-header">
+            <div style="display:flex; align-items:center; gap: 10px;">
+              <span class="task-num task-done">✓</span>
+              <h2 class="task-title">Celebration Card («Ens hem trobat!»)</h2>
+            </div>
+            <span style="font-size: 0.8rem; color: var(--success); font-weight: 700;">Completat</span>
+          </div>
+          <p class="task-desc">Targeta de celebració amb en Marc Soler generada i enviada al xat.</p>
+        </div>
+
+        <!-- Task 2 -->
+        <div class="task-card">
+          <div class="task-header">
+            <div style="display:flex; align-items:center; gap: 10px;">
+              <span class="task-num">2</span>
+              <h2 class="task-title">Valoració & Consells a la Comunitat</h2>
+            </div>
+          </div>
+          <p class="task-desc">Com ha anat l'aventura? Puntua el viatge i deixa 1 consell per a futurs FELAGIS.</p>
+          <div class="stars-row">★★★★★</div>
+          <textarea class="feedback-input" rows="2" placeholder="El viatge a Tòquio ha estat inoblidable, sobretot els barris antics de Yanaka..."></textarea>
+          <button class="btn-task">⭐ Publicar Feedback</button>
+        </div>
+
+        <!-- Task 3 -->
+        <div class="task-card">
+          <div class="task-header">
+            <div style="display:flex; align-items:center; gap: 10px;">
+              <span class="task-num">3</span>
+              <h2 class="task-title">Reportatge Instagram Stories (9:16)</h2>
+            </div>
+          </div>
+          <p class="task-desc">La teva targeta visual 9:16 ja s'ha compost automàticament a partir de l'àlbum de fotos del viatge!</p>
+        </div>
+
+      </div>
+
+      <!-- Right Column: 9:16 Live Preview -->
+      <div class="stories-col">
+        <div class="story-card-916">
+          <div class="story-top">
+            <span class="story-brand">FELAG ✈️</span>
+            <span class="story-flag">🇯🇵</span>
+          </div>
+
+          <div class="story-title-box">
+            <h2>Japó: Tòquio i Kyoto</h2>
+            <p>1 - 15 Setembre 2026 • Per Èric Zapater</p>
+          </div>
+
+          <div class="story-stats-grid">
+            <div class="stat-pill">
+              <span class="stat-val">15</span>
+              <span class="stat-lbl">Dies</span>
+            </div>
+            <div class="stat-pill">
+              <span class="stat-val">2</span>
+              <span class="stat-lbl">Etapes</span>
+            </div>
+            <div class="stat-pill">
+              <span class="stat-val">3</span>
+              <span class="stat-lbl">FELAGIS</span>
+            </div>
+          </div>
+
+          <div class="story-mosaic">
+            <img class="story-img" src="https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=300&auto=format&fit=crop&q=80" alt="Shibuya">
+            <img class="story-img" src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=300&auto=format&fit=crop&q=80" alt="Temple">
+            <img class="story-img" src="https://images.unsplash.com/photo-1557872943-16a5ac26437e?w=300&auto=format&fit=crop&q=80" alt="Ramen">
+            <img class="story-img" src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=300&auto=format&fit=crop&q=80" alt="Friends">
+          </div>
+
+          <div class="story-footer">
+            <p class="story-tagline">Viatja pel món, connecta amb la teva terra</p>
+            <p class="story-sub">felag.app • @felag.app</p>
+          </div>
+        </div>
+
+        <div class="story-actions">
+          <button class="btn-save-img">📥 Descarregar</button>
+          <button class="btn-share-ig">📲 Compartir a Stories</button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</body>
+</html>

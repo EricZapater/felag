@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FELAG — Hub de Viatge Actiu (Web)</title>
+  <style>
+    :root {
+      --terracotta: #C85A32;
+      --sand-light: #F9F6F0;
+      --sand-medium: #FAF7F2;
+      --sand-dark: #E8E2D9;
+      --earth-brown: #2C221E;
+      --earth-gold: #D4A373;
+      --text-muted: #6B5E57;
+      --white: #FFFFFF;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--sand-light); color: var(--earth-brown); }
+    header { background: var(--white); border-bottom: 1px solid var(--sand-dark); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-size: 1.4rem; font-weight: 800; color: var(--terracotta); text-decoration: none; }
+    nav a { margin-left: 1.5rem; text-decoration: none; color: var(--earth-brown); font-weight: 600; }
+    nav a.active { color: var(--terracotta); }
+
+    .container { max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
+
+    /* Active Trip Banner */
+    .active-card {
+      background: linear-gradient(135deg, #2C221E 0%, #4A3B32 100%);
+      color: var(--white);
+      border-radius: 20px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 10px 30px rgba(44,34,30,0.15);
+      position: relative;
+      overflow: hidden;
+    }
+    .badge-live { display: inline-flex; align-items: center; gap: 6px; background: #E65100; color: var(--white); font-size: 0.8rem; font-weight: 800; padding: 4px 10px; border-radius: 12px; margin-bottom: 0.75rem; }
+    .active-title { font-size: 1.8rem; font-weight: 800; margin-bottom: 0.5rem; }
+    .active-dates { font-size: 0.95rem; opacity: 0.85; margin-bottom: 1.5rem; }
+
+    /* Quick actions hub */
+    .hub-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+    .hub-btn {
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 14px;
+      padding: 1.25rem 1rem;
+      text-align: center;
+      text-decoration: none;
+      color: var(--white);
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .hub-btn:hover { background: rgba(255, 255, 255, 0.22); transform: translateY(-2px); }
+    .hub-icon { font-size: 2rem; margin-bottom: 0.5rem; display: block; }
+    .hub-label { font-size: 0.95rem; font-weight: 700; display: block; }
+    .hub-sub { font-size: 0.75rem; opacity: 0.8; margin-top: 4px; display: block; }
+
+    /* Section content */
+    .section-title { font-size: 1.3rem; font-weight: 800; margin-bottom: 1rem; }
+    .recent-photos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    .photo-thumb { width: 100%; height: 140px; border-radius: 12px; object-fit: cover; border: 1px solid var(--sand-dark); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="#" class="logo">FELAG</a>
+    <nav>
+      <a href="#" class="active">Viatges ✈️</a>
+      <a href="#">Destins 🗺️</a>
+      <a href="#">Xats 💬</a>
+      <a href="#">Perfil 👤</a>
+    </nav>
+  </header>
+
+  <div class="container">
+
+    <!-- Active Trip Hub Card -->
+    <div class="active-card">
+      <span class="badge-live">⚡ VIATGE EN CURS</span>
+      <h1 class="active-title">Aventura al Japó: Tòquio i Kyoto 🇯🇵</h1>
+      <p class="active-dates">📍 Tòquio • 1 al 15 de Setembre de 2026 (Dia 4 de 15)</p>
+
+      <div class="hub-grid">
+        <a href="#" class="hub-btn">
+          <span class="hub-icon">📸</span>
+          <span class="hub-label">Celebration Card</span>
+          <span class="hub-sub">"Ens hem trobat! 🎉"</span>
+        </a>
+
+        <a href="#" class="hub-btn">
+          <span class="hub-icon">🖼️</span>
+          <span class="hub-label">Àlbum del Viatge</span>
+          <span class="hub-sub">12 fotos pujades</span>
+        </a>
+
+        <a href="#" class="hub-btn">
+          <span class="hub-icon">📍</span>
+          <span class="hub-label">Feed en Viu</span>
+          <span class="hub-sub">8 FELAGIS a Tòquio</span>
+        </a>
+
+        <a href="#" class="hub-btn">
+          <span class="hub-icon">🔒</span>
+          <span class="hub-label">Privadesa</span>
+          <span class="hub-sub">Tots els FELAGIS</span>
+        </a>
+      </div>
+    </div>
+
+    <h2 class="section-title">Últimes fotos de l'Àlbum</h2>
+    <div class="recent-photos">
+      <img class="photo-thumb" src="https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=400&auto=format&fit=crop&q=80" alt="Shibuya">
+      <img class="photo-thumb" src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=400&auto=format&fit=crop&q=80" alt="Asakusa">
+      <img class="photo-thumb" src="https://images.unsplash.com/photo-1557872943-16a5ac26437e?w=400&auto=format&fit=crop&q=80" alt="Ramen">
+      <img class="photo-thumb" src="https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=400&auto=format&fit=crop&q=80" alt="Tokyo Tower">
+    </div>
+
+  </div>
+
+</body>
+</html>

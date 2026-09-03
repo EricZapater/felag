@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FELAG — Celebration Card: Ens hem trobat! (Web)</title>
+  <style>
+    :root {
+      --terracotta: #C85A32;
+      --terracotta-dark: #A0471D;
+      --sand-light: #F9F6F0;
+      --sand-medium: #FAF7F2;
+      --sand-dark: #E8E2D9;
+      --earth-brown: #2C221E;
+      --text-muted: #6B5E57;
+      --white: #FFFFFF;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--sand-light); color: var(--earth-brown); }
+    header { background: var(--white); border-bottom: 1px solid var(--sand-dark); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-size: 1.4rem; font-weight: 800; color: var(--terracotta); text-decoration: none; }
+
+    .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; display: flex; gap: 2rem; flex-wrap: wrap; }
+    .form-col { flex: 1; min-width: 320px; background: var(--white); border-radius: 16px; border: 1px solid var(--sand-dark); padding: 1.5rem; }
+    .preview-col { flex: 1; min-width: 320px; display: flex; flex-direction: column; align-items: center; }
+
+    .card-title { font-size: 1.3rem; font-weight: 800; margin-bottom: 0.5rem; }
+    .card-desc { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem; }
+
+    .form-group { margin-bottom: 1.25rem; }
+    .form-label { font-size: 0.85rem; font-weight: 700; margin-bottom: 6px; display: block; }
+    .form-select, .form-input { width: 100%; padding: 0.75rem; border-radius: 10px; border: 1px solid var(--sand-dark); font-size: 0.95rem; }
+
+    .btn-submit { background: var(--terracotta); color: var(--white); border: none; padding: 0.85rem 1.5rem; border-radius: 10px; font-weight: 700; font-size: 1rem; cursor: pointer; width: 100%; }
+
+    /* The Celebration Card Rendering */
+    .celebration-frame {
+      width: 340px;
+      background: linear-gradient(180deg, #FFFFFF 0%, #FAF7F2 100%);
+      border: 3px solid var(--terracotta);
+      border-radius: 24px;
+      padding: 20px;
+      box-shadow: 0 12px 36px rgba(200,90,50,0.2);
+      text-align: center;
+      position: relative;
+    }
+    .badge-celebration { background: #FDEEE9; color: var(--terracotta); font-size: 0.75rem; font-weight: 800; padding: 4px 12px; border-radius: 12px; display: inline-block; margin-bottom: 12px; }
+    .card-selfie { width: 100%; height: 260px; border-radius: 16px; object-fit: cover; border: 2px solid var(--sand-dark); margin-bottom: 14px; }
+    .card-headline { font-size: 1.15rem; font-weight: 800; color: var(--earth-brown); margin-bottom: 6px; }
+    .card-subheadline { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px; }
+    .card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--sand-dark); pt: 10px; font-size: 0.75rem; font-weight: 700; color: var(--terracotta); }
+
+    .actions-row { display: flex; gap: 0.75rem; margin-top: 1rem; width: 340px; }
+    .btn-action { flex: 1; padding: 0.7rem; border-radius: 8px; font-weight: 700; cursor: pointer; text-align: center; font-size: 0.85rem; }
+    .btn-download { background: var(--earth-brown); color: var(--white); border: none; }
+    .btn-share { background: var(--terracotta); color: var(--white); border: none; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="#" class="logo">FELAG</a>
+  </header>
+
+  <div class="container">
+
+    <div class="form-col">
+      <h1 class="card-title">📸 Crear Celebration Card</h1>
+      <p class="card-desc">T'has trobat amb un altre FELAGI durant el viatge? Genera la vostra targeta de celebració oficial per compartir-la!</p>
+
+      <div class="form-group">
+        <label class="form-label">Amb qui t'has trobat?</label>
+        <select class="form-select">
+          <option>Marc Soler (Terrassa • Vallès Occidental)</option>
+          <option>Laia Puig (Girona • Gironès)</option>
+          <option>Jordi Font (Manresa • Bages)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">On us heu trobat?</label>
+        <input type="text" class="form-input" value="Shibuya Crossing, Tòquio 🗼">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Foto / Selfie de la trobada</label>
+        <input type="file" class="form-input">
+      </div>
+
+      <button class="btn-submit">✨ Generar Targeta de Celebració</button>
+    </div>
+
+    <div class="preview-col">
+      <div class="celebration-frame">
+        <span class="badge-celebration">🎉 ENS HEM TROBAT!</span>
+        <img class="card-selfie" src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&auto=format&fit=crop&q=80" alt="Meetup">
+        <h2 class="card-headline">L'Èric i el Marc s'han trobat a Tòquio! 🗼✨</h2>
+        <p class="card-subheadline">Terrassa 🤝 Sabadell a Shibuya Crossing</p>
+        <div class="card-footer">
+          <span>FELAG • Viatge al Japó</span>
+          <span>4 Setembre 2026</span>
+        </div>
+      </div>
+
+      <div class="actions-row">
+        <button class="btn-action btn-download">📥 Descarregar PNG</button>
+        <button class="btn-action btn-share">📲 Enviar al Xat & Compartir</button>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

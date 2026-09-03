@@ -32,3 +32,13 @@
 | community | arrival-popup | mobile | Aprovada | 2026-09-03 |
 | community | live-feed | web | Aprovada | 2026-09-03 |
 | community | live-feed | mobile | Aprovada | 2026-09-03 |
+| posttrip | active-hub | web | Aprovada | 2026-09-03 |
+| posttrip | active-hub | mobile | Aprovada | 2026-09-03 |
+| posttrip | trip-gallery | web | Aprovada | 2026-09-03 |
+| posttrip | trip-gallery | mobile | Aprovada | 2026-09-03 |
+| posttrip | celebration-card | web | Aprovada | 2026-09-03 |
+| posttrip | celebration-card | mobile | Aprovada | 2026-09-03 |
+| posttrip | wrapup-and-stories | web | Aprovada | 2026-09-03 |
+| posttrip | wrapup-and-stories | mobile | Aprovada | 2026-09-03 |
+| posttrip | explore-destinations | web | Aprovada | 2026-09-03 |
+| posttrip | explore-destinations | mobile | Aprovada | 2026-09-03 |

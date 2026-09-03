@@ -10,9 +10,11 @@ import (
 	"felag/backend/internal/chat"
 	"felag/backend/internal/community"
 	"felag/backend/internal/db"
+	"felag/backend/internal/explore"
 	"felag/backend/internal/matching"
 	"felag/backend/internal/moderation"
 	"felag/backend/internal/notification"
+	"felag/backend/internal/posttrip"
 	"felag/backend/internal/profile"
 	"felag/backend/internal/shared"
 	"felag/backend/internal/trip"
@@ -111,6 +113,15 @@ func main() {
 	communityService := community.NewService(communityRepo)
 	communityHandler := community.NewHandler(communityService)
 
+	posttripRepo := posttrip.NewRepository(database)
+	posttripService := posttrip.NewService(posttripRepo)
+	posttripService.SetChatService(chatService)
+	posttripHandler := posttrip.NewHandler(posttripService)
+
+	exploreRepo := explore.NewRepository(database)
+	exploreService := explore.NewService(exploreRepo)
+	exploreHandler := explore.NewHandler(exploreService)
+
 	// API Routes (matching OpenAPI specs)
 	v1 := r.Group("/api/v1")
 	{
@@ -176,6 +187,7 @@ func main() {
 			// Trips routes
 			tripGroup := protected.Group("/trips")
 			{
+				tripGroup.GET("/active-hub", posttripHandler.GetActiveTripHub)
 				tripGroup.GET("", tripHandler.ListTrips)
 				tripGroup.POST("", tripHandler.CreateTrip)
 				tripGroup.GET("/:trip_id", tripHandler.GetTripByID)
@@ -183,7 +195,21 @@ func main() {
 				tripGroup.DELETE("/:trip_id", tripHandler.DeleteTrip)
 				tripGroup.GET("/:trip_id/matches", matchingHandler.GetTripMatches)
 				tripGroup.PUT("/:trip_id/photo-sharing", tripHandler.UpdatePhotoSharingMode)
+
+				// Post-Trip & Photos & Celebration & Wrapup
+				tripGroup.GET("/:trip_id/photos", posttripHandler.ListPhotos)
+				tripGroup.POST("/:trip_id/photos", posttripHandler.AddPhoto)
+				tripGroup.PUT("/:trip_id/photos/:photo_id/feature", posttripHandler.TogglePhotoFeatured)
+				tripGroup.DELETE("/:trip_id/photos/:photo_id", posttripHandler.DeletePhoto)
+				tripGroup.GET("/:trip_id/celebration-cards", posttripHandler.ListCelebrationCards)
+				tripGroup.POST("/:trip_id/celebration-cards", posttripHandler.CreateCelebrationCard)
+				tripGroup.GET("/:trip_id/wrapup-status", posttripHandler.GetWrapupStatus)
+				tripGroup.POST("/:trip_id/feedback", posttripHandler.SubmitFeedback)
+				tripGroup.GET("/:trip_id/stories-card-data", posttripHandler.GetStoriesCardData)
 			}
+
+			// Explore routes
+			protected.GET("/explore/recommendations", exploreHandler.GetRecommendations)
 
 			// Matches routes
 			protected.GET("/matches/:match_id", matchingHandler.GetMatchByID)

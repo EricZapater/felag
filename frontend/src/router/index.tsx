@@ -15,6 +15,10 @@ import DestinationsListView from '@/modules/community/views/DestinationsListView
 import DestinationDetailView from '@/modules/community/views/DestinationDetailView';
 import LiveFeedView from '@/modules/community/views/LiveFeedView';
 import PublicProfileView from '@/modules/users/views/PublicProfileView';
+import TripGalleryView from '@/modules/posttrip/views/TripGalleryView';
+import CelebrationCardGeneratorView from '@/modules/posttrip/views/CelebrationCardGeneratorView';
+import TripWrapupView from '@/modules/posttrip/views/TripWrapupView';
+import ExploreDestinationsView from '@/modules/explore/views/ExploreDestinationsView';
 import { useAuthStore } from '@/modules/auth/store';
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
@@ -66,6 +70,38 @@ export default function AppRouter() {
           element={
             <ProtectedRoute>
               <TripMatchesView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/trips/:id/gallery"
+          element={
+            <ProtectedRoute>
+              <TripGalleryView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/trips/:id/celebrate"
+          element={
+            <ProtectedRoute>
+              <CelebrationCardGeneratorView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/trips/:id/wrapup"
+          element={
+            <ProtectedRoute>
+              <TripWrapupView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/explore"
+          element={
+            <ProtectedRoute>
+              <ExploreDestinationsView />
             </ProtectedRoute>
           }
         />

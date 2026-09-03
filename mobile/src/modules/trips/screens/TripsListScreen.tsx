@@ -10,6 +10,8 @@ import {
 import { Button, Card, Chip, HelperText, IconButton, Text } from 'react-native-paper';
 import { useTripsStore } from '../store';
 import { Trip, TripFilter } from '../types';
+import { usePostTripStore } from '@/modules/posttrip/store';
+import ActiveTripHubCard from '@/modules/posttrip/components/ActiveTripHubCard';
 
 interface Props {
   navigation: {
@@ -20,13 +22,16 @@ interface Props {
 
 export default function TripsListScreen({ navigation }: Props) {
   const { trips, isLoading, error, filter, setFilter, fetchTrips } = useTripsStore();
+  const { activeHub, fetchActiveHub } = usePostTripStore();
 
   useEffect(() => {
     fetchTrips();
-  }, [fetchTrips]);
+    fetchActiveHub().catch(() => {});
+  }, [fetchTrips, fetchActiveHub]);
 
   const onRefresh = () => {
     fetchTrips();
+    fetchActiveHub().catch(() => {});
   };
 
   const formatDate = (dateStr: string) => {
@@ -186,6 +191,10 @@ export default function TripsListScreen({ navigation }: Props) {
             />
           }
         >
+          {activeHub && activeHub.has_active_trip && (
+            <ActiveTripHubCard data={activeHub} navigation={navigation} />
+          )}
+
           {trips.length === 0 ? (
             <Card style={styles.emptyCard}>
               <Card.Content style={styles.emptyContent}>

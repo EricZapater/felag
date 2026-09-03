@@ -155,6 +155,20 @@ export default function DestinationsListScreen({ navigation }: Props) {
             💎 Amb recomanacions
           </Chip>
         </View>
+
+        {/* Explore Destinations Banner */}
+        <TouchableOpacity
+          style={styles.exploreBanner}
+          activeOpacity={0.8}
+          onPress={() => navigation.navigate('ExploreDestinations')}
+        >
+          <Text style={styles.exploreBannerIcon}>✨</Text>
+          <View style={styles.exploreBannerTexts}>
+            <Text style={styles.exploreBannerTitle}>Explorar destins populars</Text>
+            <Text style={styles.exploreBannerSub}>Afinitat per origen i recomanacions de la comunitat</Text>
+          </View>
+          <Text style={styles.exploreBannerLink}>Veure ›</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Main List */}
@@ -381,5 +395,38 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6B5E57',
     textAlign: 'center',
+  },
+  exploreBanner: {
+    marginTop: 12,
+    backgroundColor: '#F4ECE1',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#DDCFBF',
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  exploreBannerIcon: {
+    fontSize: 20,
+    marginRight: 10,
+  },
+  exploreBannerTexts: {
+    flex: 1,
+  },
+  exploreBannerTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#703817',
+  },
+  exploreBannerSub: {
+    fontSize: 10,
+    color: '#8C7A70',
+    marginTop: 1,
+  },
+  exploreBannerLink: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#C85A32',
+    paddingLeft: 6,
   },
 });

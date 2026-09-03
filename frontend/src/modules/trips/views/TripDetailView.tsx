@@ -24,6 +24,7 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader';
 import { useTripStore } from '../store';
+import ActiveTripHubCard from '@/modules/posttrip/components/ActiveTripHubCard';
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return '';
@@ -147,6 +148,17 @@ export default function TripDetailView() {
         >
           ‹ Tornar a la llista de viatges
         </Button>
+
+        {/* Active Trip Hub Card */}
+        <ActiveTripHubCard
+          tripId={currentTrip.id}
+          tripTitle={currentTrip.title}
+          destinationName={sortedStages[0]?.destination_name || 'Viatge'}
+          countryFlag={sortedStages[0]?.country_code ? '✈️' : '🌍'}
+          isFinalDayOrPast={currentTrip.end_date <= new Date().toISOString().split('T')[0]}
+          photosCount={0}
+          activeFelagisCount={2}
+        />
 
         <Card
           sx={{
