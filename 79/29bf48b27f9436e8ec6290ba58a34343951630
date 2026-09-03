@@ -1,0 +1,20 @@
+.npmrc
+  h_42175f19913982 3-4
+mobile/metro.config.js
+  h_42175f19913982 1-18
+mobile/package.json
+  h_42175f19913982 13,16
+pnpm-lock.yaml
+  h_42175f19913982 63-65,73-74
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "7929bf48b27f9436e8ec6290ba58a34343951630",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
