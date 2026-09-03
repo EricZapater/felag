@@ -15,12 +15,12 @@ import {
 import PhotoCamera from '@mui/icons-material/PhotoCamera';
 import { useProfileStore } from '../store';
 import { useAuthStore } from '@/modules/auth/store';
-import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
+import AppHeader from '@/components/AppHeader';
 
 export default function ProfileView() {
   const { profile, fetchProfile, updateProfile, uploadAvatar, isLoading, error } = useProfileStore();
-  const { user, logout } = useAuthStore();
-  const navigate = useNavigate();
+  const { user } = useAuthStore();
 
   const [name, setName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -61,65 +61,14 @@ export default function ProfileView() {
     }
   };
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
-  };
-
   const originStr = profile?.origin
     ? `${profile.origin.country.name} ➔ ${profile.origin.region.name} ➔ ${profile.origin.town.name}`
     : 'Cap origen definit';
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#F9F6F0', py: 4 }}>
-      <Container maxWidth="md">
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Typography
-              component={RouterLink}
-              to="/trips"
-              variant="h5"
-              sx={{
-                color: '#C85A32',
-                fontWeight: 700,
-                letterSpacing: 1,
-                textDecoration: 'none',
-              }}
-            >
-              FELAG
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 3 }}>
-              <Typography
-                component={RouterLink}
-                to="/trips"
-                sx={{
-                  color: '#786C65',
-                  textDecoration: 'none',
-                  fontWeight: 500,
-                  fontSize: 15,
-                  '&:hover': { color: '#C85A32' },
-                }}
-              >
-                Viatges
-              </Typography>
-              <Typography
-                component={RouterLink}
-                to="/profile"
-                sx={{
-                  color: '#C85A32',
-                  textDecoration: 'none',
-                  fontWeight: 700,
-                  fontSize: 15,
-                }}
-              >
-                Perfil
-              </Typography>
-            </Box>
-          </Box>
-          <Button variant="outlined" color="error" onClick={handleLogout}>
-            Tancar sessió
-          </Button>
-        </Box>
+    <Box sx={{ minHeight: '100vh', bgcolor: '#F9F6F0' }}>
+      <AppHeader />
+      <Container maxWidth="md" sx={{ py: 4 }}>
 
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         {successMsg && <Alert severity="success" sx={{ mb: 2 }}>{successMsg}</Alert>}

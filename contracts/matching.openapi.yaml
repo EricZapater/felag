@@ -1,0 +1,344 @@
+openapi: 3.0.3
+info:
+  title: FELAG Matching & Notifications API
+  description: Contracte OpenAPI per al motor de coincidències (matching) i el sistema de notificacions push d'Expo de FELAG.
+  version: 1.0.0
+servers:
+  - url: https://api.felag.app
+    description: Servidor de producció
+  - url: http://localhost:8080
+    description: Servidor de desenvolupament local
+
+paths:
+  /api/v1/trips/{trip_id}/matches:
+    get:
+      summary: Llistar les coincidències (matches) trobades per a un viatge
+      operationId: getTripMatches
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: trip_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Llista de coincidències ordenades per nivell d'afinitat
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Match'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/v1/matches/{match_id}:
+    get:
+      summary: Obtenir el detall d'una coincidència específica
+      operationId: getMatchById
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: match_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detall complet de la coincidència i usuari FELAGI
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/v1/notifications/push-token:
+    post:
+      summary: Registrar o actualitzar un token de notificacions push d'Expo
+      operationId: registerPushToken
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PushTokenRequest'
+      responses:
+        '200':
+          description: Token registrat amb èxit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    delete:
+      summary: Desregistrar un token de notificacions push
+      operationId: unregisterPushToken
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PushTokenRequest'
+      responses:
+        '200':
+          description: Token desregistrat amb èxit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/notifications:
+    get:
+      summary: Llistar les notificacions in-app de l'usuari autenticat
+      operationId: listNotifications
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Llista de notificacions recents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/v1/notifications/{notification_id}/read:
+    put:
+      summary: Marcar una notificació com a llegida
+      operationId: markNotificationAsRead
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: notification_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Notificació marcada com a llegida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/v1/notifications/read-all:
+    put:
+      summary: Marcar totes les notificacions com a llegides
+      operationId: markAllNotificationsAsRead
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Totes les notificacions marcades com a llegides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    FelagiUser:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Mireia Masnou
+        avatar_url:
+          type: string
+          nullable: true
+        origin_summary:
+          type: string
+          example: Vic (Catalunya)
+
+    Match:
+      type: object
+      required:
+        - id
+        - trip_id
+        - matched_user
+        - destination_name
+        - overlap_start_date
+        - overlap_end_date
+        - affinity_level
+        - affinity_score
+        - explanation
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        trip_id:
+          type: string
+          format: uuid
+        matched_trip_id:
+          type: string
+          format: uuid
+        matched_user:
+          $ref: '#/components/schemas/FelagiUser'
+        destination_name:
+          type: string
+          example: Estocolm
+        overlap_start_date:
+          type: string
+          format: date
+          example: "2026-10-11"
+        overlap_end_date:
+          type: string
+          format: date
+          example: "2026-10-15"
+        affinity_level:
+          type: string
+          enum: [town, region, country]
+          example: town
+        affinity_score:
+          type: integer
+          example: 100
+        explanation:
+          type: string
+          example: Tots dos sou de Vic i coincidireu a Estocolm!
+        created_at:
+          type: string
+          format: date-time
+
+    PushTokenRequest:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          example: ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]
+        device_type:
+          type: string
+          enum: [ios, android, web]
+          default: android
+
+    Notification:
+      type: object
+      required:
+        - id
+        - type
+        - title
+        - body
+        - read
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [new_match, trip_reminder, system]
+          example: new_match
+        title:
+          type: string
+          example: Nou FELAGI a Estocolm!
+        body:
+          type: string
+          example: Mireia Masnou (Vic) coincidirà amb tu a Estocolm de l'11 al 15 d'octubre.
+        data:
+          type: object
+          nullable: true
+        read:
+          type: boolean
+          example: false
+        created_at:
+          type: string
+          format: date-time
+
+    SuccessResponse:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Operació completada amb èxit
+
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: NOT_FOUND
+        message:
+          type: string
+          example: Recurs no trobat
+
+  responses:
+    BadRequestError:
+      description: Dades invàlides
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    UnauthorizedError:
+      description: Token invàlid o no proporcionat
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFoundError:
+      description: Recurs no trobat
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

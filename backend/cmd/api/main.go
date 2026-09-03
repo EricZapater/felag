@@ -8,6 +8,8 @@ import (
 
 	"felag/backend/internal/auth"
 	"felag/backend/internal/db"
+	"felag/backend/internal/matching"
+	"felag/backend/internal/notification"
 	"felag/backend/internal/profile"
 	"felag/backend/internal/shared"
 	"felag/backend/internal/trip"
@@ -72,8 +74,22 @@ func main() {
 	profileService := profile.NewService(profileRepo)
 	profileHandler := profile.NewHandler(profileService)
 
+	notificationRepo := notification.NewRepository(database)
+	notificationService := notification.NewService(notificationRepo)
+	notificationHandler := notification.NewHandler(notificationService)
+
+	matchingRepo := matching.NewRepository(database)
+	matchingService := matching.NewService(matchingRepo)
+	matchingHandler := matching.NewHandler(matchingService)
+
+	// Worker asíncron per processar matching i notificacions en segon pla
+	matchingWorker := matching.NewWorker(matchingService, notificationService, 100)
+	matchingWorker.Start()
+	defer matchingWorker.Stop()
+
 	tripRepo := trip.NewRepository(database)
 	tripService := trip.NewService(tripRepo)
+	tripService.SetEventListener(matchingWorker)
 	tripHandler := trip.NewHandler(tripService)
 
 	// API Routes (matching OpenAPI specs)
@@ -115,6 +131,20 @@ func main() {
 				tripGroup.GET("/:trip_id", tripHandler.GetTripByID)
 				tripGroup.PUT("/:trip_id", tripHandler.UpdateTrip)
 				tripGroup.DELETE("/:trip_id", tripHandler.DeleteTrip)
+				tripGroup.GET("/:trip_id/matches", matchingHandler.GetTripMatches)
+			}
+
+			// Matches routes
+			protected.GET("/matches/:match_id", matchingHandler.GetMatchByID)
+
+			// Notifications routes
+			notificationsGroup := protected.Group("/notifications")
+			{
+				notificationsGroup.POST("/push-token", notificationHandler.RegisterPushToken)
+				notificationsGroup.DELETE("/push-token", notificationHandler.UnregisterPushToken)
+				notificationsGroup.GET("", notificationHandler.ListNotifications)
+				notificationsGroup.PUT("/:notification_id/read", notificationHandler.MarkNotificationAsRead)
+				notificationsGroup.PUT("/read-all", notificationHandler.MarkAllNotificationsAsRead)
 			}
 		}
 	}

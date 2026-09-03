@@ -16,3 +16,7 @@
 | trips | trip-create | mobile | Aprovada | 2026-09-03 |
 | trips | trip-detail | web | Aprovada | 2026-09-03 |
 | trips | trip-detail | mobile | Aprovada | 2026-09-03 |
+| matching | trip-matches | web | Aprovada | 2026-09-03 |
+| matching | trip-matches | mobile | Aprovada | 2026-09-03 |
+| matching | notifications | web | Aprovada | 2026-09-03 |
+| matching | notifications | mobile | Aprovada | 2026-09-03 |

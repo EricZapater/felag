@@ -199,14 +199,21 @@ export default function TripDetailScreen({ navigation, route }: Props) {
                 <Text style={styles.emptyStages}>Cap etapa definida.</Text>
               )}
 
-              {trip.visibility === 'public' && (
-                <View style={styles.matchingBox}>
-                  <Text style={styles.matchingTitle}>✨ Matching actiu (Fase 3)</Text>
+              {trip.visibility === 'public' ? (
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => navigation.navigate('TripMatches', { tripId: trip.id })}
+                  style={styles.matchingBox}
+                >
+                  <View style={styles.matchingHeaderRow}>
+                    <Text style={styles.matchingTitle}>✨ Coincidències de viatge</Text>
+                    <Text style={styles.matchingLink}>Veure ›</Text>
+                  </View>
                   <Text style={styles.matchingSub}>
-                    T'avisarem automàticament quan altres viatgers de la teva terra coincideixin amb tu en aquestes destinacions.
+                    Comprova quins FELAGIS de la teva terra coincideixen amb tu en dates i destinacions.
                   </Text>
-                </View>
-              )}
+                </TouchableOpacity>
+              ) : null}
             </Card.Content>
           </Card>
 
@@ -359,11 +366,21 @@ const styles = StyleSheet.create({
     padding: 12,
     marginTop: 16,
   },
+  matchingHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   matchingTitle: {
     fontSize: 13,
     fontWeight: '700',
     color: '#703817',
-    marginBottom: 4,
+  },
+  matchingLink: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#C85A32',
   },
   matchingSub: {
     fontSize: 11,

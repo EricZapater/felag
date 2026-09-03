@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"felag/backend/internal/shared"
 )
 
 var (
@@ -19,14 +21,20 @@ type Service interface {
 	ListMyTrips(userID string, filter string) ([]Trip, error)
 	UpdateTrip(tripID string, userID string, req UpdateTripRequest) (*Trip, error)
 	DeleteTrip(tripID string, userID string) error
+	SetEventListener(listener shared.TripEventListener)
 }
 
 type service struct {
-	repo Repository
+	repo     Repository
+	listener shared.TripEventListener
 }
 
 func NewService(repo Repository) Service {
 	return &service{repo: repo}
+}
+
+func (s *service) SetEventListener(listener shared.TripEventListener) {
+	s.listener = listener
 }
 
 func parseDate(dateStr string) (time.Time, error) {
@@ -107,13 +115,24 @@ func (s *service) CreateTrip(userID string, req CreateTripRequest) (*Trip, error
 		UserID:      userID,
 		Title:       strings.TrimSpace(req.Title),
 		Description: req.Description,
-		StartDate:   startDate.Format("2006-01-02"),
-		EndDate:     endDate.Format("2006-01-02"),
 		Visibility:  visibility,
 		Status:      "planned",
 	}
 
-	return s.repo.Create(trip, stages)
+	createdTrip, err := s.repo.Create(trip, stages)
+	if err != nil {
+		return nil, err
+	}
+
+	if s.listener != nil {
+		s.listener.OnTripEvent(shared.TripEvent{
+			TripID: createdTrip.ID,
+			UserID: createdTrip.UserID,
+			Action: "created",
+		})
+	}
+
+	return createdTrip, nil
 }
 
 func (s *service) GetTripByID(tripID string, currentUserID string) (*Trip, error) {
@@ -248,6 +267,14 @@ func (s *service) UpdateTrip(tripID string, userID string, req UpdateTripRequest
 	}
 	if updated == nil {
 		return nil, ErrTripNotFound
+	}
+
+	if s.listener != nil {
+		s.listener.OnTripEvent(shared.TripEvent{
+			TripID: updated.ID,
+			UserID: updated.UserID,
+			Action: "updated",
+		})
 	}
 
 	return updated, nil

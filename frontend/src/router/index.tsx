@@ -7,6 +7,8 @@ import OriginSelectorView from '@/modules/profile/views/OriginSelectorView';
 import TripsListView from '@/modules/trips/views/TripsListView';
 import TripCreateView from '@/modules/trips/views/TripCreateView';
 import TripDetailView from '@/modules/trips/views/TripDetailView';
+import TripMatchesView from '@/modules/matching/views/TripMatchesView';
+import NotificationsView from '@/modules/notifications/views/NotificationsView';
 import { useAuthStore } from '@/modules/auth/store';
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
@@ -50,6 +52,22 @@ export default function AppRouter() {
           element={
             <ProtectedRoute>
               <TripDetailView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/trips/:id/matches"
+          element={
+            <ProtectedRoute>
+              <TripMatchesView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <NotificationsView />
             </ProtectedRoute>
           }
         />

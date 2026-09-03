@@ -90,14 +90,14 @@ to the same destination at overlapping times.
 
 ## Matching
 
-- [ ] Destination normalization
-- [ ] Date overlap detection
-- [ ] Origin matching
-- [ ] Country-level matching
-- [ ] Region-level matching
-- [ ] Town-level matching
-- [ ] Match ranking
-- [ ] Match explanation
+- [x] Destination normalization
+- [x] Date overlap detection
+- [x] Origin matching
+- [x] Country-level matching
+- [x] Region-level matching
+- [x] Town-level matching
+- [x] Match ranking
+- [x] Match explanation
 
 Example:
 
@@ -116,9 +116,9 @@ Result:
 
 ## Notifications
 
-- [ ] Match notification
-- [ ] Notification preferences
-- [ ] Deep link to match
+- [x] Match notification
+- [x] Notification preferences
+- [x] Deep link to match
 
 Definition of done:
 - Two users with compatible origins, destination and overlapping

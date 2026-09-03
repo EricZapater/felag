@@ -19,6 +19,7 @@ import {
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddIcon from '@mui/icons-material/Add';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import AppHeader from '@/components/AppHeader';
 import { useTripStore } from '../store';
 import { TripStageInput, TripVisibility } from '../types';
 
@@ -142,62 +143,7 @@ export default function TripCreateView() {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#F9F6F0' }}>
-      {/* Top Header */}
-      <Box
-        component="header"
-        sx={{
-          bgcolor: '#FFFFFF',
-          borderBottom: '1px solid #E8E2D9',
-          px: { xs: 2, md: 5 },
-          py: 2,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <Typography
-            component={RouterLink}
-            to="/trips"
-            variant="h5"
-            sx={{
-              color: '#C85A32',
-              fontWeight: 700,
-              letterSpacing: 1,
-              textDecoration: 'none',
-            }}
-          >
-            FELAG
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 3 }}>
-            <Typography
-              component={RouterLink}
-              to="/trips"
-              sx={{
-                color: '#C85A32',
-                textDecoration: 'none',
-                fontWeight: 700,
-                fontSize: 15,
-              }}
-            >
-              Viatges
-            </Typography>
-            <Typography
-              component={RouterLink}
-              to="/profile"
-              sx={{
-                color: '#786C65',
-                textDecoration: 'none',
-                fontWeight: 500,
-                fontSize: 15,
-                '&:hover': { color: '#C85A32' },
-              }}
-            >
-              Perfil
-            </Typography>
-          </Box>
-        </Box>
-      </Box>
+      <AppHeader />
 
       {/* Main Container */}
       <Container maxWidth="md" sx={{ py: 5 }}>

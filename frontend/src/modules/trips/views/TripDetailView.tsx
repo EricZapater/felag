@@ -20,7 +20,9 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
+import AppHeader from '@/components/AppHeader';
 import { useTripStore } from '../store';
 
 function formatDate(dateStr: string): string {
@@ -127,62 +129,7 @@ export default function TripDetailView() {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#F9F6F0' }}>
-      {/* Top Header */}
-      <Box
-        component="header"
-        sx={{
-          bgcolor: '#FFFFFF',
-          borderBottom: '1px solid #E8E2D9',
-          px: { xs: 2, md: 5 },
-          py: 2,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <Typography
-            component={RouterLink}
-            to="/trips"
-            variant="h5"
-            sx={{
-              color: '#C85A32',
-              fontWeight: 700,
-              letterSpacing: 1,
-              textDecoration: 'none',
-            }}
-          >
-            FELAG
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 3 }}>
-            <Typography
-              component={RouterLink}
-              to="/trips"
-              sx={{
-                color: '#C85A32',
-                textDecoration: 'none',
-                fontWeight: 700,
-                fontSize: 15,
-              }}
-            >
-              Viatges
-            </Typography>
-            <Typography
-              component={RouterLink}
-              to="/profile"
-              sx={{
-                color: '#786C65',
-                textDecoration: 'none',
-                fontWeight: 500,
-                fontSize: 15,
-                '&:hover': { color: '#C85A32' },
-              }}
-            >
-              Perfil
-            </Typography>
-          </Box>
-        </Box>
-      </Box>
+      <AppHeader />
 
       {/* Main Container */}
       <Container maxWidth="md" sx={{ py: 4 }}>
@@ -340,25 +287,68 @@ export default function TripDetailView() {
                   p: 2.5,
                   mt: 4,
                   display: 'flex',
-                  alignItems: 'center',
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  justifyContent: 'space-between',
+                  alignItems: { xs: 'flex-start', sm: 'center' },
                   gap: 2,
                 }}
               >
                 <Box>
                   <Typography variant="subtitle1" sx={{ color: '#703817', fontWeight: 700, mb: 0.5 }}>
-                    ✨ FELAG Matching (Fase 3)
+                    ✨ FELAG Matching
                   </Typography>
                   <Typography variant="body2" sx={{ color: '#8C7A70' }}>
-                    Aquest viatge buscarà coincidències amb altres usuaris de la teva terra que coincideixin en aquestes dates i destinacions.
+                    Troba altres viatgers del teu poble o regió que coincideixen en dates i destinacions.
                   </Typography>
                 </Box>
+                <Button
+                  component={RouterLink}
+                  to={`/trips/${currentTrip.id}/matches`}
+                  variant="contained"
+                  startIcon={<AutoAwesomeIcon />}
+                  sx={{
+                    bgcolor: '#C85A32',
+                    color: '#FFFFFF',
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    px: 2.5,
+                    py: 1,
+                    borderRadius: 2,
+                    whiteSpace: 'nowrap',
+                    '&:hover': { bgcolor: '#A0471D' },
+                  }}
+                >
+                  Veure coincidències
+                </Button>
               </Box>
             )}
           </CardContent>
         </Card>
 
         {/* Action Buttons */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+          {currentTrip.visibility === 'public' ? (
+            <Button
+              component={RouterLink}
+              to={`/trips/${currentTrip.id}/matches`}
+              variant="outlined"
+              startIcon={<AutoAwesomeIcon />}
+              sx={{
+                color: '#C85A32',
+                borderColor: '#C85A32',
+                textTransform: 'none',
+                fontWeight: 600,
+                borderRadius: 2,
+                px: 3,
+                '&:hover': { bgcolor: '#F4ECE1', borderColor: '#A0471D' },
+              }}
+            >
+              Coincidències FELAGIS ✨
+            </Button>
+          ) : (
+            <Box />
+          )}
+
           <Button
             variant="outlined"
             color="error"

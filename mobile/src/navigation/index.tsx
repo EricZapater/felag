@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useAuthStore } from '@/modules/auth/store';
+import { useNotificationsStore } from '@/modules/notifications/store';
 import LoginScreen from '@/modules/auth/screens/LoginScreen';
 import RegisterScreen from '@/modules/auth/screens/RegisterScreen';
 import ProfileScreen from '@/modules/profile/screens/ProfileScreen';
@@ -9,12 +10,21 @@ import OriginSelectorScreen from '@/modules/profile/screens/OriginSelectorScreen
 import TripsListScreen from '@/modules/trips/screens/TripsListScreen';
 import TripCreateScreen from '@/modules/trips/screens/TripCreateScreen';
 import TripDetailScreen from '@/modules/trips/screens/TripDetailScreen';
+import TripMatchesScreen from '@/modules/matching/screens/TripMatchesScreen';
+import NotificationsScreen from '@/modules/notifications/screens/NotificationsScreen';
 
 export default function AppNavigation() {
   const { isAuthenticated } = useAuthStore();
+  const { unreadCount, fetchNotifications } = useNotificationsStore();
   const [screenStack, setScreenStack] = useState<{ name: string; params?: any }[]>([
     { name: 'TripsList' },
   ]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchNotifications();
+    }
+  }, [isAuthenticated, fetchNotifications]);
 
   const current = screenStack[screenStack.length - 1] || { name: 'TripsList' };
   const currentScreen = current.name;
@@ -22,7 +32,7 @@ export default function AppNavigation() {
 
   const navigate = (screenName: string, params?: any) => {
     // If switching between bottom tabs, replace stack
-    if (screenName === 'TripsList' || screenName === 'Profile') {
+    if (screenName === 'TripsList' || screenName === 'Notifications' || screenName === 'Profile') {
       setScreenStack([{ name: screenName, params }]);
     } else {
       setScreenStack((prev) => [...prev, { name: screenName, params }]);
@@ -50,7 +60,10 @@ export default function AppNavigation() {
     );
   }
 
-  const isMainTab = currentScreen === 'TripsList' || currentScreen === 'Profile';
+  const isMainTab =
+    currentScreen === 'TripsList' ||
+    currentScreen === 'Notifications' ||
+    currentScreen === 'Profile';
 
   return (
     <View style={styles.container}>
@@ -62,6 +75,10 @@ export default function AppNavigation() {
         {currentScreen === 'TripDetail' && (
           <TripDetailScreen navigation={navigation} route={{ params: currentParams }} />
         )}
+        {currentScreen === 'TripMatches' && (
+          <TripMatchesScreen navigation={navigation} route={{ params: currentParams }} />
+        )}
+        {currentScreen === 'Notifications' && <NotificationsScreen navigation={navigation} />}
         {currentScreen === 'Profile' && <ProfileScreen navigation={navigation} />}
         {currentScreen === 'OriginSelector' && <OriginSelectorScreen navigation={navigation} />}
       </View>
@@ -79,6 +96,32 @@ export default function AppNavigation() {
             </Text>
             <Text style={[styles.navLabel, currentScreen === 'TripsList' && styles.navActiveText]}>
               Viatges
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.navItem}
+            onPress={() => navigate('Notifications')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.iconContainer}>
+              <Text
+                style={[styles.navIcon, currentScreen === 'Notifications' && styles.navActiveText]}
+              >
+                🔔
+              </Text>
+              {unreadCount > 0 && (
+                <View style={styles.badgeCount}>
+                  <Text style={styles.badgeCountText}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Text
+              style={[styles.navLabel, currentScreen === 'Notifications' && styles.navActiveText]}
+            >
+              Avisos
             </Text>
           </TouchableOpacity>
 
@@ -124,9 +167,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 6,
   },
+  iconContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   navIcon: {
     fontSize: 18,
     marginBottom: 2,
+  },
+  badgeCount: {
+    position: 'absolute',
+    top: -4,
+    right: -10,
+    backgroundColor: '#C85A32',
+    borderRadius: 9,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeCountText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   navLabel: {
     fontSize: 12,

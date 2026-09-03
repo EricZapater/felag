@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FELAG — Notificacions (Web)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
+    body { background-color: #F9F6F0; color: #2C221E; }
+    header { background: #FFFFFF; border-bottom: 1px solid #E8E2D9; padding: 16px 40px; display: flex; justify-content: space-between; align-items: center; }
+    .brand { font-size: 22px; font-weight: 700; color: #C85A32; letter-spacing: 1px; }
+    .nav-links { display: flex; gap: 24px; align-items: center; }
+    .nav-link { color: #786C65; text-decoration: none; font-weight: 500; font-size: 15px; }
+    .nav-link.active { color: #C85A32; font-weight: 700; }
+    
+    .container { max-width: 800px; margin: 40px auto; padding: 0 20px; }
+    .header-action { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .page-title { font-size: 26px; font-weight: 700; color: #2C221E; }
+    .btn-read-all { background: transparent; border: none; color: #C85A32; font-size: 14px; font-weight: 600; cursor: pointer; }
+    
+    .card { background: #FFFFFF; border: 1px solid #E8E2D9; border-radius: 12px; box-shadow: 0 2px 12px rgba(74, 46, 43, 0.05); overflow: hidden; }
+    
+    .notif-item { padding: 20px 24px; border-bottom: 1px solid #E8E2D9; display: flex; gap: 16px; align-items: flex-start; text-decoration: none; color: inherit; transition: background 0.2s; }
+    .notif-item:last-child { border-bottom: none; }
+    .notif-item:hover { background: #FAF7F2; }
+    .notif-item.unread { background: #FFF9F4; }
+    
+    .notif-icon { width: 44px; height: 44px; border-radius: 50%; background: #F4ECE1; color: #C85A32; display: flex; justify-content: center; align-items: center; font-size: 20px; flex-shrink: 0; }
+    
+    .notif-title { font-size: 15px; font-weight: 700; color: #2C221E; margin-bottom: 4px; }
+    .notif-body { font-size: 14px; color: #4A3E39; margin-bottom: 6px; }
+    .notif-time { font-size: 12px; color: #786C65; }
+    
+    .unread-dot { width: 8px; height: 8px; border-radius: 50%; background: #C85A32; margin-top: 6px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">FELAG</div>
+    <div class="nav-links">
+      <a href="../trips/trips-list-web.html" class="nav-link">Viatges</a>
+      <a href="trip-matches-web.html" class="nav-link">Coincidències</a>
+      <a href="notifications-web.html" class="nav-link active">Notificacions 🔔</a>
+      <a href="../profile/profile-web.html" class="nav-link">Perfil</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="header-action">
+      <h1 class="page-title">Notificacions</h1>
+      <button class="btn-read-all">Marcar-ho tot com a llegit</button>
+    </div>
+
+    <div class="card">
+      <a href="trip-matches-web.html" class="notif-item unread">
+        <div class="notif-icon">✨</div>
+        <div style="flex: 1;">
+          <div class="notif-title">Nou FELAGI a Estocolm!</div>
+          <div class="notif-body">Mireia Masnou (Vic) coincidirà amb tu a Estocolm de l'11 al 15 d'octubre.</div>
+          <div class="notif-time">Fa 15 minuts</div>
+        </div>
+        <div class="unread-dot"></div>
+      </a>
+
+      <a href="trip-matches-web.html" class="notif-item unread">
+        <div class="notif-icon">✈️</div>
+        <div style="flex: 1;">
+          <div class="notif-title">Nou FELAGI a Oslo!</div>
+          <div class="notif-body">Jordi Ribas (Girona) coincidirà amb tu a Oslo del 16 al 19 d'octubre.</div>
+          <div class="notif-time">Fa 2 hores</div>
+        </div>
+        <div class="unread-dot"></div>
+      </a>
+
+      <a href="../trips/trips-list-web.html" class="notif-item">
+        <div class="notif-icon">👋</div>
+        <div style="flex: 1;">
+          <div class="notif-title">Benvingut a FELAG!</div>
+          <div class="notif-body">Has configurat el teu origen a Osona. Crea el teu primer viatge per trobar coincidències.</div>
+          <div class="notif-time">Fa 2 dies</div>
+        </div>
+      </a>
+    </div>
+  </div>
+
+</body>
+</html>

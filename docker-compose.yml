@@ -31,7 +31,7 @@ services:
       - web
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.felag-frontend.rule=Host(`felag.app`)"
+      - "traefik.http.routers.felag-frontend.rule=Host(`pwa.felag.app`)"
       - "traefik.http.routers.felag-frontend.entrypoints=websecure"
       - "traefik.http.routers.felag-frontend.tls.certresolver=letsencrypt"
       - "traefik.http.routers.felag-frontend.service=felag-frontend"

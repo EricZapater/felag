@@ -17,9 +17,9 @@ import AddIcon from '@mui/icons-material/Add';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
+import AppHeader from '@/components/AppHeader';
 import { useTripStore } from '../store';
-import { useAuthStore } from '@/modules/auth/store';
 import { Trip, TripFilter } from '../types';
 
 // Helper for date formatting without timezone shift
@@ -71,8 +71,6 @@ function getStatusBadge(status: string): { label: string; bg: string; color: str
 
 export default function TripsListView() {
   const { trips, fetchTrips, isLoading, error } = useTripStore();
-  const { logout } = useAuthStore();
-  const navigate = useNavigate();
   const [filterTab, setFilterTab] = useState<TripFilter>('all');
 
   useEffect(() => {
@@ -81,11 +79,6 @@ export default function TripsListView() {
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: TripFilter) => {
     setFilterTab(newValue);
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
   };
 
   const todayStr = new Date().toISOString().split('T')[0];
@@ -239,66 +232,7 @@ export default function TripsListView() {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#F9F6F0' }}>
-      {/* Top Header */}
-      <Box
-        component="header"
-        sx={{
-          bgcolor: '#FFFFFF',
-          borderBottom: '1px solid #E8E2D9',
-          px: { xs: 2, md: 5 },
-          py: 2,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <Typography
-            component={RouterLink}
-            to="/trips"
-            variant="h5"
-            sx={{
-              color: '#C85A32',
-              fontWeight: 700,
-              letterSpacing: 1,
-              textDecoration: 'none',
-            }}
-          >
-            FELAG
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 3 }}>
-            <Typography
-              component={RouterLink}
-              to="/trips"
-              sx={{
-                color: '#C85A32',
-                textDecoration: 'none',
-                fontWeight: 700,
-                fontSize: 15,
-              }}
-            >
-              Viatges
-            </Typography>
-            <Typography
-              component={RouterLink}
-              to="/profile"
-              sx={{
-                color: '#786C65',
-                textDecoration: 'none',
-                fontWeight: 500,
-                fontSize: 15,
-                '&:hover': { color: '#C85A32' },
-              }}
-            >
-              Perfil
-            </Typography>
-          </Box>
-        </Box>
-
-        <Button variant="outlined" color="error" size="small" onClick={handleLogout}>
-          Tancar sessió
-        </Button>
-      </Box>
+      <AppHeader />
 
       {/* Main Container */}
       <Container maxWidth="md" sx={{ py: 5 }}>

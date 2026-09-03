@@ -2,6 +2,10 @@ import { create } from 'zustand';
 import { User } from './types';
 import { authApi } from './api';
 import { setAuthToken } from '@/api/client';
+import {
+  registerPushTokenService,
+  unregisterPushTokenService,
+} from '@/modules/notifications/services/pushTokenService';
 
 interface AuthState {
   user: User | null;
@@ -36,6 +40,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isAuthenticated: true,
         isLoading: false,
       });
+      // Register push token after successful login
+      registerPushTokenService();
     } catch (err: any) {
       const msg = err.response?.data?.error?.message || 'Error en l’inici de sessió';
       set({ error: msg, isLoading: false });
@@ -55,6 +61,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isAuthenticated: true,
         isLoading: false,
       });
+      // Register push token after successful registration
+      registerPushTokenService();
     } catch (err: any) {
       const msg = err.response?.data?.error?.message || 'Error en el registre';
       set({ error: msg, isLoading: false });
@@ -64,6 +72,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   logout: async () => {
     const { refreshToken } = get();
+    await unregisterPushTokenService();
     if (refreshToken) {
       try {
         await authApi.logout(refreshToken);

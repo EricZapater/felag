@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FELAG — Coincidències del viatge (Web)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
+    body { background-color: #F9F6F0; color: #2C221E; }
+    header { background: #FFFFFF; border-bottom: 1px solid #E8E2D9; padding: 16px 40px; display: flex; justify-content: space-between; align-items: center; }
+    .brand { font-size: 22px; font-weight: 700; color: #C85A32; letter-spacing: 1px; }
+    .nav-links { display: flex; gap: 24px; align-items: center; }
+    .nav-link { color: #786C65; text-decoration: none; font-weight: 500; font-size: 15px; }
+    .nav-link.active { color: #C85A32; font-weight: 700; }
+    
+    .container { max-width: 900px; margin: 40px auto; padding: 0 20px; }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; color: #C85A32; text-decoration: none; font-weight: 600; margin-bottom: 20px; font-size: 14px; }
+    
+    .header-banner { background: #FFFFFF; border: 1px solid #E8E2D9; border-radius: 12px; padding: 24px 32px; box-shadow: 0 2px 12px rgba(74, 46, 43, 0.05); margin-bottom: 28px; }
+    .trip-name { font-size: 24px; font-weight: 700; color: #2C221E; margin-bottom: 4px; }
+    .trip-dates { font-size: 14px; color: #786C65; }
+    
+    .matches-count { font-size: 18px; font-weight: 700; color: #3E2723; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    
+    .match-card { background: #FFFFFF; border: 1px solid #E8E2D9; border-radius: 12px; padding: 24px; box-shadow: 0 2px 10px rgba(74, 46, 43, 0.04); margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; transition: transform 0.2s; }
+    .match-card:hover { transform: translateY(-2px); }
+    
+    .felagi-info { display: flex; align-items: center; gap: 20px; }
+    .avatar { width: 64px; height: 64px; border-radius: 50%; background: #F4ECE1; color: #703817; border: 2px solid #C85A32; display: flex; justify-content: center; align-items: center; font-size: 22px; font-weight: 700; }
+    
+    .felagi-name { font-size: 18px; font-weight: 700; color: #2C221E; margin-bottom: 4px; }
+    .felagi-origin { font-size: 14px; color: #703817; font-weight: 600; margin-bottom: 6px; }
+    .match-explanation { font-size: 13px; color: #786C65; background: #FAF7F2; padding: 6px 12px; border-radius: 6px; border: 1px solid #E8E2D9; display: inline-block; }
+    
+    .match-meta { text-align: right; }
+    .affinity-badge { display: inline-block; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+    .badge-town { background: #FFF3E0; color: #E65100; border: 1px solid #FFE0B2; }
+    .badge-region { background: #F4ECE1; color: #703817; border: 1px solid #DDCFBF; }
+    .badge-country { background: #EAE6E1; color: #4A3E39; border: 1px solid #D1C9C0; }
+    
+    .overlap-dates { font-size: 13px; color: #4A3E39; font-weight: 600; margin-bottom: 12px; }
+    .btn-connect { background-color: #C85A32; color: #FFFFFF; border: none; padding: 8px 18px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; }
+    .btn-connect:hover { background-color: #A0471D; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">FELAG</div>
+    <div class="nav-links">
+      <a href="../trips/trips-list-web.html" class="nav-link">Viatges</a>
+      <a href="trip-matches-web.html" class="nav-link active">Coincidències</a>
+      <a href="notifications-web.html" class="nav-link">Notificacions 🔔</a>
+      <a href="../profile/profile-web.html" class="nav-link">Perfil</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <a href="../trips/trip-detail-web.html" class="back-link">‹ Tornar al detall del viatge</a>
+
+    <div class="header-banner">
+      <h1 class="trip-name">Ruta per Escandinàvia</h1>
+      <p class="trip-dates">📅 10 Oct – 24 Oct 2026 • 📍 Estocolm, Oslo, Bergen</p>
+    </div>
+
+    <div class="matches-count">
+      ✨ 2 FELAGIS coincidents trobats
+    </div>
+
+    <!-- Match 1: Poble / Town -->
+    <div class="match-card">
+      <div class="felagi-info">
+        <div class="avatar">MM</div>
+        <div>
+          <div class="felagi-name">Mireia Masnou</div>
+          <div class="felagi-origin">📍 Origen: Vic (Catalunya)</div>
+          <div class="match-explanation">✨ Tots dos sou de Vic i coincidireu a Estocolm!</div>
+        </div>
+      </div>
+      <div class="match-meta">
+        <div><span class="affinity-badge badge-town">🥇 Mateix Poble (Vic)</span></div>
+        <div class="overlap-dates">📅 11 Oct – 15 Oct (4 dies a Estocolm)</div>
+        <a href="#" class="btn-connect">Connectar amb Mireia</a>
+      </div>
+    </div>
+
+    <!-- Match 2: Regió / Region -->
+    <div class="match-card">
+      <div class="felagi-info">
+        <div class="avatar">JR</div>
+        <div>
+          <div class="felagi-name">Jordi Ribas</div>
+          <div class="felagi-origin">📍 Origen: Girona (Catalunya)</div>
+          <div class="match-explanation">✨ Tots dos sou de Catalunya i coincidireu a Oslo!</div>
+        </div>
+      </div>
+      <div class="match-meta">
+        <div><span class="affinity-badge badge-region">🥈 Mateixa Regió (Catalunya)</span></div>
+        <div class="overlap-dates">📅 16 Oct – 19 Oct (3 dies a Oslo)</div>
+        <a href="#" class="btn-connect">Connectar amb Jordi</a>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>
