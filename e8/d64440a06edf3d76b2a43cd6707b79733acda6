@@ -1,0 +1,14 @@
+.github/workflows/mobile-build.yml
+  h_42175f19913982 1-59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "e8d64440a06edf3d76b2a43cd6707b79733acda6",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
