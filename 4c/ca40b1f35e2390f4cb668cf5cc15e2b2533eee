@@ -1,0 +1,26 @@
+backend/internal/community/model.go
+  h_42175f19913982 14,24
+backend/internal/community/repository.go
+  h_42175f19913982 304-325,378-394
+contracts/community.openapi.yaml
+  h_42175f19913982 317-319,337-339
+frontend/src/modules/community/types.ts
+  h_42175f19913982 25,37
+frontend/src/modules/community/views/DestinationDetailView.tsx
+  h_42175f19913982 213-215
+mobile/src/modules/community/screens/DestinationDetailScreen.tsx
+  h_42175f19913982 7,247-256,278
+mobile/src/modules/community/types.ts
+  h_42175f19913982 10,24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "4cca40b1f35e2390f4cb668cf5cc15e2b2533eee",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
