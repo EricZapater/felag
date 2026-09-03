@@ -1,39 +1,97 @@
-name: CI / CD Pipeline
+name: Continuous Integration (CI)
 
 on:
   push:
-    branches: [ main, master ]
+    branches:
+      - main
+      - develop
+      - 'feat/**'
+      - 'fix/**'
   pull_request:
-    branches: [ main, master ]
+    branches:
+      - main
+      - develop
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  backend:
-    name: Backend Go CI
+  backend-ci:
+    name: Backend (Go) Tests & Verification
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: 'stable'
-      - name: Build Backend
-        run: |
-          cd backend
-          go build ./...
+          cache-dependency-path: backend/go.sum
 
-  frontend-mobile:
-    name: JS/TS Workspace CI
+      - name: Verify Go dependencies
+        run: |
+          go mod verify
+          go mod tidy --diff || true
+
+      - name: Run Go Vet
+        run: go vet ./...
+
+      - name: Run Go Tests
+        run: go test -v ./...
+
+      - name: Verify Binary Compilation
+        run: CGO_ENABLED=0 go build -v -o /dev/null ./cmd/api/main.go
+
+  frontend-ci:
+    name: Frontend (React / TypeScript) Verification
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
         with:
           version: 10
-      - uses: actions/setup-node@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: 22
           cache: 'pnpm'
-      - name: Install Dependencies
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
         run: pnpm install --registry=https://registry.npmjs.org/
-      - name: Typecheck Workspace
-        run: pnpm typecheck
+
+      - name: Run TypeScript type-check
+        run: pnpm run typecheck
+
+      - name: Run Frontend Build
+        run: pnpm run build
+
+  docker-lint-ci:
+    name: Dockerfile & Compose Syntax Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate Docker Compose Configuration
+        run: |
+          cp .env.backend.example .env.backend
+          cp .env.frontend.example .env.frontend
+          docker network create web || true
+          docker network create postgres-network || true
+          docker compose config --quiet

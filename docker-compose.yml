@@ -1,0 +1,45 @@
+services:
+  felag-backend:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-ericzapater}/felag-backend:latest
+    container_name: felag-backend
+    restart: unless-stopped
+    env_file:
+      - .env.backend
+    environment:
+      - TZ=Europe/Madrid
+    volumes:
+      - ./uploads/avatars:/app/uploads/avatars
+    networks:
+      - postgres-network
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.felag-backend.rule=Host(`api.felag.app`)"
+      - "traefik.http.routers.felag-backend.entrypoints=websecure"
+      - "traefik.http.routers.felag-backend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.felag-backend.service=felag-backend"
+      - "traefik.http.services.felag-backend.loadbalancer.server.port=8080"
+      - "traefik.docker.network=web"
+
+  felag-frontend:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-ericzapater}/felag-frontend:latest
+    container_name: felag-frontend
+    restart: unless-stopped
+    env_file:
+      - .env.frontend
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.felag-frontend.rule=Host(`felag.app`)"
+      - "traefik.http.routers.felag-frontend.entrypoints=websecure"
+      - "traefik.http.routers.felag-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.felag-frontend.service=felag-frontend"
+      - "traefik.http.services.felag-frontend.loadbalancer.server.port=80"
+      - "traefik.docker.network=web"
+
+networks:
+  web:
+    external: true
+  postgres-network:
+    external: true

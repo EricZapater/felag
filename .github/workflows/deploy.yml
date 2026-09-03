@@ -1,99 +1,146 @@
-name: Deployment Pipeline
+name: Continuous Deployment (CD)
 
 on:
   push:
-    branches: [ main, master ]
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target Deployment Environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+      deploy_images:
+        description: 'Deploy containers after build'
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
-  deploy-backend:
-    name: "Stage 1: Deploy Backend (Go API)"
+  # -----------------------------------------------------------------------
+  # Stage 1 & 2: Build and Push Docker Images to GHCR
+  # -----------------------------------------------------------------------
+  build-and-push:
+    name: Build & Publish Container Images (GHCR)
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup SSH Agent
-        uses: webfactory/ssh-agent@v0.9.0
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
         with:
-          ssh-private-key: ${{ secrets.SSH_KEY }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Add Host to Known Hosts
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H -p ${{ secrets.SSH_PORT || 22 }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+      # -----------------------------------------------------------------------
+      # Backend Image Build & Push
+      # -----------------------------------------------------------------------
+      - name: Extract metadata for Backend Docker image
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/felag-backend
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=short,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Deploy Backend on Remote VPS
-        env:
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT || 22 }}
-          APP_DIR: ${{ secrets.APP_DIR || '~/felag' }}
-        run: |
-          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST "mkdir -p $APP_DIR"
-          
-          # Sync backend files & docker compose
-          rsync -avz -e "ssh -p $SSH_PORT" --exclude '.git' --exclude 'node_modules' --exclude 'frontend' --exclude 'mobile' ./ $SSH_USER@$SSH_HOST:$APP_DIR/
+      - name: Build and push Backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-          # Clean compose down to free all ports and networks cleanly, then build & start backend
-          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST "cd $APP_DIR && docker compose -f docker-compose.prod.yml down --remove-orphans 2>/dev/null || true && docker compose -f docker-compose.prod.yml up -d --build backend"
+      # -----------------------------------------------------------------------
+      # Frontend Image Build & Push
+      # -----------------------------------------------------------------------
+      - name: Extract metadata for Frontend Docker image
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/felag-frontend
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=short,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Verify Backend Health Check
-        env:
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT || 22 }}
-        run: |
-          echo "Verifying backend health status..."
-          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST "sleep 4 && curl -f http://localhost:8080/health || exit 1"
-          echo "Backend is live and healthy!"
+      - name: Build and push Frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-  deploy-frontend:
-    name: "Stage 2: Deploy Frontend (React Web)"
-    needs: deploy-backend
+  # -----------------------------------------------------------------------
+  # Deploy Containers to VPS via SSH & Traefik
+  # -----------------------------------------------------------------------
+  deploy-to-vps:
+    name: Deploy Containers to Remote VPS
+    needs: build-and-push
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' || inputs.deploy_images == true
     steps:
-      - name: Checkout Code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup SSH Agent
-        uses: webfactory/ssh-agent@v0.9.0
+      - name: Copy docker-compose.yml to VPS
+        uses: appleboy/scp-action@v0.1.7
         with:
-          ssh-private-key: ${{ secrets.SSH_KEY }}
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          source: "docker-compose.yml"
+          target: "~/felag"
 
-      - name: Add Host to Known Hosts
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H -p ${{ secrets.SSH_PORT || 22 }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+      - name: Execute remote deployment commands via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            set -e
+            mkdir -p ~/felag
+            cd ~/felag
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+            docker compose pull
+            docker compose up -d --remove-orphans
+            docker image prune -f
+            docker compose ps
 
-      - name: Deploy Frontend on Remote VPS
-        env:
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT || 22 }}
-          APP_DIR: ${{ secrets.APP_DIR || '~/felag' }}
-        run: |
-          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST "mkdir -p $APP_DIR"
-          
-          # Sync frontend and workspace files
-          rsync -avz -e "ssh -p $SSH_PORT" --exclude '.git' --exclude 'node_modules' --exclude 'mobile' ./ $SSH_USER@$SSH_HOST:$APP_DIR/
-
-          # Build and start frontend service attached to the same compose network
-          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST "cd $APP_DIR && docker compose -f docker-compose.prod.yml up -d --build --no-deps frontend"
-
-      - name: Verify Frontend Web
-        env:
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT || 22 }}
-        run: |
-          echo "Verifying frontend status..."
-          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST "sleep 2 && curl -f http://localhost:3000 > /dev/null || exit 0"
-          echo "Frontend is live!"
-
+  # -----------------------------------------------------------------------
+  # Stage 3: Mobile (Expo / EAS Build)
+  # -----------------------------------------------------------------------
   deploy-mobile:
-    name: "Stage 3: Build & Deploy Mobile (Expo / EAS)"
-    needs: deploy-backend
+    name: Build Mobile (Expo EAS)
+    needs: build-and-push
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -106,7 +153,7 @@ jobs:
         run: |
           if [ -z "$EXPO_TOKEN" ]; then
             echo "has_token=false" >> $GITHUB_OUTPUT
-            echo "EXPO_TOKEN secret is not set. Skipping automated cloud build for mobile."
+            echo "EXPO_TOKEN is not set. Skipping automated cloud build for mobile."
           else
             echo "has_token=true" >> $GITHUB_OUTPUT
           fi
@@ -115,7 +162,7 @@ jobs:
         if: steps.expo-check.outputs.has_token == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: 22
 
       - name: Setup EAS
         if: steps.expo-check.outputs.has_token == 'true'
@@ -126,7 +173,7 @@ jobs:
 
       - name: Install pnpm
         if: steps.expo-check.outputs.has_token == 'true'
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v4
         with:
           version: 10
 
