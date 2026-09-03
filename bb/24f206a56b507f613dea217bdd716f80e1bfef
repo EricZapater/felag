@@ -1,0 +1,18 @@
+.gitignore
+  h_42175f19913982 28-30
+backend/internal/db/db.go
+  h_42175f19913982 38,43,49-56
+backend/internal/db/migrate.go
+  h_42175f19913982 1-84
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "bb24f206a56b507f613dea217bdd716f80e1bfef",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
