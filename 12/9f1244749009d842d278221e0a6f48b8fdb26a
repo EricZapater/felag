@@ -1,0 +1,16 @@
+.env.backend.example
+  h_42175f19913982 1-39
+.env.frontend.example
+  h_42175f19913982 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "129f1244749009d842d278221e0a6f48b8fdb26a",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
