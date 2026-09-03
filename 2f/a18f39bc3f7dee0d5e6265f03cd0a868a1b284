@@ -1,0 +1,88 @@
+CHANGELOG.md
+  h_42175f19913982 7-16
+VERSION
+  h_42175f19913982 1
+backend/cmd/api/main.go
+  h_42175f19913982 12,68-71,102-111
+backend/internal/auth/model.go
+  h_42175f19913982 6-14
+backend/internal/db/migrations/000002_create_trips_table.down.sql
+  h_42175f19913982 1-2
+backend/internal/db/migrations/000002_create_trips_table.up.sql
+  h_42175f19913982 1-29
+backend/internal/trip/handler.go
+  h_42175f19913982 1-125
+backend/internal/trip/model.go
+  h_42175f19913982 1-55
+backend/internal/trip/repository.go
+  h_42175f19913982 1-569
+backend/internal/trip/service.go
+  h_42175f19913982 1-262
+backend/internal/trip/service_test.go
+  h_42175f19913982 1-251
+contracts/trips.openapi.yaml
+  h_42175f19913982 1-358
+frontend/src/modules/profile/views/ProfileView.tsx
+  h_42175f19913982 77-118
+frontend/src/modules/trips/api.ts
+  h_42175f19913982 1-29
+frontend/src/modules/trips/store.ts
+  h_42175f19913982 1-111
+frontend/src/modules/trips/types.ts
+  h_42175f19913982 1-62
+frontend/src/modules/trips/views/TripCreateView.tsx
+  h_42175f19913982 1-470
+frontend/src/modules/trips/views/TripDetailView.tsx
+  h_42175f19913982 1-404
+frontend/src/modules/trips/views/TripsListView.tsx
+  h_42175f19913982 1-438
+frontend/src/router/index.tsx
+  h_42175f19913982 7-9,32-55,72
+mobile/src/modules/trips/api.ts
+  h_42175f19913982 1-34
+mobile/src/modules/trips/screens/TripCreateScreen.tsx
+  h_42175f19913982 1-574
+mobile/src/modules/trips/screens/TripDetailScreen.tsx
+  h_42175f19913982 1-395
+mobile/src/modules/trips/screens/TripsListScreen.tsx
+  h_42175f19913982 1-387
+mobile/src/modules/trips/store.ts
+  h_42175f19913982 1-121
+mobile/src/modules/trips/types.ts
+  h_42175f19913982 1-60
+mobile/src/navigation/index.tsx
+  h_42175f19913982 1-3,9-11,15-34,37-38,53-54,57-97,108-139
+mockups/approvals.md
+  h_42175f19913982 13-18
+mockups/trips/trip-create-mobile.html
+  h_42175f19913982 1-98
+mockups/trips/trip-create-web.html
+  h_42175f19913982 1-140
+mockups/trips/trip-detail-mobile.html
+  h_42175f19913982 1-88
+mockups/trips/trip-detail-web.html
+  h_42175f19913982 1-129
+mockups/trips/trips-list-mobile.html
+  h_42175f19913982 1-91
+mockups/trips/trips-list-web.html
+  h_42175f19913982 1-119
+qa-reports/trips.md
+  h_42175f19913982 1-86
+roadmap.md
+  h_42175f19913982 24-33,48-54,71-79
+specs/trips.md
+  h_42175f19913982 1-125
+ux-reports/trips.md
+  h_42175f19913982 1-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "2fa18f39bc3f7dee0d5e6265f03cd0a868a1b284",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
