@@ -1,9 +1,9 @@
 # Build stage
 FROM node:22-alpine AS builder
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN npm install -g pnpm@10
 WORKDIR /app
 COPY package.json .npmrc* ./
-RUN pnpm install --registry=https://registry.npmjs.org/ --config.minimum-release-age=0
+RUN pnpm install --registry=https://registry.npmjs.org/ --no-frozen-lockfile
 COPY . .
 RUN pnpm run build
 
