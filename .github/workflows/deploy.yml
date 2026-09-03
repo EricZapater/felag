@@ -35,8 +35,8 @@ jobs:
           # Sync backend files & docker compose
           rsync -avz -e "ssh -p $SSH_PORT" --exclude '.git' --exclude 'node_modules' --exclude 'frontend' --exclude 'mobile' ./ $SSH_USER@$SSH_HOST:$APP_DIR/
 
-          # Cleanly stop old container to avoid port binding conflicts, then rebuild & start
-          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST "cd $APP_DIR && (docker rm -f felag-backend 2>/dev/null || true) && docker compose -f docker-compose.prod.yml up -d --build backend"
+          # Clean compose down to free all ports and networks cleanly, then build & start backend
+          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST "cd $APP_DIR && docker compose -f docker-compose.prod.yml down --remove-orphans 2>/dev/null || true && docker compose -f docker-compose.prod.yml up -d --build backend"
 
       - name: Verify Backend Health Check
         env:
@@ -78,8 +78,8 @@ jobs:
           # Sync frontend and workspace files
           rsync -avz -e "ssh -p $SSH_PORT" --exclude '.git' --exclude 'node_modules' --exclude 'mobile' ./ $SSH_USER@$SSH_HOST:$APP_DIR/
 
-          # Cleanly stop old container to avoid port binding conflicts, then rebuild & start
-          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST "cd $APP_DIR && (docker rm -f felag-frontend 2>/dev/null || true) && docker compose -f docker-compose.prod.yml up -d --build frontend"
+          # Build and start frontend service attached to the same compose network
+          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST "cd $APP_DIR && docker compose -f docker-compose.prod.yml up -d --build --no-deps frontend"
 
       - name: Verify Frontend Web
         env:
