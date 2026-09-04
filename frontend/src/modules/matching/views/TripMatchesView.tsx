@@ -83,11 +83,9 @@ export default function TripMatchesView() {
   useEffect(() => {
     if (id) {
       fetchTripMatches(id);
-      if (!currentTrip || currentTrip.id !== id) {
-        fetchTripById(id);
-      }
+      fetchTripById(id);
     }
-  }, [id, fetchTripMatches, fetchTripById, currentTrip]);
+  }, [id]);
 
   const getUserInitials = (name: string): string => {
     if (!name) return 'FL';

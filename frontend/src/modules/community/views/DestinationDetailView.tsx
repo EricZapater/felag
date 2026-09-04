@@ -104,7 +104,7 @@ export default function DestinationDetailView() {
       fetchDestinationDetail(id);
       fetchRecommendations(id);
     }
-  }, [id, fetchDestinationDetail, fetchRecommendations]);
+  }, [id]);
 
   const handleCategoryClick = (cat: RecommendationCategoryFilter) => {
     setCategory(cat);

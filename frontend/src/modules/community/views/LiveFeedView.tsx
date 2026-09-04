@@ -68,12 +68,10 @@ export default function LiveFeedView() {
 
   useEffect(() => {
     if (id) {
-      if (!currentDestination || currentDestination.id !== id) {
-        fetchDestinationDetail(id);
-      }
+      fetchDestinationDetail(id);
       fetchLiveFeed(id);
     }
-  }, [id, currentDestination, fetchDestinationDetail, fetchLiveFeed]);
+  }, [id]);
 
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
