@@ -18,7 +18,6 @@
     },
     "android": {
       "package": "cat.felag.app",
-      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F9F6F0"
