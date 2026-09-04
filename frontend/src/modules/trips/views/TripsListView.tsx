@@ -198,6 +198,84 @@ export default function TripsListView() {
               </Box>
             )}
 
+            {/* Quick Actions for this trip */}
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2, pt: 1, borderTop: '1px solid #F0ECE4' }}>
+              <Button
+                component={RouterLink}
+                to={`/trips/${trip.id}/gallery`}
+                size="small"
+                variant="outlined"
+                sx={{
+                  color: '#4A3E39',
+                  borderColor: '#DDCFBF',
+                  textTransform: 'none',
+                  fontSize: '0.78rem',
+                  py: 0.4,
+                  px: 1,
+                  borderRadius: 2,
+                  '&:hover': { bgcolor: '#FDF7F4', borderColor: '#C85A32', color: '#C85A32' },
+                }}
+              >
+                🖼️ Àlbum
+              </Button>
+              <Button
+                component={RouterLink}
+                to={`/trips/${trip.id}/celebrate`}
+                size="small"
+                variant="outlined"
+                sx={{
+                  color: '#4A3E39',
+                  borderColor: '#DDCFBF',
+                  textTransform: 'none',
+                  fontSize: '0.78rem',
+                  py: 0.4,
+                  px: 1,
+                  borderRadius: 2,
+                  '&:hover': { bgcolor: '#FDF7F4', borderColor: '#C85A32', color: '#C85A32' },
+                }}
+              >
+                📸 Celebration
+              </Button>
+              <Button
+                component={RouterLink}
+                to={`/trips/${trip.id}/wrapup`}
+                size="small"
+                variant="outlined"
+                sx={{
+                  color: '#4A3E39',
+                  borderColor: '#DDCFBF',
+                  textTransform: 'none',
+                  fontSize: '0.78rem',
+                  py: 0.4,
+                  px: 1,
+                  borderRadius: 2,
+                  '&:hover': { bgcolor: '#FDF7F4', borderColor: '#C85A32', color: '#C85A32' },
+                }}
+              >
+                ✨ Stories 9:16
+              </Button>
+              {trip.visibility === 'public' && (
+                <Button
+                  component={RouterLink}
+                  to={`/trips/${trip.id}/matches`}
+                  size="small"
+                  variant="outlined"
+                  sx={{
+                    color: '#C85A32',
+                    borderColor: '#C85A32',
+                    textTransform: 'none',
+                    fontSize: '0.78rem',
+                    py: 0.4,
+                    px: 1,
+                    borderRadius: 2,
+                    '&:hover': { bgcolor: '#F4ECE1' },
+                  }}
+                >
+                  👥 Coincidències
+                </Button>
+              )}
+            </Box>
+
             <Box
               sx={{
                 display: 'flex',

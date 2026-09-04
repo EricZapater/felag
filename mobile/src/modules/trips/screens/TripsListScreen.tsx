@@ -130,6 +130,36 @@ export default function TripsListScreen({ navigation }: Props) {
                 {renderStagesSummary(trip)}
               </Text>
             </View>
+
+            {/* Quick Actions */}
+            <View style={styles.actionsRow}>
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => navigation.navigate('TripGallery', { tripId: trip.id })}
+              >
+                <Text style={styles.actionBtnText}>🖼️ Àlbum</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => navigation.navigate('CelebrationCard', { tripId: trip.id })}
+              >
+                <Text style={styles.actionBtnText}>📸 Celebration</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => navigation.navigate('InstagramStories', { tripId: trip.id })}
+              >
+                <Text style={styles.actionBtnText}>✨ Stories</Text>
+              </TouchableOpacity>
+              {trip.visibility === 'public' && (
+                <TouchableOpacity
+                  style={[styles.actionBtn, styles.matchesBtn]}
+                  onPress={() => navigation.navigate('TripMatches', { tripId: trip.id })}
+                >
+                  <Text style={[styles.actionBtnText, styles.matchesBtnText]}>👥 Matches</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </Card.Content>
         </Card>
       </TouchableOpacity>
@@ -365,6 +395,35 @@ const styles = StyleSheet.create({
   stagesText: {
     color: '#4A3E39',
     fontSize: 12,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F0ECE4',
+  },
+  actionBtn: {
+    backgroundColor: '#FAF7F2',
+    borderWidth: 1,
+    borderColor: '#DDCFBF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  actionBtnText: {
+    color: '#4A3E39',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  matchesBtn: {
+    borderColor: '#C85A32',
+    backgroundColor: '#FDF7F4',
+  },
+  matchesBtnText: {
+    color: '#C85A32',
   },
   centerLoading: {
     flex: 1,
