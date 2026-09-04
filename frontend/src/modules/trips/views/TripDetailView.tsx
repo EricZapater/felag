@@ -25,6 +25,7 @@ import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader';
 import { useTripStore } from '../store';
 import ActiveTripHubCard from '@/modules/posttrip/components/ActiveTripHubCard';
+import { usePostTripStore } from '@/modules/posttrip/store';
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return '';
@@ -75,6 +76,7 @@ function getStatusBadge(status: string): { label: string; bg: string; color: str
 export default function TripDetailView() {
   const { id } = useParams<{ id: string }>();
   const { currentTrip, fetchTripById, deleteTrip, isLoading, error } = useTripStore();
+  const { activeHub, fetchActiveHub } = usePostTripStore();
   const navigate = useNavigate();
 
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -83,8 +85,9 @@ export default function TripDetailView() {
   useEffect(() => {
     if (id) {
       fetchTripById(id);
+      fetchActiveHub().catch(() => {});
     }
-  }, [id, fetchTripById]);
+  }, [id, fetchTripById, fetchActiveHub]);
 
   const handleDeleteConfirm = async () => {
     if (!id) return;
@@ -149,16 +152,10 @@ export default function TripDetailView() {
           ‹ Tornar a la llista de viatges
         </Button>
 
-        {/* Active Trip Hub Card */}
-        <ActiveTripHubCard
-          tripId={currentTrip.id}
-          tripTitle={currentTrip.title}
-          destinationName={sortedStages[0]?.destination_name || 'Viatge'}
-          countryFlag={sortedStages[0]?.country_code ? '✈️' : '🌍'}
-          isFinalDayOrPast={currentTrip.end_date <= new Date().toISOString().split('T')[0]}
-          photosCount={0}
-          activeFelagisCount={2}
-        />
+        {/* Active Trip Hub Card if this trip is active */}
+        {activeHub && activeHub.has_active_trip && activeHub.trip_id === currentTrip.id && (
+          <ActiveTripHubCard hubData={activeHub} />
+        )}
 
         <Card
           sx={{

@@ -86,8 +86,8 @@ export default function TripsListView() {
   };
 
   const todayStr = new Date().toISOString().split('T')[0];
-  const upcomingTrips = trips.filter((t) => t.end_date >= todayStr || t.status === 'ongoing' || t.status === 'planned');
-  const pastTrips = trips.filter((t) => t.end_date < todayStr || t.status === 'completed');
+  const upcomingTrips = trips.filter((t) => (t.end_date >= todayStr && t.status !== 'completed') || t.status === 'ongoing');
+  const pastTrips = trips.filter((t) => (t.end_date < todayStr && t.status !== 'ongoing') || t.status === 'completed');
 
   const renderTripCard = (trip: Trip, isPast = false) => {
     const vis = getVisibilityLabel(trip.visibility);

@@ -274,13 +274,15 @@ func (r *repository) ResolveDestination(destID string) (*DestinationInfo, error)
 		return nil, nil
 	}
 
-	// 1. Try resolving as Town (by town ID)
+	// 1. Try resolving as Town (by town ID or town name)
 	townQuery := `
 		SELECT t.id, t.name, r.id, r.name, c.code, c.name
 		FROM towns t
 		JOIN regions r ON t.region_id = r.id
 		JOIN countries c ON r.country_id = c.id
-		WHERE t.id::text = $1
+		WHERE t.id::text = $1 OR LOWER(t.name) = LOWER($1)
+		ORDER BY CASE WHEN t.id::text = $1 THEN 1 ELSE 2 END
+		LIMIT 1
 	`
 	var tInfo DestinationInfo
 	err := r.db.QueryRow(townQuery, cleanID).Scan(
@@ -299,11 +301,13 @@ func (r *repository) ResolveDestination(destID string) (*DestinationInfo, error)
 		return nil, fmt.Errorf("error checking town destination: %w", err)
 	}
 
-	// 2. Try resolving as Country (by 2-letter Code or UUID)
+	// 2. Try resolving as Country (by 2-letter Code, UUID or country name)
 	countryQuery := `
 		SELECT code, name
 		FROM countries
-		WHERE UPPER(code) = UPPER($1) OR id::text = $1
+		WHERE UPPER(code) = UPPER($1) OR id::text = $1 OR LOWER(name) = LOWER($1)
+		ORDER BY CASE WHEN UPPER(code) = UPPER($1) THEN 1 ELSE 2 END
+		LIMIT 1
 	`
 	var cCode, cName string
 	err = r.db.QueryRow(countryQuery, cleanID).Scan(&cCode, &cName)
@@ -1036,8 +1040,8 @@ func (r *repository) GetUserActiveTrip(userID string, info *DestinationInfo) (st
 			FROM trips tr
 			JOIN trip_stages ts ON ts.trip_id = tr.id
 			WHERE tr.user_id = $1
-			  AND CURRENT_DATE BETWEEN tr.start_date AND tr.end_date
-			  AND (ts.town_id::text = $2 OR ts.destination_name = $3)
+			  AND (CURRENT_DATE BETWEEN tr.start_date AND tr.end_date OR tr.status = 'ongoing')
+			  AND (ts.town_id::text = $2 OR LOWER(ts.destination_name) = LOWER($3))
 			ORDER BY tr.start_date ASC
 			LIMIT 1
 		`
@@ -1048,8 +1052,8 @@ func (r *repository) GetUserActiveTrip(userID string, info *DestinationInfo) (st
 			FROM trips tr
 			JOIN trip_stages ts ON ts.trip_id = tr.id
 			WHERE tr.user_id = $1
-			  AND CURRENT_DATE BETWEEN tr.start_date AND tr.end_date
-			  AND (ts.country_code = $2 OR ts.destination_name = $3)
+			  AND (CURRENT_DATE BETWEEN tr.start_date AND tr.end_date OR tr.status = 'ongoing')
+			  AND (UPPER(ts.country_code) = UPPER($2) OR LOWER(ts.destination_name) = LOWER($3))
 			ORDER BY tr.start_date ASC
 			LIMIT 1
 		`
