@@ -125,11 +125,12 @@ export default function ProfileView() {
                 borderRadius: 2,
                 p: 2.5,
                 display: 'flex',
-                justify: 'space-between',
+                justifyContent: 'space-between',
                 alignItems: 'center',
+                gap: 2,
               }}
             >
-              <Box>
+              <Box sx={{ flex: 1 }}>
                 <Typography variant="caption" sx={{ color: '#8C7A70', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>
                   Origen actual
                 </Typography>
@@ -141,7 +142,13 @@ export default function ProfileView() {
                 component={RouterLink}
                 to="/origin"
                 variant="outlined"
-                sx={{ color: '#C85A32', borderColor: '#C85A32', '&:hover': { bgcolor: '#F4ECE1', borderColor: '#A0471D' } }}
+                sx={{
+                  color: '#C85A32',
+                  borderColor: '#C85A32',
+                  whiteSpace: 'nowrap',
+                  ml: 'auto',
+                  '&:hover': { bgcolor: '#F4ECE1', borderColor: '#A0471D' },
+                }}
               >
                 Canviar origen
               </Button>

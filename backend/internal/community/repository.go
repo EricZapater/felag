@@ -39,10 +39,12 @@ func (r *repository) SearchDestinations(q string, limit int) ([]DestinationSumma
 		limit = 20
 	}
 
-	queryPattern := "%" + strings.TrimSpace(q) + "%"
+	trimmedQuery := strings.TrimSpace(q)
+	queryPattern := "%" + trimmedQuery + "%"
 	var results []DestinationSummary
 
 	// 1. Search towns
+	// Quan no hi ha cerca (q == ""), només mostrem destinacions amb recomanacions o viatgers actius
 	townQuery := `
 		SELECT t.id, t.name, r.name AS region_name, c.name AS country_name, c.code AS country_code,
 		       COALESCE((SELECT COUNT(*) FROM destination_recommendations dr WHERE dr.town_id = t.id), 0) AS recommendations_count,
@@ -56,7 +58,11 @@ func (r *repository) SearchDestinations(q string, limit int) ([]DestinationSumma
 		FROM towns t
 		JOIN regions r ON t.region_id = r.id
 		JOIN countries c ON r.country_id = c.id
-		WHERE ($1 = '%%' OR t.name ILIKE $1 OR r.name ILIKE $1 OR c.name ILIKE $1)
+		WHERE ($1 != '%%' AND (t.name ILIKE $1 OR r.name ILIKE $1 OR c.name ILIKE $1))
+		   OR ($1 = '%%' AND (
+		       (SELECT COUNT(*) FROM destination_recommendations dr WHERE dr.town_id = t.id) > 0
+		       OR (SELECT COUNT(DISTINCT tr.user_id) FROM trips tr JOIN trip_stages ts ON ts.trip_id = tr.id WHERE CURRENT_DATE BETWEEN tr.start_date AND tr.end_date AND (ts.town_id = t.id OR ts.destination_name = t.name)) > 0
+		   ))
 		ORDER BY recommendations_count DESC, active_felagis_count DESC, t.name ASC
 		LIMIT $2
 	`
@@ -100,7 +106,7 @@ func (r *repository) SearchDestinations(q string, limit int) ([]DestinationSumma
 		return nil, err
 	}
 
-	// 2. Search countries
+	// 2. Search countries (només quan es cerca expressament o si tenen activitat)
 	countryQuery := `
 		SELECT c.code, c.name, c.code,
 		       COALESCE((
@@ -119,7 +125,11 @@ func (r *repository) SearchDestinations(q string, limit int) ([]DestinationSumma
 		             AND (ts.country_code = c.code OR ts.destination_name = c.name)
 		       ), 0) AS active_felagis_count
 		FROM countries c
-		WHERE ($1 = '%%' OR c.name ILIKE $1 OR c.code ILIKE $1)
+		WHERE ($1 != '%%' AND (c.name ILIKE $1 OR c.code ILIKE $1))
+		   OR ($1 = '%%' AND (
+		       (SELECT COUNT(*) FROM destination_recommendations dr WHERE dr.country_code = c.code) > 0
+		       OR (SELECT COUNT(DISTINCT tr.user_id) FROM trips tr JOIN trip_stages ts ON ts.trip_id = tr.id WHERE CURRENT_DATE BETWEEN tr.start_date AND tr.end_date AND ts.country_code = c.code) > 0
+		   ))
 		ORDER BY recommendations_count DESC, active_felagis_count DESC, c.name ASC
 		LIMIT $2
 	`

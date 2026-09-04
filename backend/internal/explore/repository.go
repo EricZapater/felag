@@ -126,12 +126,17 @@ func (r *repository) GetExploreDestinations(origin *UserOriginInfo, limit int) (
 				WHERE dr.town_id = t.id AND $2::uuid IS NOT NULL AND u.town_id = $2::uuid
 			) same_town_recs ON true
 			LEFT JOIN LATERAL (
-				SELECT COALESCE(dr.image_url, dlm.image_url) AS image_url
-				FROM destination_recommendations dr
-				FULL OUTER JOIN destination_live_moments dlm ON dlm.town_id = t.id
-				WHERE (dr.town_id = t.id AND dr.image_url IS NOT NULL AND dr.image_url != '')
-				   OR (dlm.town_id = t.id AND dlm.image_url IS NOT NULL AND dlm.image_url != '')
-				ORDER BY COALESCE(dr.created_at, dlm.created_at) DESC
+				SELECT image_url
+				FROM (
+					SELECT dr.image_url, dr.created_at
+					FROM destination_recommendations dr
+					WHERE dr.town_id = t.id AND dr.image_url IS NOT NULL AND dr.image_url != ''
+					UNION ALL
+					SELECT dlm.image_url, dlm.created_at
+					FROM destination_live_moments dlm
+					WHERE dlm.town_id = t.id AND dlm.image_url IS NOT NULL AND dlm.image_url != ''
+				) img_union
+				ORDER BY created_at DESC
 				LIMIT 1
 			) banner ON true
 		)
