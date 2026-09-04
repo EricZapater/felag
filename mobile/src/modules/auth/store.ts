@@ -41,11 +41,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isLoading: false,
       });
       // Register push token after successful login
-      registerPushTokenService();
+      try {
+        await registerPushTokenService();
+      } catch (pushErr) {
+        console.warn('Push registration warning:', pushErr);
+      }
     } catch (err: any) {
-      const msg = err.response?.data?.error?.message || 'Error en l’inici de sessió';
+      console.error('[Login Error]', err);
+      const msg = err.response?.data?.error?.message || err.message || 'Error en l’inici de sessió. Comprova la teva connexió.';
       set({ error: msg, isLoading: false });
-      throw new Error(msg);
     }
   },
 
@@ -62,11 +66,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isLoading: false,
       });
       // Register push token after successful registration
-      registerPushTokenService();
+      try {
+        await registerPushTokenService();
+      } catch (pushErr) {
+        console.warn('Push registration warning:', pushErr);
+      }
     } catch (err: any) {
-      const msg = err.response?.data?.error?.message || 'Error en el registre';
+      console.error('[Register Error]', err);
+      const msg = err.response?.data?.error?.message || err.message || 'Error en el registre. Comprova la teva connexió.';
       set({ error: msg, isLoading: false });
-      throw new Error(msg);
     }
   },
 
