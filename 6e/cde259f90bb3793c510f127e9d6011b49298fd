@@ -1,0 +1,18 @@
+frontend/src/modules/community/views/DestinationDetailView.tsx
+  h_42175f19913982 107
+frontend/src/modules/community/views/LiveFeedView.tsx
+  h_42175f19913982 71,74
+frontend/src/modules/matching/views/TripMatchesView.tsx
+  h_42175f19913982 86,88
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "6ecde259f90bb3793c510f127e9d6011b49298fd",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
