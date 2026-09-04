@@ -1,0 +1,32 @@
+mobile/App.tsx
+  h_42175f19913982 3,5-6,10-13,15-24,27-28
+mobile/app.json
+  h_42175f19913982 7-10
+mobile/babel.config.js
+  h_42175f19913982 1-6
+mobile/metro.config.js
+  h_42175f19913982 9,12-18,24-57
+mobile/package.json
+  h_42175f19913982 21
+mobile/src/modules/chat/screens/ChatRoomScreen.tsx
+  h_42175f19913982 96,108
+mobile/src/modules/community/screens/DestinationDetailScreen.tsx
+  h_42175f19913982 258-264,535,537-542,546-547
+mobile/src/modules/explore/screens/ExploreDestinationsScreen.tsx
+  h_42175f19913982 91-99,204-205,209-221,223-227
+mobile/src/modules/notifications/services/pushTokenService.ts
+  h_42175f19913982 12
+mobile/src/navigation/index.tsx
+  h_42175f19913982 4,31,59,91,101-142,145,197-206,212,215,228,236,252,268,284,300,312,315
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "5b9728dfcb0c14e70bd78ad4b8ec14027c3c4b22",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
