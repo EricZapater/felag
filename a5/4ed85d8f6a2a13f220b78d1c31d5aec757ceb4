@@ -1,0 +1,40 @@
+backend/cmd/api/main.go
+  h_42175f19913982 151-157
+backend/internal/auth/model.go
+  h_42175f19913982 9
+backend/internal/auth/repository.go
+  h_42175f19913982 28-30,34,44,51,64,70
+backend/internal/auth/service.go
+  h_42175f19913982 53,85,115
+backend/internal/community/repository.go
+  h_42175f19913982 45,48-117,156-220
+backend/internal/db/migrations/000009_optimize_geo_search.down.sql
+  h_42175f19913982 1-8
+backend/internal/db/migrations/000009_optimize_geo_search.up.sql
+  h_42175f19913982 1-12
+backend/internal/profile/handler.go
+  h_42175f19913982 6,135-155
+backend/internal/profile/model.go
+  h_42175f19913982 63-70
+backend/internal/profile/repository.go
+  h_42175f19913982 6,18,251-332
+backend/internal/profile/service.go
+  h_42175f19913982 27,161-164
+backend/internal/profile/service_test.go
+  h_42175f19913982 93-107
+backend/internal/trip/service.go
+  h_42175f19913982 50-51,54-55,57-58,60-63,67-71,94-104,125-149,154-155
+frontend/src/router/index.tsx
+  h_42175f19913982 50-58
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "a54ed85d8f6a2a13f220b78d1c31d5aec757ceb4",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
