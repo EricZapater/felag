@@ -5,7 +5,9 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
+	"felag/backend/internal/admin"
 	"felag/backend/internal/auth"
 	"felag/backend/internal/chat"
 	"felag/backend/internal/community"
@@ -46,6 +48,8 @@ func main() {
 		port = "8080"
 	}
 
+	serverStartTime := time.Now()
+
 	database, err := db.InitDB()
 	if err != nil {
 		log.Printf("Warning: Failed to connect to DB: %v", err)
@@ -53,6 +57,7 @@ func main() {
 
 	r := gin.Default()
 	r.Use(CORSMiddleware())
+	r.Use(shared.MetricsMiddleware(database))
 
 	// Static route for uploaded avatars
 	uploadDir := os.Getenv("UPLOAD_DIR")
@@ -121,6 +126,10 @@ func main() {
 	exploreRepo := explore.NewRepository(database)
 	exploreService := explore.NewService(exploreRepo)
 	exploreHandler := explore.NewHandler(exploreService)
+
+	adminRepo := admin.NewRepository(database)
+	adminService := admin.NewService(adminRepo, database, chatHub, serverStartTime)
+	adminHandler := admin.NewHandler(adminService)
 
 	// API Routes (matching OpenAPI specs)
 	v1 := r.Group("/api/v1")
@@ -231,6 +240,18 @@ func main() {
 			protected.GET("/destinations/:id/live-feed", communityHandler.GetLiveFeed)
 			protected.POST("/destinations/:id/live-feed", communityHandler.CreateLiveMoment)
 			protected.POST("/community/report", communityHandler.CreateReport)
+
+			// Admin routes (requires role 'admin')
+			adminGroup := protected.Group("/admin")
+			adminGroup.Use(shared.RequireAdmin())
+			{
+				adminGroup.GET("/metrics/summary", adminHandler.GetSummary)
+				adminGroup.GET("/metrics/api-latency", adminHandler.GetApiLatencyMetrics)
+				adminGroup.GET("/metrics/audit-logs", adminHandler.GetAuditLogs)
+				adminGroup.GET("/metrics/audit-logs/export", adminHandler.ExportAuditLogs)
+				adminGroup.GET("/moderation/reports", adminHandler.GetModerationReports)
+				adminGroup.PUT("/moderation/reports/:id/resolve", adminHandler.ResolveReport)
+			}
 		}
 	}
 

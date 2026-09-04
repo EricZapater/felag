@@ -42,3 +42,7 @@
 | posttrip | wrapup-and-stories | mobile | Aprovada | 2026-09-03 |
 | posttrip | explore-destinations | web | Aprovada | 2026-09-03 |
 | posttrip | explore-destinations | mobile | Aprovada | 2026-09-03 |
+| admin | admin-dashboard-community | web | Aprovada | 2026-09-04 |
+| admin | admin-dashboard-api-health | web | Aprovada | 2026-09-04 |
+| admin | admin-dashboard-audit-logs | web | Aprovada | 2026-09-04 |
+| admin | admin-dashboard-moderation | web | Aprovada | 2026-09-04 |

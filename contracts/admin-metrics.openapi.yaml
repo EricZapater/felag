@@ -1,0 +1,341 @@
+openapi: 3.0.3
+info:
+  title: FELAG Admin, Metrics, Audit & Moderation API
+  version: 0.7.0
+  description: Administrative endpoints for community KPIs, API latency observability, audit logs with CSV export, and moderation (restricted to role 'admin').
+paths:
+  /api/v1/admin/metrics/summary:
+    get:
+      summary: Get global community KPIs and system health summary
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Community KPIs and system telemetry summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminMetricsSummaryResponse'
+        '403':
+          description: Forbidden - requires role 'admin'
+
+  /api/v1/admin/metrics/api-latency:
+    get:
+      summary: Get latency percentiles (avg, p95, p99) and error rate per endpoint
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: API latency metrics per endpoint
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiLatencyMetricsResponse'
+        '403':
+          description: Forbidden - requires role 'admin'
+
+  /api/v1/admin/metrics/audit-logs:
+    get:
+      summary: Get paginated audit logs with search and module filters
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: module
+          in: query
+          schema:
+            type: string
+        - name: statusCode
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Paginated audit logs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLogsPaginatedResponse'
+        '403':
+          description: Forbidden - requires role 'admin'
+
+  /api/v1/admin/metrics/audit-logs/export:
+    get:
+      summary: Export audit logs to CSV
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: CSV file of audit logs
+          content:
+            text/csv:
+              schema:
+                type: string
+        '403':
+          description: Forbidden - requires role 'admin'
+
+  /api/v1/admin/moderation/reports:
+    get:
+      summary: Get list of pending reports (user & community)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of pending moderation reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModerationReportItem'
+        '403':
+          description: Forbidden - requires role 'admin'
+
+  /api/v1/admin/moderation/reports/{id}/resolve:
+    put:
+      summary: Resolve a moderation report
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolveReportRequest'
+      responses:
+        '200':
+          description: Report resolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '403':
+          description: Forbidden - requires role 'admin'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    AdminMetricsSummaryResponse:
+      type: object
+      required: [community, system]
+      properties:
+        community:
+          $ref: '#/components/schemas/CommunityKPIs'
+        system:
+          $ref: '#/components/schemas/SystemHealth'
+
+    CommunityKPIs:
+      type: object
+      required: [active_trips_count, total_trips_count, matches_count, affinity_town_count, affinity_region_count, affinity_country_count, celebration_cards_count, community_tips_count, total_useful_votes, top_destinations]
+      properties:
+        active_trips_count:
+          type: integer
+        total_trips_count:
+          type: integer
+        matches_count:
+          type: integer
+        affinity_town_count:
+          type: integer
+        affinity_region_count:
+          type: integer
+        affinity_country_count:
+          type: integer
+        celebration_cards_count:
+          type: integer
+        community_tips_count:
+          type: integer
+        total_useful_votes:
+          type: integer
+        top_destinations:
+          type: array
+          items:
+            $ref: '#/components/schemas/TopDestinationKPI'
+
+    TopDestinationKPI:
+      type: object
+      required: [name, country_name, active_felagis_count]
+      properties:
+        name:
+          type: string
+        country_name:
+          type: string
+        active_felagis_count:
+          type: integer
+
+    SystemHealth:
+      type: object
+      required: [uptime_seconds, memory_alloc_mb, num_goroutines, db_open_connections, db_in_use_connections, active_websockets]
+      properties:
+        uptime_seconds:
+          type: integer
+        memory_alloc_mb:
+          type: number
+        num_goroutines:
+          type: integer
+        db_open_connections:
+          type: integer
+        db_in_use_connections:
+          type: integer
+        active_websockets:
+          type: integer
+
+    ApiLatencyMetricsResponse:
+      type: object
+      required: [avg_latency_ms, p95_latency_ms, p99_latency_ms, total_requests, endpoints]
+      properties:
+        avg_latency_ms:
+          type: number
+        p95_latency_ms:
+          type: number
+        p99_latency_ms:
+          type: number
+        total_requests:
+          type: integer
+        endpoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/EndpointLatencyKPI'
+
+    EndpointLatencyKPI:
+      type: object
+      required: [method, path, requests_count, avg_duration_ms, p95_duration_ms, error_rate]
+      properties:
+        method:
+          type: string
+        path:
+          type: string
+        requests_count:
+          type: integer
+        avg_duration_ms:
+          type: number
+        p95_duration_ms:
+          type: number
+        error_rate:
+          type: number
+
+    AuditLogItem:
+      type: object
+      required: [id, action, module, endpoint, method, status_code, duration_ms, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        user_name:
+          type: string
+        user_email:
+          type: string
+        user_role:
+          type: string
+        action:
+          type: string
+        module:
+          type: string
+        endpoint:
+          type: string
+        method:
+          type: string
+        status_code:
+          type: integer
+        duration_ms:
+          type: integer
+        ip_address:
+          type: string
+        user_agent:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    AuditLogsPaginatedResponse:
+      type: object
+      required: [items, total, page, pageSize, totalPages]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditLogItem'
+        total:
+          type: integer
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalPages:
+          type: integer
+
+    ModerationReportItem:
+      type: object
+      required: [id, type, reporter_id, reporter_name, target_id, target_title, reason, status, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [user, recommendation]
+        reporter_id:
+          type: string
+          format: uuid
+        reporter_name:
+          type: string
+        target_id:
+          type: string
+          format: uuid
+        target_title:
+          type: string
+        reason:
+          type: string
+        details:
+          type: string
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    ResolveReportRequest:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [dismiss, delete_content, ban_user]
+        notes:
+          type: string
+
+    SuccessResponse:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string

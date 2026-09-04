@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FELAG Admin — Mètriques de Comunitat & Negoci</title>
+  <style>
+    :root {
+      --terracotta: #C85A32;
+      --terracotta-dark: #A0401E;
+      --sand-light: #F9F6F0;
+      --sand-medium: #FAF7F2;
+      --sand-dark: #E8E2D9;
+      --earth-brown: #2C221E;
+      --text-muted: #6B5E57;
+      --white: #FFFFFF;
+      --success: #2E7D32;
+      --info: #0288D1;
+      --warning: #ED6C02;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--sand-light); color: var(--earth-brown); }
+    header { background: var(--earth-brown); color: var(--white); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    .logo-admin { font-size: 1.3rem; font-weight: 800; display: flex; align-items: center; gap: 8px; color: #FFE082; }
+    .badge-admin { background: var(--terracotta); color: var(--white); font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; }
+    .user-info { font-size: 0.9rem; opacity: 0.9; }
+
+    .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+    
+    /* Tabs */
+    .admin-tabs { display: flex; gap: 8px; border-bottom: 2px solid var(--sand-dark); margin-bottom: 2rem; }
+    .tab { padding: 0.8rem 1.4rem; font-weight: 700; text-decoration: none; color: var(--text-muted); border-bottom: 3px solid transparent; margin-bottom: -2px; }
+    .tab.active { color: var(--terracotta); border-bottom-color: var(--terracotta); background: rgba(200,90,50,0.05); border-radius: 8px 8px 0 0; }
+
+    /* KPI Cards */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; margin-bottom: 2rem; }
+    .kpi-card { background: var(--white); border-radius: 16px; border: 1px solid var(--sand-dark); padding: 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+    .kpi-title { font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.5rem; display: flex; justify-content: space-between; }
+    .kpi-val { font-size: 2.2rem; font-weight: 800; color: var(--earth-brown); }
+    .kpi-sub { font-size: 0.8rem; margin-top: 0.4rem; color: var(--success); font-weight: 600; }
+
+    /* Layout Sections */
+    .section-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; }
+    .panel { background: var(--white); border-radius: 16px; border: 1px solid var(--sand-dark); padding: 1.5rem; }
+    .panel-title { font-size: 1.15rem; font-weight: 800; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; }
+
+    /* Affinity Bars */
+    .affinity-row { margin-bottom: 1rem; }
+    .affinity-header { display: flex; justify-content: space-between; font-size: 0.9rem; font-weight: 700; margin-bottom: 4px; }
+    .bar-bg { height: 12px; background: var(--sand-dark); border-radius: 6px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 6px; }
+    .fill-town { width: 35%; background: var(--terracotta); }
+    .fill-region { width: 45%; background: #E67E22; }
+    .fill-country { width: 20%; background: #F39C12; }
+
+    /* Top Destinations List */
+    .dest-rank-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--sand-medium); }
+    .dest-rank-item:last-child { border-bottom: none; }
+    .dest-rank-name { font-weight: 700; font-size: 0.95rem; }
+    .badge-felagis { background: #FFF3E0; color: #E65100; font-size: 0.75rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-admin">
+      <span>FELAG</span>
+      <span class="badge-admin">ADMIN CONSOLE</span>
+    </div>
+    <div class="user-info">
+      👤 Èric Zapater (Admin) • Terrassa
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Tabs -->
+    <div class="admin-tabs">
+      <a href="admin-dashboard-community.html" class="tab active">📊 Comunitat & Negoci</a>
+      <a href="admin-dashboard-api-health.html" class="tab">⚡ Rendiment API & Salut</a>
+      <a href="admin-dashboard-audit-logs.html" class="tab">📜 Registre d'Auditoria</a>
+      <a href="admin-dashboard-moderation.html" class="tab">🛡️ Moderació & Denúncies</a>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-title">✈️ Viatges Actius Ara <span style="color:var(--success);">● EN DIRECTE</span></div>
+        <div class="kpi-val">42</div>
+        <div class="kpi-sub">de 186 viatges totals registrats</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-title">🤝 Matches d'Afinitat</div>
+        <div class="kpi-val">128</div>
+        <div class="kpi-sub">+18 aquesta setmana</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-title">📸 Celebration Cards</div>
+        <div class="kpi-val">34</div>
+        <div class="kpi-sub">Trobades celebrades i compartides</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-title">💡 Consells de la Guia</div>
+        <div class="kpi-val">256</div>
+        <div class="kpi-sub">890 vots útils totals 👍</div>
+      </div>
+    </div>
+
+    <!-- Section Grid -->
+    <div class="section-grid">
+      <div class="panel">
+        <h2 class="panel-title">
+          <span>🎯 Distribució de Coincidències per Afinitat Territorial</span>
+          <span style="font-size:0.8rem; color:var(--text-muted);">128 matches totals</span>
+        </h2>
+
+        <div class="affinity-row">
+          <div class="affinity-header">
+            <span>🏘️ Mateix Poble / Ciutat (Terrassa, Sabadell, Vic...)</span>
+            <span>45 (35%)</span>
+          </div>
+          <div class="bar-bg"><div class="bar-fill fill-town"></div></div>
+        </div>
+
+        <div class="affinity-row">
+          <div class="affinity-header">
+            <span>🌄 Mateixa Comarca / Regió (Vallès Occidental, Osona...)</span>
+            <span>58 (45%)</span>
+          </div>
+          <div class="bar-bg"><div class="bar-fill fill-region"></div></div>
+        </div>
+
+        <div class="affinity-row">
+          <div class="affinity-header">
+            <span>🗺️ Mateix País / Terra (Catalunya, Illes Balears...)</span>
+            <span>25 (20%)</span>
+          </div>
+          <div class="bar-bg"><div class="bar-fill fill-country"></div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2 class="panel-title">📍 Destins amb més FELAGIS</h2>
+        <div class="dest-rank-item">
+          <span class="dest-rank-name">🇯🇵 Tòquio (Japó)</span>
+          <span class="badge-felagis">18 viatgers</span>
+        </div>
+        <div class="dest-rank-item">
+          <span class="dest-rank-name">🇯🇵 Kyoto (Japó)</span>
+          <span class="badge-felagis">11 viatgers</span>
+        </div>
+        <div class="dest-rank-item">
+          <span class="dest-rank-name">🇮🇹 Roma (Itàlia)</span>
+          <span class="badge-felagis">9 viatgers</span>
+        </div>
+        <div class="dest-rank-item">
+          <span class="dest-rank-name">🇮🇸 Reykjavík (Islàndia)</span>
+          <span class="badge-felagis">6 viatgers</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

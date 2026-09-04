@@ -79,6 +79,16 @@ func (h *Hub) run() {
 	}
 }
 
+func (h *Hub) GetTotalConnectionsCount() int {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	total := 0
+	for _, conns := range h.clients {
+		total += len(conns)
+	}
+	return total
+}
+
 func (h *Hub) IsUserOnline(userID string) bool {
 	h.mu.RLock()
 	defer h.mu.RUnlock()

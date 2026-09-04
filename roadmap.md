@@ -193,6 +193,18 @@ Definition of done:
 - When a trip reaches its end date, the user can complete the 3 wrap-up tasks (Celebration card, Feedback, Instagram report).
 - Any user can search and explore destinations independently of matches.
 
+# Phase 6.5 — Administration, Metrics, Audit & Moderation
+
+Goal: comprehensive administrative console with community KPIs, API performance observability, async audit logging with CSV export, and moderation.
+
+- [x] Inclusive Admin model (`role = 'admin'` with `RequireAdmin()` RBAC security)
+- [x] Asynchronous Gin `MetricsMiddleware` recording every request to `audit_logs`
+- [x] Community & Business KPIs (active trips, affinity breakdown by town/region/country, meetups, top destinations)
+- [x] API latency metrics (p95, p99, average, error rate per endpoint) & server health (RAM, goroutines, DB pool, WebSockets)
+- [x] Paginated audit logs with search, module/status filters, and CSV export
+- [x] Unified moderation queue for user and community reports with resolution actions
+- [x] Responsive web admin console (`/admin`) with 4 interactive tabs and protected routing
+
 # Phase 7 — Agencies & Marketplace
 
 Goal: allow travel agencies to offer experiences to FELAG users.

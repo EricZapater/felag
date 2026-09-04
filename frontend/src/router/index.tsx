@@ -19,6 +19,7 @@ import TripGalleryView from '@/modules/posttrip/views/TripGalleryView';
 import CelebrationCardGeneratorView from '@/modules/posttrip/views/CelebrationCardGeneratorView';
 import TripWrapupView from '@/modules/posttrip/views/TripWrapupView';
 import ExploreDestinationsView from '@/modules/explore/views/ExploreDestinationsView';
+import AdminDashboardView from '@/modules/admin/views/AdminDashboardView';
 import { useAuthStore } from '@/modules/auth/store';
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
@@ -30,6 +31,24 @@ function ProtectedRoute({ children }: { children: JSX.Element }) {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
+
+function AdminProtectedRoute({ children }: { children: JSX.Element }) {
+  const { isAuthenticated, user, checkAuth } = useAuthStore();
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user && user.role !== 'admin') {
+    return <Navigate to="/" replace />;
   }
 
   return children;
@@ -175,6 +194,14 @@ export default function AppRouter() {
             <ProtectedRoute>
               <OriginSelectorView />
             </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <AdminProtectedRoute>
+              <AdminDashboardView />
+            </AdminProtectedRoute>
           }
         />
         <Route path="*" element={<Navigate to="/trips" replace />} />

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FELAG Admin — Registre d'Auditoria (Audit Log)</title>
+  <style>
+    :root {
+      --terracotta: #C85A32;
+      --sand-light: #F9F6F0;
+      --sand-medium: #FAF7F2;
+      --sand-dark: #E8E2D9;
+      --earth-brown: #2C221E;
+      --text-muted: #6B5E57;
+      --white: #FFFFFF;
+      --success: #2E7D32;
+      --error: #D32F2F;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--sand-light); color: var(--earth-brown); }
+    header { background: var(--earth-brown); color: var(--white); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    .logo-admin { font-size: 1.3rem; font-weight: 800; display: flex; align-items: center; gap: 8px; color: #FFE082; }
+    .badge-admin { background: var(--terracotta); color: var(--white); font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; }
+
+    .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+    .admin-tabs { display: flex; gap: 8px; border-bottom: 2px solid var(--sand-dark); margin-bottom: 2rem; }
+    .tab { padding: 0.8rem 1.4rem; font-weight: 700; text-decoration: none; color: var(--text-muted); border-bottom: 3px solid transparent; margin-bottom: -2px; }
+    .tab.active { color: var(--terracotta); border-bottom-color: var(--terracotta); background: rgba(200,90,50,0.05); border-radius: 8px 8px 0 0; }
+
+    .panel { background: var(--white); border-radius: 16px; border: 1px solid var(--sand-dark); padding: 1.5rem; }
+    .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 12px; }
+    .filter-group { display: flex; gap: 8px; align-items: center; }
+    .input-search { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--sand-dark); font-size: 0.9rem; width: 220px; }
+    .select-filter { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--sand-dark); font-size: 0.9rem; background: var(--white); }
+    .btn-export { background: var(--terracotta); color: var(--white); border: none; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th { padding: 10px 12px; background: var(--sand-medium); font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--sand-dark); }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--sand-medium); font-size: 0.85rem; }
+    .badge-status { font-size: 0.75rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; }
+    .status-200 { background: #E8F5E9; color: var(--success); }
+    .status-401 { background: #FFEBEE; color: var(--error); }
+    .badge-mod { background: #EDE7F6; color: #512DA8; font-size: 0.75rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-admin">
+      <span>FELAG</span>
+      <span class="badge-admin">ADMIN CONSOLE</span>
+    </div>
+    <div>👤 Èric Zapater (Admin)</div>
+  </header>
+
+  <div class="container">
+    <div class="admin-tabs">
+      <a href="admin-dashboard-community.html" class="tab">📊 Comunitat & Negoci</a>
+      <a href="admin-dashboard-api-health.html" class="tab">⚡ Rendiment API & Salut</a>
+      <a href="admin-dashboard-audit-logs.html" class="tab active">📜 Registre d'Auditoria</a>
+      <a href="admin-dashboard-moderation.html" class="tab">🛡️ Moderació & Denúncies</a>
+    </div>
+
+    <div class="panel">
+      <div class="toolbar">
+        <div class="filter-group">
+          <input type="text" class="input-search" placeholder="🔍 Cerca per usuari o ruta...">
+          <select class="select-filter">
+            <option value="">Tots els mòduls</option>
+            <option value="trips">Viatges (trips)</option>
+            <option value="chat">Xat (chat)</option>
+            <option value="matching">Matching</option>
+            <option value="community">Comunitat</option>
+            <option value="auth">Autenticació</option>
+          </select>
+        </div>
+        <button class="btn-export">📥 Descarregar CSV d'Auditoria</button>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Data & Hora</th>
+            <th>Usuari</th>
+            <th>Mòdul</th>
+            <th>Acció / Endpoint</th>
+            <th>Estat</th>
+            <th>Temps</th>
+            <th>IP</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>04/09/2026 09:56:12</td>
+            <td><strong>Èric Zapater</strong> (Terrassa)</td>
+            <td><span class="badge-mod">trips</span></td>
+            <td><code>POST /api/v1/trips</code></td>
+            <td><span class="badge-status status-200">201 Created</span></td>
+            <td>18 ms</td>
+            <td>83.45.120.14</td>
+          </tr>
+          <tr>
+            <td>04/09/2026 09:55:40</td>
+            <td><strong>Marc Soler</strong> (Sabadell)</td>
+            <td><span class="badge-mod">chat</span></td>
+            <td><code>POST /api/v1/chat/messages</code></td>
+            <td><span class="badge-status status-200">200 OK</span></td>
+            <td>12 ms</td>
+            <td>88.12.94.201</td>
+          </tr>
+          <tr>
+            <td>04/09/2026 09:54:18</td>
+            <td><strong>Laia Puig</strong> (Girona)</td>
+            <td><span class="badge-mod">community</span></td>
+            <td><code>POST /api/v1/destinations/84/recommendations</code></td>
+            <td><span class="badge-status status-200">201 Created</span></td>
+            <td>24 ms</td>
+            <td>81.184.22.65</td>
+          </tr>
+          <tr>
+            <td>04/09/2026 09:52:05</td>
+            <td><em>Anònim</em></td>
+            <td><span class="badge-mod">auth</span></td>
+            <td><code>POST /api/v1/auth/login</code></td>
+            <td><span class="badge-status status-401">401 Unauthorized</span></td>
+            <td>8 ms</td>
+            <td>194.224.9.11</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</body>
+</html>

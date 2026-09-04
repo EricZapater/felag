@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FELAG Admin — Rendiment API & Salut</title>
+  <style>
+    :root {
+      --terracotta: #C85A32;
+      --sand-light: #F9F6F0;
+      --sand-medium: #FAF7F2;
+      --sand-dark: #E8E2D9;
+      --earth-brown: #2C221E;
+      --text-muted: #6B5E57;
+      --white: #FFFFFF;
+      --success: #2E7D32;
+      --info: #0288D1;
+      --warning: #ED6C02;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--sand-light); color: var(--earth-brown); }
+    header { background: var(--earth-brown); color: var(--white); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    .logo-admin { font-size: 1.3rem; font-weight: 800; display: flex; align-items: center; gap: 8px; color: #FFE082; }
+    .badge-admin { background: var(--terracotta); color: var(--white); font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; }
+
+    .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+    .admin-tabs { display: flex; gap: 8px; border-bottom: 2px solid var(--sand-dark); margin-bottom: 2rem; }
+    .tab { padding: 0.8rem 1.4rem; font-weight: 700; text-decoration: none; color: var(--text-muted); border-bottom: 3px solid transparent; margin-bottom: -2px; }
+    .tab.active { color: var(--terracotta); border-bottom-color: var(--terracotta); background: rgba(200,90,50,0.05); border-radius: 8px 8px 0 0; }
+
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 2rem; }
+    .kpi-card { background: var(--white); border-radius: 16px; border: 1px solid var(--sand-dark); padding: 1.25rem; }
+    .kpi-title { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.5rem; }
+    .kpi-val { font-size: 2rem; font-weight: 800; color: var(--earth-brown); }
+    .kpi-sub { font-size: 0.8rem; margin-top: 0.4rem; color: var(--success); font-weight: 600; }
+
+    .panel { background: var(--white); border-radius: 16px; border: 1px solid var(--sand-dark); padding: 1.5rem; margin-bottom: 1.5rem; }
+    .panel-title { font-size: 1.15rem; font-weight: 800; margin-bottom: 1rem; }
+
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th { padding: 10px 12px; background: var(--sand-medium); font-size: 0.8rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--sand-dark); }
+    td { padding: 12px; border-bottom: 1px solid var(--sand-medium); font-size: 0.9rem; }
+    .badge-method { font-size: 0.75rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; }
+    .badge-get { background: #E3F2FD; color: #1565C0; }
+    .badge-post { background: #E8F5E9; color: #2E7D32; }
+    .badge-put { background: #FFF3E0; color: #E65100; }
+    .badge-fast { color: var(--success); font-weight: 700; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-admin">
+      <span>FELAG</span>
+      <span class="badge-admin">ADMIN CONSOLE</span>
+    </div>
+    <div>👤 Èric Zapater (Admin)</div>
+  </header>
+
+  <div class="container">
+    <div class="admin-tabs">
+      <a href="admin-dashboard-community.html" class="tab">📊 Comunitat & Negoci</a>
+      <a href="admin-dashboard-api-health.html" class="tab active">⚡ Rendiment API & Salut</a>
+      <a href="admin-dashboard-audit-logs.html" class="tab">📜 Registre d'Auditoria</a>
+      <a href="admin-dashboard-moderation.html" class="tab">🛡️ Moderació & Denúncies</a>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-title">⏱️ Latència Mitjana</div>
+        <div class="kpi-val">18 ms</div>
+        <div class="kpi-sub">p95: 42 ms • p99: 88 ms</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-title">💬 WebSockets Actius</div>
+        <div class="kpi-val">24</div>
+        <div class="kpi-sub">Connexions de xat en directe</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-title">🐘 PostgreSQL Pool</div>
+        <div class="kpi-val">8 / 25</div>
+        <div class="kpi-sub">Connexions en ús • 0 esperes</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-title">🖥️ Memòria RAM & Go</div>
+        <div class="kpi-val">38 MB</div>
+        <div class="kpi-sub">54 goroutines • Uptime: 4d 12h</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 class="panel-title">⚡ Rendiment per Endpoint de l'API</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Mètode</th>
+            <th>Ruta</th>
+            <th>Peticions</th>
+            <th>Mitjana</th>
+            <th>p95</th>
+            <th>Taxa d'Error</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge-method badge-get">GET</span></td>
+            <td><code>/api/v1/trips</code></td>
+            <td>1,420</td>
+            <td class="badge-fast">12 ms</td>
+            <td>28 ms</td>
+            <td>0.0%</td>
+          </tr>
+          <tr>
+            <td><span class="badge-method badge-get">GET</span></td>
+            <td><code>/api/v1/destinations/:id</code></td>
+            <td>980</td>
+            <td class="badge-fast">15 ms</td>
+            <td>35 ms</td>
+            <td>0.1%</td>
+          </tr>
+          <tr>
+            <td><span class="badge-method badge-post">POST</span></td>
+            <td><code>/api/v1/chat/messages</code></td>
+            <td>845</td>
+            <td class="badge-fast">22 ms</td>
+            <td>48 ms</td>
+            <td>0.0%</td>
+          </tr>
+          <tr>
+            <td><span class="badge-method badge-get">GET</span></td>
+            <td><code>/api/v1/trips/:id/matches</code></td>
+            <td>612</td>
+            <td class="badge-fast">19 ms</td>
+            <td>41 ms</td>
+            <td>0.0%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</body>
+</html>

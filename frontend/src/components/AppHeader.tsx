@@ -8,7 +8,7 @@ import { useChatStore } from '@/modules/chat/store';
 export default function AppHeader() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout, isAuthenticated } = useAuthStore();
+  const { logout, isAuthenticated, user } = useAuthStore();
   const { unreadCount, fetchNotifications } = useNotificationStore();
   const { conversations, fetchConversations } = useChatStore();
 
@@ -30,6 +30,7 @@ export default function AppHeader() {
   const isChatsActive = location.pathname.startsWith('/chats');
   const isNotificationsActive = location.pathname.startsWith('/notifications');
   const isProfileActive = location.pathname.startsWith('/profile') || location.pathname.startsWith('/origin');
+  const isAdminActive = location.pathname.startsWith('/admin');
 
   const chatUnreadCount = conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
 
@@ -182,6 +183,22 @@ export default function AppHeader() {
           >
             Perfil
           </Typography>
+
+          {user?.role === 'admin' && (
+            <Typography
+              component={RouterLink}
+              to="/admin"
+              sx={{
+                color: isAdminActive ? '#C85A32' : '#786C65',
+                textDecoration: 'none',
+                fontWeight: isAdminActive ? 700 : 500,
+                fontSize: 15,
+                '&:hover': { color: '#C85A32' },
+              }}
+            >
+              ⚙️ Administració
+            </Typography>
+          )}
         </Box>
       </Box>
 

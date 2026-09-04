@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FELAG Admin — Moderació & Denúncies</title>
+  <style>
+    :root {
+      --terracotta: #C85A32;
+      --sand-light: #F9F6F0;
+      --sand-medium: #FAF7F2;
+      --sand-dark: #E8E2D9;
+      --earth-brown: #2C221E;
+      --text-muted: #6B5E57;
+      --white: #FFFFFF;
+      --success: #2E7D32;
+      --error: #D32F2F;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--sand-light); color: var(--earth-brown); }
+    header { background: var(--earth-brown); color: var(--white); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    .logo-admin { font-size: 1.3rem; font-weight: 800; display: flex; align-items: center; gap: 8px; color: #FFE082; }
+    .badge-admin { background: var(--terracotta); color: var(--white); font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; }
+
+    .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+    .admin-tabs { display: flex; gap: 8px; border-bottom: 2px solid var(--sand-dark); margin-bottom: 2rem; }
+    .tab { padding: 0.8rem 1.4rem; font-weight: 700; text-decoration: none; color: var(--text-muted); border-bottom: 3px solid transparent; margin-bottom: -2px; }
+    .tab.active { color: var(--terracotta); border-bottom-color: var(--terracotta); background: rgba(200,90,50,0.05); border-radius: 8px 8px 0 0; }
+
+    .panel { background: var(--white); border-radius: 16px; border: 1px solid var(--sand-dark); padding: 1.5rem; }
+    .report-card { background: var(--sand-medium); border-radius: 12px; border: 1px solid var(--sand-dark); padding: 1rem; margin-bottom: 1rem; }
+    .report-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+    .badge-reason { background: #FFEBEE; color: var(--error); font-size: 0.75rem; font-weight: 800; padding: 2px 8px; border-radius: 6px; }
+    .report-meta { font-size: 0.8rem; color: var(--text-muted); }
+    .report-body { font-size: 0.9rem; margin-bottom: 0.75rem; line-height: 1.4; }
+    .report-actions { display: flex; gap: 8px; }
+    .btn-action { padding: 6px 14px; border-radius: 8px; font-weight: 700; font-size: 0.85rem; border: none; cursor: pointer; }
+    .btn-ignore { background: var(--sand-dark); color: var(--earth-brown); }
+    .btn-delete { background: var(--error); color: var(--white); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-admin">
+      <span>FELAG</span>
+      <span class="badge-admin">ADMIN CONSOLE</span>
+    </div>
+    <div>👤 Èric Zapater (Admin)</div>
+  </header>
+
+  <div class="container">
+    <div class="admin-tabs">
+      <a href="admin-dashboard-community.html" class="tab">📊 Comunitat & Negoci</a>
+      <a href="admin-dashboard-api-health.html" class="tab">⚡ Rendiment API & Salut</a>
+      <a href="admin-dashboard-audit-logs.html" class="tab">📜 Registre d'Auditoria</a>
+      <a href="admin-dashboard-moderation.html" class="tab active">🛡️ Moderació & Denúncies</a>
+    </div>
+
+    <div class="panel">
+      <h2 style="font-size:1.15rem; font-weight:800; margin-bottom:1rem;">Safata de Denúncies Pendents (1)</h2>
+
+      <div class="report-card">
+        <div class="report-header">
+          <span class="badge-reason">🚨 SPAM / CONTINGUT INAPROPIAT</span>
+          <span class="report-meta">Denunciat per Núria Font • Fa 2 hores</span>
+        </div>
+        <p class="report-body">
+          <strong>Element denunciat:</strong> Recomanació <em>"Oferta de criptomonedes al centre de Tòquio"</em> a la pàgina de Tòquio.<br>
+          <strong>Motiu donat pel denunciant:</strong> "És un anunci comercial no relacionat amb viatges ni consells d'origen."
+        </p>
+        <div class="report-actions">
+          <button class="btn-action btn-delete">🗑️ Eliminar contingut & Sancionar</button>
+          <button class="btn-action btn-ignore">✓ Ignorar denúncia</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

@@ -14,6 +14,7 @@ import (
 type JWTClaims struct {
 	UserID string `json:"user_id"`
 	Email  string `json:"email"`
+	Role   string `json:"role,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -25,14 +26,20 @@ func GetJWTSecret() []byte {
 	return []byte(secret)
 }
 
-func GenerateTokens(userID, email string) (accessToken string, refreshToken string, expiresIn int64, err error) {
+func GenerateTokens(userID, email string, userRole ...string) (accessToken string, refreshToken string, expiresIn int64, err error) {
 	secret := GetJWTSecret()
 	expiresIn = 3600 // 1 hour
+
+	role := "user"
+	if len(userRole) > 0 && userRole[0] != "" {
+		role = userRole[0]
+	}
 
 	// Access Token
 	accessClaims := JWTClaims{
 		UserID: userID,
 		Email:  email,
+		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -48,6 +55,7 @@ func GenerateTokens(userID, email string) (accessToken string, refreshToken stri
 	refreshClaims := JWTClaims{
 		UserID: userID,
 		Email:  email,
+		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(30 * 24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -96,6 +104,35 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		c.Set("user_id", claims.UserID)
 		c.Set("user_email", claims.Email)
+		role := claims.Role
+		if role == "" {
+			role = "user"
+		}
+		c.Set("user_role", role)
+		c.Next()
+	}
+}
+
+// RequireAuth is an alias for AuthMiddleware
+func RequireAuth() gin.HandlerFunc {
+	return AuthMiddleware()
+}
+
+// RequireAdmin verifies that the authenticated user has the 'admin' role
+func RequireAdmin() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		roleVal, exists := c.Get("user_role")
+		if !exists {
+			ErrorResponse(c, http.StatusForbidden, "FORBIDDEN", "Forbidden: admin access required")
+			c.Abort()
+			return
+		}
+		roleStr, ok := roleVal.(string)
+		if !ok || roleStr != "admin" {
+			ErrorResponse(c, http.StatusForbidden, "FORBIDDEN", "Forbidden: admin access required")
+			c.Abort()
+			return
+		}
 		c.Next()
 	}
 }
@@ -117,6 +154,11 @@ func OptionalAuthMiddleware() gin.HandlerFunc {
 				if err == nil && token.Valid {
 					c.Set("user_id", claims.UserID)
 					c.Set("user_email", claims.Email)
+					role := claims.Role
+					if role == "" {
+						role = "user"
+					}
+					c.Set("user_role", role)
 				}
 			}
 		}
