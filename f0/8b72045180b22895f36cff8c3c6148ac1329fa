@@ -1,0 +1,20 @@
+backend/internal/community/repository.go
+  h_42175f19913982 42-43,47,61-65,109,128-132
+backend/internal/explore/repository.go
+  h_42175f19913982 129-139
+frontend/src/components/AppHeader.tsx
+  h_42175f19913982 1-18,31-41,50,63-71,79,85-104,109,111-113,116-144,147-162,164-173,176-178,180-195,197-206,209-211,213-226,228-233,236-280,283-288,291-295,297-300,303-307,310-313,316-323,326-335
+frontend/src/modules/profile/views/ProfileView.tsx
+  h_42175f19913982 128,130,133,145-151
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "f08b72045180b22895f36cff8c3c6148ac1329fa",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
