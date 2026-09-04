@@ -152,10 +152,17 @@ export default function TripDetailView() {
           ‹ Tornar a la llista de viatges
         </Button>
 
-        {/* Active Trip Hub Card if this trip is active */}
-        {activeHub && activeHub.has_active_trip && activeHub.trip_id === currentTrip.id && (
-          <ActiveTripHubCard hubData={activeHub} />
-        )}
+        {/* Hub d'accions del viatge (Cards) */}
+        <ActiveTripHubCard
+          hubData={activeHub && activeHub.trip_id === currentTrip.id ? activeHub : undefined}
+          tripId={currentTrip.id}
+          tripTitle={currentTrip.title}
+          destinationName={sortedStages[0]?.destination_name || 'Viatge'}
+          countryFlag={sortedStages[0]?.country_code ? '✈️' : '🌍'}
+          isFinalDayOrPast={currentTrip.end_date <= new Date().toISOString().split('T')[0] || currentTrip.status === 'completed'}
+          photosCount={activeHub && activeHub.trip_id === currentTrip.id ? activeHub.photos_count : 0}
+          activeFelagisCount={activeHub && activeHub.trip_id === currentTrip.id ? activeHub.active_felagis_count : 0}
+        />
 
         <Card
           sx={{
