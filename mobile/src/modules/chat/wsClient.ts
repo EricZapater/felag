@@ -6,7 +6,7 @@ type ConnectionStatusListener = (connected: boolean) => void;
 class WebSocketClient {
   private socket: WebSocket | null = null;
   private token: string | null = null;
-  private url: string = 'ws://localhost:8080/api/v1/ws';
+  private url: string = process.env.EXPO_PUBLIC_WS_URL || 'wss://api.felag.app/api/v1/ws';
   private reconnectAttempts: number = 0;
   private maxReconnectAttempts: number = 10;
   private reconnectTimeout: any = null;
