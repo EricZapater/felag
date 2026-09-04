@@ -1,0 +1,18 @@
+mobile/app.json
+  h_42175f19913982 6,21,29-31
+mobile/src/api/client.ts
+  h_42175f19913982 3-4,6-7,24,27-47
+mobile/src/modules/chat/wsClient.ts
+  h_42175f19913982 9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "559339d1ffc0072fbc34174419e30f1003c8f161",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
