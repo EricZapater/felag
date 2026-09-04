@@ -148,6 +148,13 @@ func main() {
 			originsGroup.GET("/countries", profileHandler.GetCountries)
 			originsGroup.GET("/countries/:country_id/regions", profileHandler.GetRegionsByCountry)
 			originsGroup.GET("/regions/:region_id/towns", profileHandler.GetTownsByRegion)
+			originsGroup.GET("/towns", profileHandler.SearchTowns)
+		}
+
+		// Geo public routes
+		geoGroup := v1.Group("/geo")
+		{
+			geoGroup.GET("/towns", profileHandler.SearchTowns)
 		}
 
 		// Destinations public / optional auth routes

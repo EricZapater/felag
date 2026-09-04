@@ -24,6 +24,7 @@ type Service interface {
 	GetCountries() ([]Country, error)
 	GetRegionsByCountry(countryID string) ([]Region, error)
 	GetTownsByRegion(regionID string) ([]Town, error)
+	SearchTowns(q string, limit int) ([]TownSearchResult, error)
 	SetModerationService(mod moderationChecker)
 }
 
@@ -156,4 +157,8 @@ func (s *service) GetRegionsByCountry(countryID string) ([]Region, error) {
 
 func (s *service) GetTownsByRegion(regionID string) ([]Town, error) {
 	return s.repo.GetTownsByRegion(regionID)
+}
+
+func (s *service) SearchTowns(q string, limit int) ([]TownSearchResult, error) {
+	return s.repo.SearchTowns(q, limit)
 }

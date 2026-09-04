@@ -42,32 +42,79 @@ func (r *repository) SearchDestinations(q string, limit int) ([]DestinationSumma
 	trimmedQuery := strings.TrimSpace(q)
 	queryPattern := "%" + trimmedQuery + "%"
 	var results []DestinationSummary
+	var err error
 
 	// 1. Search towns
-	// Quan no hi ha cerca (q == ""), només mostrem destinacions amb recomanacions o viatgers actius
-	townQuery := `
-		SELECT t.id, t.name, r.name AS region_name, c.name AS country_name, c.code AS country_code,
-		       COALESCE((SELECT COUNT(*) FROM destination_recommendations dr WHERE dr.town_id = t.id), 0) AS recommendations_count,
-		       COALESCE((
-		           SELECT COUNT(DISTINCT tr.user_id)
-		           FROM trips tr
-		           JOIN trip_stages ts ON ts.trip_id = tr.id
-		           WHERE CURRENT_DATE BETWEEN tr.start_date AND tr.end_date
-		             AND (ts.town_id = t.id OR ts.destination_name = t.name)
-		       ), 0) AS active_felagis_count
-		FROM towns t
-		JOIN regions r ON t.region_id = r.id
-		JOIN countries c ON r.country_id = c.id
-		WHERE ($1 != '%%' AND (t.name ILIKE $1 OR r.name ILIKE $1 OR c.name ILIKE $1))
-		   OR ($1 = '%%' AND (
-		       (SELECT COUNT(*) FROM destination_recommendations dr WHERE dr.town_id = t.id) > 0
-		       OR (SELECT COUNT(DISTINCT tr.user_id) FROM trips tr JOIN trip_stages ts ON ts.trip_id = tr.id WHERE CURRENT_DATE BETWEEN tr.start_date AND tr.end_date AND (ts.town_id = t.id OR ts.destination_name = t.name)) > 0
-		   ))
-		ORDER BY recommendations_count DESC, active_felagis_count DESC, t.name ASC
-		LIMIT $2
-	`
+	var townQuery string
+	var rows *sql.Rows
 
-	rows, err := r.db.Query(townQuery, queryPattern, limit)
+	if trimmedQuery != "" {
+		townQuery = `
+			WITH matched_towns AS (
+				SELECT t.id, t.name, r.name AS region_name, c.name AS country_name, c.code AS country_code,
+				       ROW_NUMBER() OVER (
+				           PARTITION BY LOWER(t.name), r.name, c.code 
+				           ORDER BY 
+				               CASE 
+				                   WHEN LOWER(t.name) = LOWER($2) THEN 1
+				                   WHEN LOWER(t.name) LIKE LOWER($2) || '%' THEN 2
+				                   WHEN LOWER(r.name) = LOWER($2) THEN 3
+				                   ELSE 4
+				               END, t.id
+				       ) as rn,
+				       CASE 
+				           WHEN LOWER(t.name) = LOWER($2) THEN 1
+				           WHEN LOWER(t.name) LIKE LOWER($2) || '%' THEN 2
+				           WHEN LOWER(r.name) = LOWER($2) THEN 3
+				           ELSE 4
+				       END as rank_score
+				FROM towns t
+				JOIN regions r ON t.region_id = r.id
+				JOIN countries c ON r.country_id = c.id
+				WHERE t.name ILIKE $1 OR r.name ILIKE $1 OR c.name ILIKE $1
+				LIMIT 100
+			),
+			deduped AS (
+				SELECT id, name, region_name, country_name, country_code, rank_score
+				FROM matched_towns
+				WHERE rn = 1
+				ORDER BY rank_score ASC, name ASC
+				LIMIT $3
+			)
+			SELECT d.id, d.name, d.region_name, d.country_name, d.country_code,
+			       COALESCE((SELECT COUNT(*) FROM destination_recommendations dr WHERE dr.town_id = d.id), 0) AS recommendations_count,
+			       COALESCE((
+			           SELECT COUNT(DISTINCT tr.user_id)
+			           FROM trips tr
+			           JOIN trip_stages ts ON ts.trip_id = tr.id
+			           WHERE CURRENT_DATE BETWEEN tr.start_date AND tr.end_date
+			             AND (ts.town_id = d.id OR ts.destination_name = d.name)
+			       ), 0) AS active_felagis_count
+			FROM deduped d
+			ORDER BY recommendations_count DESC, active_felagis_count DESC, d.rank_score ASC, d.name ASC
+		`
+		rows, err = r.db.Query(townQuery, queryPattern, trimmedQuery, limit)
+	} else {
+		townQuery = `
+			SELECT t.id, t.name, r.name AS region_name, c.name AS country_name, c.code AS country_code,
+			       COALESCE((SELECT COUNT(*) FROM destination_recommendations dr WHERE dr.town_id = t.id), 0) AS recommendations_count,
+			       COALESCE((
+			           SELECT COUNT(DISTINCT tr.user_id)
+			           FROM trips tr
+			           JOIN trip_stages ts ON ts.trip_id = tr.id
+			           WHERE CURRENT_DATE BETWEEN tr.start_date AND tr.end_date
+			             AND (ts.town_id = t.id OR ts.destination_name = t.name)
+			       ), 0) AS active_felagis_count
+			FROM towns t
+			JOIN regions r ON t.region_id = r.id
+			JOIN countries c ON r.country_id = c.id
+			WHERE (SELECT COUNT(*) FROM destination_recommendations dr WHERE dr.town_id = t.id) > 0
+			   OR (SELECT COUNT(DISTINCT tr.user_id) FROM trips tr JOIN trip_stages ts ON ts.trip_id = tr.id WHERE CURRENT_DATE BETWEEN tr.start_date AND tr.end_date AND (ts.town_id = t.id OR ts.destination_name = t.name)) > 0
+			ORDER BY recommendations_count DESC, active_felagis_count DESC, t.name ASC
+			LIMIT $1
+		`
+		rows, err = r.db.Query(townQuery, limit)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("error searching towns: %w", err)
 	}
@@ -106,35 +153,71 @@ func (r *repository) SearchDestinations(q string, limit int) ([]DestinationSumma
 		return nil, err
 	}
 
-	// 2. Search countries (només quan es cerca expressament o si tenen activitat)
-	countryQuery := `
-		SELECT c.code, c.name, c.code,
-		       COALESCE((
-		           SELECT COUNT(*)
-		           FROM destination_recommendations dr
-		           LEFT JOIN towns t ON dr.town_id = t.id
-		           LEFT JOIN regions r ON t.region_id = r.id
-		           LEFT JOIN countries dc ON r.country_id = dc.id
-		           WHERE dr.country_code = c.code OR dc.code = c.code
-		       ), 0) AS recommendations_count,
-		       COALESCE((
-		           SELECT COUNT(DISTINCT tr.user_id)
-		           FROM trips tr
-		           JOIN trip_stages ts ON ts.trip_id = tr.id
-		           WHERE CURRENT_DATE BETWEEN tr.start_date AND tr.end_date
-		             AND (ts.country_code = c.code OR ts.destination_name = c.name)
-		       ), 0) AS active_felagis_count
-		FROM countries c
-		WHERE ($1 != '%%' AND (c.name ILIKE $1 OR c.code ILIKE $1))
-		   OR ($1 = '%%' AND (
-		       (SELECT COUNT(*) FROM destination_recommendations dr WHERE dr.country_code = c.code) > 0
-		       OR (SELECT COUNT(DISTINCT tr.user_id) FROM trips tr JOIN trip_stages ts ON ts.trip_id = tr.id WHERE CURRENT_DATE BETWEEN tr.start_date AND tr.end_date AND ts.country_code = c.code) > 0
-		   ))
-		ORDER BY recommendations_count DESC, active_felagis_count DESC, c.name ASC
-		LIMIT $2
-	`
+	// 2. Search countries
+	var countryQuery string
+	var cRows *sql.Rows
 
-	cRows, err := r.db.Query(countryQuery, queryPattern, limit)
+	if trimmedQuery != "" {
+		countryQuery = `
+			WITH matched_countries AS (
+				SELECT c.id, c.name, c.code,
+				       CASE 
+				           WHEN LOWER(c.code) = LOWER($2) THEN 1
+				           WHEN LOWER(c.name) = LOWER($2) THEN 2
+				           WHEN LOWER(c.name) LIKE LOWER($2) || '%' THEN 3
+				           ELSE 4
+				       END as rank_score
+				FROM countries c
+				WHERE c.name ILIKE $1 OR c.code ILIKE $1
+				ORDER BY rank_score ASC, c.name ASC
+				LIMIT $3
+			)
+			SELECT mc.code, mc.name, mc.code,
+			       COALESCE((
+			           SELECT COUNT(*)
+			           FROM destination_recommendations dr
+			           LEFT JOIN towns t ON dr.town_id = t.id
+			           LEFT JOIN regions r ON t.region_id = r.id
+			           LEFT JOIN countries dc ON r.country_id = dc.id
+			           WHERE dr.country_code = mc.code OR dc.code = mc.code
+			       ), 0) AS recommendations_count,
+			       COALESCE((
+			           SELECT COUNT(DISTINCT tr.user_id)
+			           FROM trips tr
+			           JOIN trip_stages ts ON ts.trip_id = tr.id
+			           WHERE CURRENT_DATE BETWEEN tr.start_date AND tr.end_date
+			             AND (ts.country_code = mc.code OR ts.destination_name = mc.name)
+			       ), 0) AS active_felagis_count
+			FROM matched_countries mc
+			ORDER BY recommendations_count DESC, active_felagis_count DESC, mc.rank_score ASC, mc.name ASC
+		`
+		cRows, err = r.db.Query(countryQuery, queryPattern, trimmedQuery, limit)
+	} else {
+		countryQuery = `
+			SELECT c.code, c.name, c.code,
+			       COALESCE((
+			           SELECT COUNT(*)
+			           FROM destination_recommendations dr
+			           LEFT JOIN towns t ON dr.town_id = t.id
+			           LEFT JOIN regions r ON t.region_id = r.id
+			           LEFT JOIN countries dc ON r.country_id = dc.id
+			           WHERE dr.country_code = c.code OR dc.code = c.code
+			       ), 0) AS recommendations_count,
+			       COALESCE((
+			           SELECT COUNT(DISTINCT tr.user_id)
+			           FROM trips tr
+			           JOIN trip_stages ts ON ts.trip_id = tr.id
+			           WHERE CURRENT_DATE BETWEEN tr.start_date AND tr.end_date
+			             AND (ts.country_code = c.code OR ts.destination_name = c.name)
+			       ), 0) AS active_felagis_count
+			FROM countries c
+			WHERE (SELECT COUNT(*) FROM destination_recommendations dr WHERE dr.country_code = c.code) > 0
+			   OR (SELECT COUNT(DISTINCT tr.user_id) FROM trips tr JOIN trip_stages ts ON ts.trip_id = tr.id WHERE CURRENT_DATE BETWEEN tr.start_date AND tr.end_date AND ts.country_code = c.code) > 0
+			ORDER BY recommendations_count DESC, active_felagis_count DESC, c.name ASC
+			LIMIT $1
+		`
+		cRows, err = r.db.Query(countryQuery, limit)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("error searching countries: %w", err)
 	}

@@ -25,13 +25,13 @@ func NewRepository(db *sql.DB) Repository {
 
 func (r *repository) CreateUser(email, passwordHash, name string) (*User, error) {
 	query := `
-		INSERT INTO users (email, password_hash, name, created_at, updated_at)
-		VALUES ($1, $2, $3, NOW(), NOW())
-		RETURNING id, email, name, phone_number, avatar_url, bio, town_id, created_at, updated_at
+		INSERT INTO users (email, password_hash, name, role, created_at, updated_at)
+		VALUES ($1, $2, $3, 'user', NOW(), NOW())
+		RETURNING id, email, name, role, phone_number, avatar_url, bio, town_id, created_at, updated_at
 	`
 	u := &User{}
 	err := r.db.QueryRow(query, email, passwordHash, name).Scan(
-		&u.ID, &u.Email, &u.Name, &u.PhoneNumber, &u.AvatarURL, &u.Bio, &u.TownID, &u.CreatedAt, &u.UpdatedAt,
+		&u.ID, &u.Email, &u.Name, &u.Role, &u.PhoneNumber, &u.AvatarURL, &u.Bio, &u.TownID, &u.CreatedAt, &u.UpdatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error inserting user: %w", err)
@@ -41,14 +41,14 @@ func (r *repository) CreateUser(email, passwordHash, name string) (*User, error)
 
 func (r *repository) GetUserByEmail(email string) (*User, string, error) {
 	query := `
-		SELECT id, email, password_hash, name, phone_number, avatar_url, bio, town_id, created_at, updated_at
+		SELECT id, email, password_hash, name, role, phone_number, avatar_url, bio, town_id, created_at, updated_at
 		FROM users
 		WHERE email = $1
 	`
 	u := &User{}
 	var passwordHash string
 	err := r.db.QueryRow(query, email).Scan(
-		&u.ID, &u.Email, &passwordHash, &u.Name, &u.PhoneNumber, &u.AvatarURL, &u.Bio, &u.TownID, &u.CreatedAt, &u.UpdatedAt,
+		&u.ID, &u.Email, &passwordHash, &u.Name, &u.Role, &u.PhoneNumber, &u.AvatarURL, &u.Bio, &u.TownID, &u.CreatedAt, &u.UpdatedAt,
 	)
 	if err == sql.ErrNoRows {
 		return nil, "", nil
@@ -61,13 +61,13 @@ func (r *repository) GetUserByEmail(email string) (*User, string, error) {
 
 func (r *repository) GetUserByID(id string) (*User, error) {
 	query := `
-		SELECT id, email, name, phone_number, avatar_url, bio, town_id, created_at, updated_at
+		SELECT id, email, name, role, phone_number, avatar_url, bio, town_id, created_at, updated_at
 		FROM users
 		WHERE id = $1
 	`
 	u := &User{}
 	err := r.db.QueryRow(query, id).Scan(
-		&u.ID, &u.Email, &u.Name, &u.PhoneNumber, &u.AvatarURL, &u.Bio, &u.TownID, &u.CreatedAt, &u.UpdatedAt,
+		&u.ID, &u.Email, &u.Name, &u.Role, &u.PhoneNumber, &u.AvatarURL, &u.Bio, &u.TownID, &u.CreatedAt, &u.UpdatedAt,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil

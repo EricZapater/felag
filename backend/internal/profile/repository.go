@@ -3,6 +3,7 @@ package profile
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -14,6 +15,7 @@ type Repository interface {
 	GetCountries() ([]Country, error)
 	GetRegionsByCountry(countryID string) ([]Region, error)
 	GetTownsByRegion(regionID string) ([]Town, error)
+	SearchTowns(q string, limit int) ([]TownSearchResult, error)
 	GetPublicProfile(userID string) (*PublicProfile, error)
 	GetPublicTrips(userID string) ([]PublicTripSummary, error)
 }
@@ -245,4 +247,86 @@ func (r *repository) GetPublicTrips(userID string) ([]PublicTripSummary, error) 
 		trips = []PublicTripSummary{}
 	}
 	return trips, nil
+}
+
+func (r *repository) SearchTowns(q string, limit int) ([]TownSearchResult, error) {
+	if r.db == nil {
+		return nil, fmt.Errorf("database connection is nil")
+	}
+
+	trimmed := strings.TrimSpace(q)
+	if trimmed == "" {
+		return []TownSearchResult{}, nil
+	}
+
+	if limit <= 0 {
+		limit = 15
+	}
+
+	pattern := "%" + trimmed + "%"
+
+	query := `
+		WITH raw_matches AS (
+			SELECT t.id, t.name, r.name AS region_name, c.name AS country_name, c.code AS country_code
+			FROM towns t
+			JOIN regions r ON t.region_id = r.id
+			JOIN countries c ON r.country_id = c.id
+			WHERE t.name ILIKE $1 OR r.name ILIKE $1 OR c.name ILIKE $1
+			LIMIT 100
+		),
+		ranked AS (
+			SELECT rm.id, rm.name, rm.region_name, rm.country_name, rm.country_code,
+			       CASE 
+			           WHEN LOWER(rm.name) = LOWER($2) THEN 1
+			           WHEN LOWER(rm.name) LIKE LOWER($2) || '%' THEN 2
+			           WHEN LOWER(rm.region_name) = LOWER($2) THEN 3
+			           ELSE 4
+			       END AS rank_score,
+			       ROW_NUMBER() OVER(PARTITION BY LOWER(rm.name), rm.region_name, rm.country_code ORDER BY rm.id) as rn
+			FROM raw_matches rm
+		)
+		SELECT id, name, region_name, country_name, country_code
+		FROM ranked
+		WHERE rn = 1
+		ORDER BY rank_score ASC, name ASC
+		LIMIT $3
+	`
+
+	rows, err := r.db.Query(query, pattern, trimmed, limit)
+	if err != nil {
+		return nil, fmt.Errorf("error searching towns: %w", err)
+	}
+	defer rows.Close()
+
+	var results []TownSearchResult
+	for rows.Next() {
+		var res TownSearchResult
+		var regName, countryName, countryCode sql.NullString
+
+		if err := rows.Scan(&res.ID, &res.Name, &regName, &countryName, &countryCode); err != nil {
+			return nil, fmt.Errorf("error scanning town search row: %w", err)
+		}
+
+		if regName.Valid {
+			res.RegionName = &regName.String
+		}
+		if countryName.Valid {
+			res.CountryName = &countryName.String
+		}
+		if countryCode.Valid {
+			res.CountryCode = &countryCode.String
+		}
+
+		results = append(results, res)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating town search rows: %w", err)
+	}
+
+	if results == nil {
+		results = []TownSearchResult{}
+	}
+
+	return results, nil
 }

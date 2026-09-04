@@ -90,6 +90,21 @@ func (m *mockProfileRepo) GetTownsByRegion(regionID string) ([]Town, error) {
 	return m.towns, nil
 }
 
+func (m *mockProfileRepo) SearchTowns(q string, limit int) ([]TownSearchResult, error) {
+	reg := "Maresme"
+	cName := "Catalunya"
+	cCode := "ES"
+	return []TownSearchResult{
+		{
+			ID:          "t1",
+			Name:        "El Masnou",
+			RegionName:  &reg,
+			CountryName: &cName,
+			CountryCode: &cCode,
+		},
+	}, nil
+}
+
 func (m *mockProfileRepo) GetPublicProfile(userID string) (*PublicProfile, error) {
 	return m.pubProfiles[userID], nil
 }

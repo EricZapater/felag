@@ -47,14 +47,83 @@ func (s *service) CreateTrip(userID string, req CreateTripRequest) (*Trip, error
 		return nil, fmt.Errorf("el títol del viatge és obligatori")
 	}
 
-	startDate, err := parseDate(req.StartDate)
-	if err != nil {
-		return nil, fmt.Errorf("format de data d'inici invàlid (format esperat: YYYY-MM-DD)")
+	if len(req.Stages) == 0 {
+		return nil, fmt.Errorf("el viatge ha de tenir almenys una etapa")
 	}
 
-	endDate, err := parseDate(req.EndDate)
-	if err != nil {
-		return nil, fmt.Errorf("format de data de fi invàlid (format esperat: YYYY-MM-DD)")
+	var startDate, endDate time.Time
+	var err error
+
+	reqStartTrimmed := strings.TrimSpace(req.StartDate)
+	reqEndTrimmed := strings.TrimSpace(req.EndDate)
+
+	if reqStartTrimmed != "" {
+		startDate, err = parseDate(reqStartTrimmed)
+		if err != nil {
+			return nil, fmt.Errorf("format de data d'inici invàlid (format esperat: YYYY-MM-DD)")
+		}
+	}
+
+	if reqEndTrimmed != "" {
+		endDate, err = parseDate(reqEndTrimmed)
+		if err != nil {
+			return nil, fmt.Errorf("format de data de fi invàlid (format esperat: YYYY-MM-DD)")
+		}
+	}
+
+	stages := make([]TripStage, 0, len(req.Stages))
+	for i, st := range req.Stages {
+		if strings.TrimSpace(st.DestinationName) == "" {
+			return nil, fmt.Errorf("el nom de la destinació de l'etapa és obligatori")
+		}
+
+		sStart, err := parseDate(st.StartDate)
+		if err != nil {
+			return nil, fmt.Errorf("format de data d'inici invàlid a l'etapa '%s'", st.DestinationName)
+		}
+
+		sEnd, err := parseDate(st.EndDate)
+		if err != nil {
+			return nil, fmt.Errorf("format de data de fi invàlid a l'etapa '%s'", st.DestinationName)
+		}
+
+		if sStart.After(sEnd) {
+			return nil, fmt.Errorf("la data d'inici de l'etapa '%s' ha de ser anterior o igual a la data de fi", st.DestinationName)
+		}
+
+		if reqStartTrimmed == "" && (i == 0 || sStart.Before(startDate)) {
+			startDate = sStart
+		}
+		if reqEndTrimmed == "" && (i == 0 || sEnd.After(endDate)) {
+			endDate = sEnd
+		}
+
+		if reqStartTrimmed != "" && sStart.Before(startDate) {
+			return nil, fmt.Errorf("les dates de l'etapa '%s' han d'estar compreses dins de les dates globals del viatge", st.DestinationName)
+		}
+		if reqEndTrimmed != "" && sEnd.After(endDate) {
+			return nil, fmt.Errorf("les dates de l'etapa '%s' han d'estar compreses dins de les dates globals del viatge", st.DestinationName)
+		}
+
+		order := st.StageOrder
+		if order <= 0 {
+			order = i + 1
+		}
+
+		stages = append(stages, TripStage{
+			StageOrder:      order,
+			DestinationName: strings.TrimSpace(st.DestinationName),
+			CountryCode:     st.CountryCode,
+			TownID:          st.TownID,
+			RegionID:        st.RegionID,
+			StartDate:       sStart.Format("2006-01-02"),
+			EndDate:         sEnd.Format("2006-01-02"),
+			Notes:           st.Notes,
+		})
+	}
+
+	if startDate.IsZero() || endDate.IsZero() {
+		return nil, fmt.Errorf("les dates d'inici i de fi del viatge són obligatòries")
 	}
 
 	if startDate.After(endDate) {
@@ -78,55 +147,12 @@ func (s *service) CreateTrip(userID string, req CreateTripRequest) (*Trip, error
 		photoSharingMode = psm
 	}
 
-	if len(req.Stages) == 0 {
-		return nil, fmt.Errorf("el viatge ha de tenir almenys una etapa")
-	}
-
-	stages := make([]TripStage, 0, len(req.Stages))
-	for i, st := range req.Stages {
-		if strings.TrimSpace(st.DestinationName) == "" {
-			return nil, fmt.Errorf("el nom de la destinació de l'etapa és obligatori")
-		}
-
-		sStart, err := parseDate(st.StartDate)
-		if err != nil {
-			return nil, fmt.Errorf("format de data d'inici invàlid a l'etapa '%s'", st.DestinationName)
-		}
-
-		sEnd, err := parseDate(st.EndDate)
-		if err != nil {
-			return nil, fmt.Errorf("format de data de fi invàlid a l'etapa '%s'", st.DestinationName)
-		}
-
-		if sStart.After(sEnd) {
-			return nil, fmt.Errorf("la data d'inici de l'etapa '%s' ha de ser anterior o igual a la data de fi", st.DestinationName)
-		}
-
-		if sStart.Before(startDate) || sEnd.After(endDate) {
-			return nil, fmt.Errorf("les dates de l'etapa '%s' han d'estar compreses dins de les dates globals del viatge", st.DestinationName)
-		}
-
-		order := st.StageOrder
-		if order <= 0 {
-			order = i + 1
-		}
-
-		stages = append(stages, TripStage{
-			StageOrder:      order,
-			DestinationName: strings.TrimSpace(st.DestinationName),
-			CountryCode:     st.CountryCode,
-			TownID:          st.TownID,
-			RegionID:        st.RegionID,
-			StartDate:       sStart.Format("2006-01-02"),
-			EndDate:         sEnd.Format("2006-01-02"),
-			Notes:           st.Notes,
-		})
-	}
-
 	trip := &Trip{
 		UserID:           userID,
 		Title:            strings.TrimSpace(req.Title),
 		Description:      req.Description,
+		StartDate:        startDate.Format("2006-01-02"),
+		EndDate:          endDate.Format("2006-01-02"),
 		Visibility:       visibility,
 		Status:           "planned",
 		PhotoSharingMode: photoSharingMode,

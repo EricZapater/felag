@@ -3,6 +3,7 @@ package profile
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"felag/backend/internal/shared"
 	"github.com/gin-gonic/gin"
@@ -129,6 +130,27 @@ func (h *Handler) GetTownsByRegion(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, towns)
+}
+
+func (h *Handler) SearchTowns(c *gin.Context) {
+	searchQuery := c.Query("search")
+	if searchQuery == "" {
+		searchQuery = c.Query("q")
+	}
+
+	limit := 15
+	if lStr := c.Query("limit"); lStr != "" {
+		if l, err := strconv.Atoi(lStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+
+	results, err := h.service.SearchTowns(searchQuery, limit)
+	if err != nil {
+		shared.ErrorResponse(c, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, results)
 }
 
 func (h *Handler) GetPublicProfile(c *gin.Context) {

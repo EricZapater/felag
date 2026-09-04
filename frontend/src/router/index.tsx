@@ -47,7 +47,15 @@ function AdminProtectedRoute({ children }: { children: JSX.Element }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (user && user.role !== 'admin') {
+  if (user === null) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#F9F6F0' }}>
+        <p style={{ color: '#6E5D53', fontWeight: 600 }}>Carregant permisos d'administrador...</p>
+      </div>
+    );
+  }
+
+  if (user.role !== 'admin') {
     return <Navigate to="/" replace />;
   }
 

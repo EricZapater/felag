@@ -50,7 +50,7 @@ func (s *service) Register(req RegisterRequest) (*AuthResponse, error) {
 		return nil, fmt.Errorf("error creating user: %w", err)
 	}
 
-	accToken, refToken, expiresIn, err := shared.GenerateTokens(user.ID, user.Email)
+	accToken, refToken, expiresIn, err := shared.GenerateTokens(user.ID, user.Email, user.Role)
 	if err != nil {
 		return nil, fmt.Errorf("error generating tokens: %w", err)
 	}
@@ -82,7 +82,7 @@ func (s *service) Login(req LoginRequest) (*AuthResponse, error) {
 		return nil, ErrInvalidCredentials
 	}
 
-	accToken, refToken, expiresIn, err := shared.GenerateTokens(user.ID, user.Email)
+	accToken, refToken, expiresIn, err := shared.GenerateTokens(user.ID, user.Email, user.Role)
 	if err != nil {
 		return nil, fmt.Errorf("error generating tokens: %w", err)
 	}
@@ -112,7 +112,7 @@ func (s *service) Refresh(refreshToken string) (*TokenResponse, error) {
 		return nil, ErrInvalidToken
 	}
 
-	accToken, _, expiresIn, err := shared.GenerateTokens(user.ID, user.Email)
+	accToken, _, expiresIn, err := shared.GenerateTokens(user.ID, user.Email, user.Role)
 	if err != nil {
 		return nil, fmt.Errorf("error generating new access token: %w", err)
 	}

@@ -60,3 +60,11 @@ type PublicProfile struct {
 	OriginSummary *string             `json:"origin_summary,omitempty"`
 	PublicTrips   []PublicTripSummary `json:"public_trips"`
 }
+
+type TownSearchResult struct {
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	RegionName  *string `json:"region_name,omitempty"`
+	CountryName *string `json:"country_name,omitempty"`
+	CountryCode *string `json:"country_code,omitempty"`
+}
