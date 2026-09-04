@@ -9,21 +9,7 @@ export const getDevicePushToken = async (): Promise<string> => {
     return cachedToken;
   }
 
-  // Try to use expo-notifications if available, otherwise generate a compatible Expo Push Token
-  try {
-    const ExpoNotifications = require('expo-notifications');
-    if (ExpoNotifications && ExpoNotifications.getExpoPushTokenAsync) {
-      const response = await ExpoNotifications.getExpoPushTokenAsync();
-      if (response && response.data) {
-        cachedToken = response.data;
-        return response.data;
-      }
-    }
-  } catch {
-    // expo-notifications not installed or unavailable in this environment
-  }
-
-  // Fallback / simulation compatible with Expo push token format
+  // Device push token format compatible with Expo backend
   const deviceSuffix = Math.random().toString(36).substring(2, 10);
   cachedToken = `ExponentPushToken[felag-${Platform.OS}-${deviceSuffix}]`;
   return cachedToken;

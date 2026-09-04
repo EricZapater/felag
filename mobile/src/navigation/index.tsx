@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/modules/auth/store';
 import { useNotificationsStore } from '@/modules/notifications/store';
 import { useChatStore } from '@/modules/chat/store';
@@ -27,6 +28,7 @@ import InstagramStoriesScreen from '@/modules/posttrip/screens/InstagramStoriesS
 import ExploreDestinationsScreen from '@/modules/explore/screens/ExploreDestinationsScreen';
 
 export default function AppNavigation() {
+  const insets = useSafeAreaInsets();
   const { isAuthenticated, accessToken } = useAuthStore();
   const { unreadCount, fetchNotifications } = useNotificationsStore();
   const {
@@ -54,7 +56,7 @@ export default function AppNavigation() {
     return () => {
       closeWebSocket();
     };
-  }, [isAuthenticated, accessToken, fetchNotifications, fetchConversations, initWebSocket, closeWebSocket]);
+  }, [isAuthenticated, accessToken]);
 
   const current = screenStack[screenStack.length - 1] || { name: 'TripsList' };
   const currentScreen = current.name;
@@ -86,7 +88,7 @@ export default function AppNavigation() {
 
   if (!isAuthenticated) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         {currentScreen === 'Register' ? (
           <RegisterScreen navigation={navigation} />
         ) : (
@@ -96,15 +98,51 @@ export default function AppNavigation() {
     );
   }
 
-  const isMainTab =
-    currentScreen === 'TripsList' ||
-    currentScreen === 'DestinationsList' ||
-    currentScreen === 'Conversations' ||
-    currentScreen === 'Notifications' ||
-    currentScreen === 'Profile';
+  const getActiveTab = (
+    screen: string
+  ): 'trips' | 'destinations' | 'chats' | 'notifications' | 'profile' | null => {
+    switch (screen) {
+      case 'TripsList':
+      case 'TripCreate':
+      case 'TripDetail':
+      case 'TripMatches':
+      case 'TripGallery':
+      case 'CelebrationCard':
+      case 'TripWrapup':
+      case 'InstagramStories':
+        return 'trips';
+
+      case 'DestinationsList':
+      case 'DestinationDetail':
+      case 'RecommendationCreate':
+      case 'LiveFeed':
+      case 'ExploreDestinations':
+        return 'destinations';
+
+      case 'Conversations':
+      case 'PublicProfile':
+        return 'chats';
+
+      case 'Notifications':
+        return 'notifications';
+
+      case 'Profile':
+      case 'OriginSelector':
+        return 'profile';
+
+      case 'ChatRoom':
+        return null; // hide bottom menu in individual chat room so keyboard/input area is optimal
+
+      default:
+        return 'trips';
+    }
+  };
+
+  const activeTab = getActiveTab(currentScreen);
+  const showBottomNav = activeTab !== null;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.content}>
         {currentScreen === 'TripsList' && <TripsListScreen navigation={navigation} />}
         {currentScreen === 'TripCreate' && (
@@ -156,17 +194,25 @@ export default function AppNavigation() {
       </View>
 
       {/* Bottom Navigation Bar */}
-      {isMainTab && (
-        <View style={styles.navBar}>
+      {showBottomNav && (
+        <View
+          style={[
+            styles.navBar,
+            {
+              paddingBottom: Math.max(insets.bottom, 4),
+              height: 56 + Math.max(insets.bottom, 4),
+            },
+          ]}
+        >
           <TouchableOpacity
             style={styles.navItem}
             onPress={() => navigate('TripsList')}
             activeOpacity={0.7}
           >
-            <Text style={[styles.navIcon, currentScreen === 'TripsList' && styles.navActiveText]}>
+            <Text style={[styles.navIcon, activeTab === 'trips' && styles.navActiveText]}>
               ✈️
             </Text>
-            <Text style={[styles.navLabel, currentScreen === 'TripsList' && styles.navActiveText]}>
+            <Text style={[styles.navLabel, activeTab === 'trips' && styles.navActiveText]}>
               Viatges
             </Text>
           </TouchableOpacity>
@@ -179,7 +225,7 @@ export default function AppNavigation() {
             <Text
               style={[
                 styles.navIcon,
-                currentScreen === 'DestinationsList' && styles.navActiveText,
+                activeTab === 'destinations' && styles.navActiveText,
               ]}
             >
               🗺️
@@ -187,7 +233,7 @@ export default function AppNavigation() {
             <Text
               style={[
                 styles.navLabel,
-                currentScreen === 'DestinationsList' && styles.navActiveText,
+                activeTab === 'destinations' && styles.navActiveText,
               ]}
             >
               Destins
@@ -203,7 +249,7 @@ export default function AppNavigation() {
               <Text
                 style={[
                   styles.navIcon,
-                  currentScreen === 'Conversations' && styles.navActiveText,
+                  activeTab === 'chats' && styles.navActiveText,
                 ]}
               >
                 💬
@@ -219,7 +265,7 @@ export default function AppNavigation() {
             <Text
               style={[
                 styles.navLabel,
-                currentScreen === 'Conversations' && styles.navActiveText,
+                activeTab === 'chats' && styles.navActiveText,
               ]}
             >
               Xats
@@ -235,7 +281,7 @@ export default function AppNavigation() {
               <Text
                 style={[
                   styles.navIcon,
-                  currentScreen === 'Notifications' && styles.navActiveText,
+                  activeTab === 'notifications' && styles.navActiveText,
                 ]}
               >
                 🔔
@@ -251,7 +297,7 @@ export default function AppNavigation() {
             <Text
               style={[
                 styles.navLabel,
-                currentScreen === 'Notifications' && styles.navActiveText,
+                activeTab === 'notifications' && styles.navActiveText,
               ]}
             >
               Avisos
@@ -263,10 +309,10 @@ export default function AppNavigation() {
             onPress={() => navigate('Profile')}
             activeOpacity={0.7}
           >
-            <Text style={[styles.navIcon, currentScreen === 'Profile' && styles.navActiveText]}>
+            <Text style={[styles.navIcon, activeTab === 'profile' && styles.navActiveText]}>
               👤
             </Text>
-            <Text style={[styles.navLabel, currentScreen === 'Profile' && styles.navActiveText]}>
+            <Text style={[styles.navLabel, activeTab === 'profile' && styles.navActiveText]}>
               Perfil
             </Text>
           </TouchableOpacity>

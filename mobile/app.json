@@ -2,9 +2,12 @@
   "expo": {
     "name": "FELAG",
     "slug": "felag",
-    "owner": "felag",
     "version": "0.6.0",
     "orientation": "portrait",
+    "updates": {
+      "enabled": false,
+      "checkAutomatically": "NEVER"
+    },
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {

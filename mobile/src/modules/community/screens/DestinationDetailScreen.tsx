@@ -255,8 +255,13 @@ export default function DestinationDetailScreen({ navigation, route }: Props) {
         imageStyle={{ opacity: 0.45 }}
       >
         <View style={styles.heroTop}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.btnBack}>
-            <Text style={styles.btnBackText}>‹</Text>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.btnBack}
+            activeOpacity={0.7}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Text style={styles.btnBackText}>‹ Destins</Text>
           </TouchableOpacity>
 
           {currentDestination?.country_name || currentDestination?.country_code ? (
@@ -527,18 +532,19 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   btnBack: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
   },
   btnBackText: {
     color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: 'bold',
-    lineHeight: 22,
+    fontSize: 14,
+    fontWeight: '700',
   },
   countryBadge: {
     backgroundColor: 'rgba(255,255,255,0.2)',

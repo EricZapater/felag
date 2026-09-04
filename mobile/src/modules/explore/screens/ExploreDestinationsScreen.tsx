@@ -88,9 +88,15 @@ export default function ExploreDestinationsScreen({ navigation }: Props) {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text variant="headlineSmall" style={styles.headerTitle}>
-          Explorar Destins 🗺️✨
-        </Text>
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity onPress={() => navigation.goBack?.()} style={styles.backBtn}>
+            <Text style={styles.backText}>‹ Enrere</Text>
+          </TouchableOpacity>
+          <Text variant="titleMedium" style={styles.headerTitle}>
+            Explorar Destins 🗺️
+          </Text>
+          <View style={{ width: 60 }} />
+        </View>
         <TextInput
           placeholder="🔍 Cerca ciutat o país..."
           value={searchQuery}
@@ -195,14 +201,31 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingTop: 12,
+    paddingBottom: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#E8E2D9',
   },
-  headerTitle: {
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  backBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    backgroundColor: '#FAF7F2',
+  },
+  backText: {
     color: '#C85A32',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  headerTitle: {
+    color: '#2C221E',
     fontWeight: 'bold',
-    marginBottom: 8,
   },
   searchInput: {
     backgroundColor: '#FAF7F2',

@@ -93,7 +93,7 @@ export default function ChatRoomScreen({ navigation, route }: Props) {
       }
     }
     init();
-  }, [conversationId, targetUserId, matchId, createOrGetConversation]);
+  }, [conversationId, targetUserId, matchId]);
 
   // Load conversation details from store if available
   useEffect(() => {
@@ -105,7 +105,7 @@ export default function ChatRoomScreen({ navigation, route }: Props) {
       fetchMessages(conversationId);
       markConversationAsRead(conversationId);
     }
-  }, [conversationId, conversations, fetchMessages, markConversationAsRead]);
+  }, [conversationId]);
 
   const conversationMessages = conversationId ? messages[conversationId] || [] : [];
 
