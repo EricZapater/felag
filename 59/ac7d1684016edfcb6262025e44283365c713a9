@@ -1,0 +1,16 @@
+frontend/src/modules/trips/views/TripsListView.tsx
+  h_42175f19913982 201-278
+mobile/src/modules/trips/screens/TripsListScreen.tsx
+  h_42175f19913982 133-162,399-427
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "59ac7d1684016edfcb6262025e44283365c713a9",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
