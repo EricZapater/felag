@@ -20,6 +20,11 @@ on:
         required: true
         default: true
         type: boolean
+      deploy_mobile:
+        description: 'Deploy Mobile App to Expo EAS (consumes monthly build credits)'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -136,12 +141,13 @@ jobs:
             docker compose ps
 
   # -----------------------------------------------------------------------
-  # Stage 3: Mobile (Expo / EAS Build)
+  # Stage 3: Mobile (Expo / EAS Build) - Only on manual dispatch when requested
   # -----------------------------------------------------------------------
   deploy-mobile:
     name: Build Mobile (Expo EAS)
     needs: build-and-push
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy_mobile == true
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4

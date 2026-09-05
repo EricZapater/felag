@@ -6,6 +6,8 @@
     "dev:mobile": "pnpm --filter mobile start",
     "build:frontend": "pnpm --filter frontend build",
     "build:mobile:check": "pnpm --filter mobile bundle:check",
+    "build:mobile:android": "pnpm --filter mobile bundle:check:android",
+    "build:mobile:ios": "pnpm --filter mobile bundle:check:ios",
     "lint": "pnpm --filter frontend lint && pnpm --filter mobile lint",
     "typecheck": "pnpm --filter frontend typecheck && pnpm --filter mobile typecheck",
     "doctor": "cd mobile && npx --registry=https://registry.npmjs.org/ --yes expo-doctor"

@@ -11,7 +11,11 @@
     "ios": "expo start --ios --localhost",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "bundle:check": "npx --registry=https://registry.npmjs.org/ expo export --platform android --no-bytecode"
+    "bundle:check": "npx --registry=https://registry.npmjs.org/ expo export --platform all --no-bytecode",
+    "bundle:check:android": "npx --registry=https://registry.npmjs.org/ expo export --platform android --no-bytecode",
+    "bundle:check:ios": "npx --registry=https://registry.npmjs.org/ expo export --platform ios --no-bytecode",
+    "build:local:android": "npx --registry=https://registry.npmjs.org/ eas build --local --platform android --profile preview",
+    "build:local:ios": "npx --registry=https://registry.npmjs.org/ eas build --local --platform ios --profile preview"
   },
   "dependencies": {
     "@react-native/assets-registry": "^0.73.1",
