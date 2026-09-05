@@ -1,0 +1,20 @@
+.github/workflows/ci.yml
+  h_42175f19913982 109,112-114
+.github/workflows/deploy.yml
+  h_42175f19913982 23-27,144,150
+mobile/package.json
+  h_42175f19913982 14-18
+package.json
+  h_42175f19913982 9-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "d397c9a92663f42d85bbd03c7536ffdcbb61ec8f",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
