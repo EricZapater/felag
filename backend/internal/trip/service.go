@@ -22,6 +22,10 @@ type Service interface {
 	UpdateTrip(tripID string, userID string, req UpdateTripRequest) (*Trip, error)
 	DeleteTrip(tripID string, userID string) error
 	UpdatePhotoSharingMode(tripID string, userID string, mode string) error
+	ListCompanions(tripID string, currentUserID string) ([]TripCompanion, error)
+	AddCompanion(tripID string, currentUserID string, companionUserID string) (*TripCompanion, error)
+	RemoveCompanion(tripID string, currentUserID string, targetUserID string) error
+	SearchUsers(query, excludeUserID string) ([]FelagiUserSummary, error)
 	SetEventListener(listener shared.TripEventListener)
 }
 
@@ -158,7 +162,12 @@ func (s *service) CreateTrip(userID string, req CreateTripRequest) (*Trip, error
 		PhotoSharingMode: photoSharingMode,
 	}
 
-	createdTrip, err := s.repo.Create(trip, stages)
+	var companionIDs []string
+	if req.CompanionUserIDs != nil {
+		companionIDs = *req.CompanionUserIDs
+	}
+
+	createdTrip, err := s.repo.Create(trip, stages, companionIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +184,7 @@ func (s *service) CreateTrip(userID string, req CreateTripRequest) (*Trip, error
 }
 
 func (s *service) GetTripByID(tripID string, currentUserID string) (*Trip, error) {
-	trip, err := s.repo.GetByID(tripID)
+	trip, err := s.repo.GetByID(tripID, currentUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -183,9 +192,20 @@ func (s *service) GetTripByID(tripID string, currentUserID string) (*Trip, error
 		return nil, ErrTripNotFound
 	}
 
-	// If trip is private and does not belong to the current user, return Not Found
-	if trip.Visibility == "private" && trip.UserID != currentUserID {
-		return nil, ErrTripNotFound
+	// If trip is private, check if current user is owner or companion
+	if trip.Visibility == "private" {
+		isMember := trip.UserID == currentUserID
+		if !isMember {
+			for _, c := range trip.Companions {
+				if c.UserID == currentUserID {
+					isMember = true
+					break
+				}
+			}
+		}
+		if !isMember {
+			return nil, ErrTripNotFound
+		}
 	}
 
 	return trip, nil
@@ -200,7 +220,7 @@ func (s *service) ListMyTrips(userID string, filter string) ([]Trip, error) {
 }
 
 func (s *service) UpdateTrip(tripID string, userID string, req UpdateTripRequest) (*Trip, error) {
-	existing, err := s.repo.GetByID(tripID)
+	existing, err := s.repo.GetByID(tripID, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -310,7 +330,7 @@ func (s *service) UpdateTrip(tripID string, userID string, req UpdateTripRequest
 		stagesSlice = &stgs
 	}
 
-	updated, err := s.repo.Update(tripID, userID, &updateTrip, stagesSlice)
+	updated, err := s.repo.Update(tripID, userID, &updateTrip, stagesSlice, req.CompanionUserIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -348,4 +368,73 @@ func (s *service) UpdatePhotoSharingMode(tripID string, userID string, mode stri
 		return ErrTripNotFound
 	}
 	return err
+}
+
+func (s *service) ListCompanions(tripID string, currentUserID string) ([]TripCompanion, error) {
+	trip, err := s.repo.GetByID(tripID, currentUserID)
+	if err != nil {
+		return nil, err
+	}
+	if trip == nil {
+		return nil, ErrTripNotFound
+	}
+	return s.repo.ListCompanions(tripID)
+}
+
+func (s *service) AddCompanion(tripID string, currentUserID string, companionUserID string) (*TripCompanion, error) {
+	if companionUserID == "" {
+		return nil, fmt.Errorf("l'identificador d'usuari acompanyant és obligatori")
+	}
+
+	isMember, isOwner, err := s.repo.IsTripMember(tripID, currentUserID)
+	if err != nil {
+		return nil, err
+	}
+	if !isMember || !isOwner {
+		return nil, ErrUnauthorized
+	}
+
+	tc, err := s.repo.AddCompanion(tripID, companionUserID, "companion")
+	if err != nil {
+		return nil, err
+	}
+
+	if s.listener != nil {
+		s.listener.OnTripEvent(shared.TripEvent{
+			TripID: tripID,
+			UserID: companionUserID,
+			Action: "companion_added",
+		})
+	}
+
+	return tc, nil
+}
+
+func (s *service) RemoveCompanion(tripID string, currentUserID string, targetUserID string) error {
+	isMember, isOwner, err := s.repo.IsTripMember(tripID, currentUserID)
+	if err != nil {
+		return err
+	}
+	if !isMember {
+		return ErrUnauthorized
+	}
+
+	// Only owner can remove others; companions can only remove themselves
+	if currentUserID != targetUserID && !isOwner {
+		return ErrUnauthorized
+	}
+
+	err = s.repo.RemoveCompanion(tripID, targetUserID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrTripNotFound
+	}
+	return err
+}
+
+func (s *service) SearchUsers(query, excludeUserID string) ([]FelagiUserSummary, error) {
+	cleanQuery := strings.TrimSpace(query)
+	if cleanQuery == "" {
+		return []FelagiUserSummary{}, nil
+	}
+	return s.repo.SearchUsers(cleanQuery, excludeUserID)
 }

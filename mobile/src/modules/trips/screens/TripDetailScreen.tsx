@@ -7,9 +7,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Button, Card, Divider, HelperText, Text } from 'react-native-paper';
+import { Avatar, Button, Card, Chip, Divider, HelperText, IconButton, Text } from 'react-native-paper';
 import { useTripsStore } from '../store';
-import { Trip } from '../types';
+import { FelagiUserSummary, Trip } from '../types';
+import { tripsApi } from '../api';
+import CompanionPickerModal from '../components/CompanionPickerModal';
 import { usePostTripStore } from '@/modules/posttrip/store';
 import ActiveTripHubCard from '@/modules/posttrip/components/ActiveTripHubCard';
 
@@ -30,6 +32,8 @@ export default function TripDetailScreen({ navigation, route }: Props) {
   const { currentTrip, fetchTripById, deleteTrip, isLoading, error } = useTripsStore();
   const { activeHub, fetchActiveHub } = usePostTripStore();
   const [deleting, setDeleting] = useState(false);
+  const [companionPickerVisible, setCompanionPickerVisible] = useState(false);
+  const [managingCompanion, setManagingCompanion] = useState(false);
 
   useEffect(() => {
     if (tripId) {
@@ -58,6 +62,73 @@ export default function TripDetailScreen({ navigation, route }: Props) {
     } catch {
       return 1;
     }
+  };
+
+  const handleAddCompanion = async (companion: FelagiUserSummary) => {
+    if (!tripId) return;
+    setManagingCompanion(true);
+    try {
+      await tripsApi.addCompanion(tripId, companion.id);
+      await fetchTripById(tripId);
+    } catch (err: any) {
+      Alert.alert('Error', err?.response?.data?.error || 'No s’ha pogut afegir l’acompanyant.');
+    } finally {
+      setManagingCompanion(false);
+    }
+  };
+
+  const handleRemoveCompanion = (userId: string, userName: string) => {
+    if (!tripId) return;
+    Alert.alert(
+      'Eliminar acompanyant',
+      `Vols eliminar ${userName} d'aquest viatge?`,
+      [
+        { text: 'Cancel·lar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            setManagingCompanion(true);
+            try {
+              await tripsApi.removeCompanion(tripId, userId);
+              await fetchTripById(tripId);
+            } catch (err: any) {
+              Alert.alert('Error', err?.response?.data?.error || 'No s’ha pogut eliminar l’acompanyant.');
+            } finally {
+              setManagingCompanion(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleLeaveTrip = () => {
+    if (!tripId) return;
+    Alert.alert(
+      'Sortir del viatge',
+      'Estàs segur que vols sortir d’aquest viatge compartit? Ja no apareixeràs al grup.',
+      [
+        { text: 'Cancel·lar', style: 'cancel' },
+        {
+          text: 'Sortir',
+          style: 'destructive',
+          onPress: async () => {
+            setManagingCompanion(true);
+            try {
+              const me = currentTrip?.companions?.find((c) => c.role !== 'owner');
+              if (me) {
+                await tripsApi.removeCompanion(tripId, me.user_id);
+              }
+              navigation.navigate('TripsList');
+            } catch (err: any) {
+              Alert.alert('Error', err?.response?.data?.error || 'No s’ha pogut sortir del viatge.');
+              setManagingCompanion(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleDelete = () => {
@@ -295,34 +366,123 @@ export default function TripDetailScreen({ navigation, route }: Props) {
             </Card.Content>
           </Card>
 
-          {/* Action Buttons */}
-          <View style={styles.actions}>
-            <Button
-              mode="contained"
-              buttonColor="#C85A32"
-              onPress={() => navigation.navigate('TripCreate', { tripId: trip.id })}
-              style={styles.btnEdit}
-              contentStyle={{ paddingVertical: 6 }}
-            >
-              Editar viatge
-            </Button>
+              {/* Travel Companions Section */}
+              <View style={styles.companionsSectionBox}>
+                <View style={styles.companionsHeaderRow}>
+                  <Text style={styles.sectionTitle}>
+                    Amb qui viatjo ({trip.companions?.length || 1})
+                  </Text>
+                  {trip.is_owner !== false && (
+                    <Button
+                      mode="text"
+                      compact
+                      textColor="#C85A32"
+                      icon="account-plus"
+                      onPress={() => setCompanionPickerVisible(true)}
+                    >
+                      Afegir
+                    </Button>
+                  )}
+                </View>
 
-            <Button
-              mode="text"
-              textColor="#d32f2f"
-              onPress={handleDelete}
-              loading={deleting}
-              disabled={deleting}
-              style={styles.btnDel}
-            >
-              Eliminar viatge
-            </Button>
-          </View>
-        </ScrollView>
-      )}
-    </View>
-  );
-}
+                {(trip.companions || []).map((comp) => {
+                  const isCreator = comp.role === 'owner';
+                  return (
+                    <View key={comp.id || comp.user_id} style={styles.companionItem}>
+                      <Avatar.Text
+                        size={32}
+                        label={(comp.name || 'F').slice(0, 2).toUpperCase()}
+                        style={[styles.avatar, isCreator && styles.creatorAvatar]}
+                        color="#FFFFFF"
+                      />
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.companionName}>{comp.name || 'Felagi'}</Text>
+                        <Text style={styles.companionMeta}>
+                          {comp.town_name ? `📍 ${comp.town_name}` : comp.origin_summary || 'FELAGI'}
+                        </Text>
+                      </View>
+                      <View style={styles.companionRight}>
+                        <View
+                          style={[
+                            styles.roleBadge,
+                            isCreator ? styles.creatorRoleBadge : styles.companionRoleBadge,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.roleBadgeText,
+                              isCreator ? styles.creatorRoleText : styles.companionRoleText,
+                            ]}
+                          >
+                            {isCreator ? '👑 Creador' : '✈️ Acompanyant'}
+                          </Text>
+                        </View>
+                        {trip.is_owner !== false && !isCreator && (
+                          <IconButton
+                            icon="close"
+                            size={16}
+                            iconColor="#d32f2f"
+                            onPress={() => handleRemoveCompanion(comp.user_id, comp.name)}
+                            style={{ margin: 0 }}
+                          />
+                        )}
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+
+              {/* Action Buttons */}
+              <View style={styles.actions}>
+                {trip.is_owner !== false ? (
+                  <>
+                    <Button
+                      mode="contained"
+                      buttonColor="#C85A32"
+                      onPress={() => navigation.navigate('TripCreate', { tripId: trip.id })}
+                      style={styles.btnEdit}
+                      contentStyle={{ paddingVertical: 6 }}
+                    >
+                      Editar viatge
+                    </Button>
+
+                    <Button
+                      mode="text"
+                      textColor="#d32f2f"
+                      onPress={handleDelete}
+                      loading={deleting}
+                      disabled={deleting}
+                      style={styles.btnDel}
+                    >
+                      Eliminar viatge
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    mode="contained"
+                    buttonColor="#ED6C02"
+                    onPress={handleLeaveTrip}
+                    loading={managingCompanion}
+                    disabled={managingCompanion}
+                    style={styles.btnEdit}
+                    contentStyle={{ paddingVertical: 6 }}
+                  >
+                    Sortir del viatge
+                  </Button>
+                )}
+              </View>
+            </ScrollView>
+          )}
+
+          <CompanionPickerModal
+            visible={companionPickerVisible}
+            onClose={() => setCompanionPickerVisible(false)}
+            excludedUserIds={(trip?.companions || []).map((c) => c.user_id)}
+            onSelect={handleAddCompanion}
+          />
+        </View>
+      );
+    }
 
 const styles = StyleSheet.create({
   container: {
@@ -520,6 +680,71 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: '#4A3E39',
+  },
+  companionsSectionBox: {
+    marginTop: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E8E2D9',
+  },
+  companionsHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  companionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FAF7F2',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E8E2D9',
+    padding: 10,
+    marginBottom: 8,
+  },
+  avatar: {
+    backgroundColor: '#8C7A70',
+    marginRight: 10,
+  },
+  creatorAvatar: {
+    backgroundColor: '#C85A32',
+  },
+  companionName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#2C221E',
+  },
+  companionMeta: {
+    fontSize: 12,
+    color: '#786C65',
+    marginTop: 1,
+  },
+  companionRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  roleBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  creatorRoleBadge: {
+    backgroundColor: '#FFF3E0',
+  },
+  companionRoleBadge: {
+    backgroundColor: '#EDE7F6',
+  },
+  roleBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  creatorRoleText: {
+    color: '#E65100',
+  },
+  companionRoleText: {
+    color: '#512DA8',
   },
   actions: {
     marginTop: 8,

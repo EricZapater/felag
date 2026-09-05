@@ -21,8 +21,9 @@ import AddIcon from '@mui/icons-material/Add';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader';
 import DestinationAutocomplete from '../components/DestinationAutocomplete';
+import { CompanionSelector } from '../components/CompanionSelector';
 import { useTripStore } from '../store';
-import { TripStageInput, TripVisibility } from '../types';
+import { FelagiUserSummary, TripStageInput, TripVisibility } from '../types';
 
 interface StageFormState {
   destination_name: string;
@@ -43,6 +44,7 @@ export default function TripCreateView() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [visibility, setVisibility] = useState<TripVisibility>('public');
+  const [selectedCompanions, setSelectedCompanions] = useState<FelagiUserSummary[]>([]);
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const [stages, setStages] = useState<StageFormState[]>([
@@ -155,6 +157,7 @@ export default function TripCreateView() {
         start_date: startDate,
         end_date: endDate,
         visibility,
+        companion_user_ids: selectedCompanions.map((c) => c.id),
         stages: payloadStages,
       });
       navigate(`/trips/${newTrip.id}`);
@@ -267,6 +270,12 @@ export default function TripCreateView() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 sx={{ mb: 3 }}
+              />
+
+              {/* Travel Companions Selector */}
+              <CompanionSelector
+                selectedCompanions={selectedCompanions}
+                onChange={setSelectedCompanions}
               />
 
               <Divider sx={{ my: 4, borderColor: '#E8E2D9' }} />

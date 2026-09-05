@@ -1,5 +1,12 @@
 import { apiClient } from '@/api/client';
-import { CreateTripRequest, Trip, TripFilter, UpdateTripRequest } from './types';
+import {
+  CreateTripRequest,
+  FelagiUserSummary,
+  Trip,
+  TripCompanion,
+  TripFilter,
+  UpdateTripRequest,
+} from './types';
 
 export const tripsApi = {
   listTrips: async (filter?: TripFilter): Promise<Trip[]> => {
@@ -25,5 +32,28 @@ export const tripsApi = {
 
   deleteTrip: async (tripId: string): Promise<void> => {
     await apiClient.delete(`/api/v1/trips/${tripId}`);
+  },
+
+  listCompanions: async (tripId: string): Promise<TripCompanion[]> => {
+    const res = await apiClient.get<TripCompanion[]>(`/api/v1/trips/${tripId}/companions`);
+    return res.data;
+  },
+
+  addCompanion: async (tripId: string, userId: string): Promise<TripCompanion> => {
+    const res = await apiClient.post<TripCompanion>(`/api/v1/trips/${tripId}/companions`, {
+      user_id: userId,
+    });
+    return res.data;
+  },
+
+  removeCompanion: async (tripId: string, userId: string): Promise<void> => {
+    await apiClient.delete(`/api/v1/trips/${tripId}/companions/${userId}`);
+  },
+
+  searchUsers: async (query: string): Promise<FelagiUserSummary[]> => {
+    const res = await apiClient.get<FelagiUserSummary[]>('/api/v1/users/search', {
+      params: { q: query },
+    });
+    return res.data;
   },
 };

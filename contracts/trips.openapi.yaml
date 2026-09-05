@@ -135,6 +135,117 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundError'
 
+  /api/v1/trips/{trip_id}/companions:
+    get:
+      summary: Llistar els acompanyants d'un viatge
+      operationId: listTripCompanions
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: trip_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Llista d'acompanyants
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TripCompanion'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    post:
+      summary: Afegir un acompanyant a un viatge
+      operationId: addTripCompanion
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: trip_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddCompanionRequest'
+      responses:
+        '201':
+          description: Acompanyant afegit amb èxit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripCompanion'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/v1/trips/{trip_id}/companions/{user_id}:
+    delete:
+      summary: Eliminar un acompanyant o sortir del viatge
+      operationId: removeTripCompanion
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: trip_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Acompanyant eliminat amb èxit
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/v1/users/search:
+    get:
+      summary: Cercar usuaris FELAGIS per afegir-los a un viatge
+      operationId: searchUsers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Text de cerca (nom o municipi)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Usuaris coincidents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FelagiUserSummary'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
 components:
   securitySchemes:
     BearerAuth:
@@ -253,6 +364,17 @@ components:
           type: string
           enum: [planned, ongoing, completed, cancelled]
           example: planned
+        photo_sharing_mode:
+          type: string
+          enum: [none, ephemeral_feed, trip_album]
+          default: none
+        is_owner:
+          type: boolean
+          example: true
+        companions:
+          type: array
+          items:
+            $ref: '#/components/schemas/TripCompanion'
         stages:
           type: array
           items:
@@ -263,6 +385,81 @@ components:
         updated_at:
           type: string
           format: date-time
+
+    TripCompanion:
+      type: object
+      required:
+        - id
+        - user_id
+        - name
+        - role
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Joan Martí
+        avatar_url:
+          type: string
+          nullable: true
+        origin_summary:
+          type: string
+          nullable: true
+          example: Terrassa (Vallès Occidental)
+        town_name:
+          type: string
+          nullable: true
+          example: Terrassa
+        role:
+          type: string
+          enum: [owner, companion]
+          example: companion
+        status:
+          type: string
+          enum: [accepted, pending]
+          example: accepted
+        created_at:
+          type: string
+          format: date-time
+
+    FelagiUserSummary:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Joan Martí
+        avatar_url:
+          type: string
+          nullable: true
+        origin_summary:
+          type: string
+          nullable: true
+          example: Terrassa (Vallès Occidental)
+        town_name:
+          type: string
+          nullable: true
+          example: Terrassa
+
+    AddCompanionRequest:
+      type: object
+      required:
+        - user_id
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
 
     CreateTripRequest:
       type: object
@@ -291,6 +488,15 @@ components:
           type: string
           enum: [public, contacts_only, private]
           default: public
+        photo_sharing_mode:
+          type: string
+          enum: [none, ephemeral_feed, trip_album]
+          default: none
+        companion_user_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
         stages:
           type: array
           minItems: 1
@@ -317,6 +523,14 @@ components:
         visibility:
           type: string
           enum: [public, contacts_only, private]
+        photo_sharing_mode:
+          type: string
+          enum: [none, ephemeral_feed, trip_album]
+        companion_user_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
         stages:
           type: array
           items:

@@ -81,6 +81,10 @@ graph TD
 
 #### Funcionalitats clau:
 - **Creació i edició de viatges:** Títol del viatge, descripció, data d'inici i data de fi.
+- **Amb qui viatjo? (Viatges compartits i acompanyants):**
+  - Possibilitat d'afegir altres FELAGIS al mateix viatge (`trip_companions`) cercant pel seu nom o àlies.
+  - Tots els membres del grup comparteixen el mateix itinerari (`trip_id`), l'accés al hub de viatge actiu, l'àlbum de fotos compartit i el reportatge de tancament.
+  - Rol de **Creador** (`owner`) amb permisos per gestionar/afegir/eliminar membres, i rol d'**Acompanyant** (`companion`) amb opció de sortir del viatge.
 - **Etapes multiciutat (*Stages*):** Cada viatge es desglossa en etapes ordenades, cadascuna vinculada a un destí (`town_id`), amb dates concretes d'arribada i sortida i notes d'allotjament/plans.
 - **Visibilitat per viatge:** Possibilitat de marcar un viatge concret com a `public`, `contacts_only` o `private`.
 - **Mode de compartició de fotos (*Photo Sharing Mode*):**
@@ -97,6 +101,9 @@ El motor analitza els viatges actius i futurs detectant usuaris que coincideixen
 1. 🥇 **Nivell Or (Poble / Ciutat):** Ambdós viatgers són del mateix municipi d'origen.
 2. 🥈 **Nivell Plata (Comarca):** Ambdós viatgers són de la mateixa comarca.
 3. 🥉 **Nivell Bronze (País / Nació):** Ambdós viatgers provenen de l'àmbit territorial compartit.
+
+#### Exclusió estricta de co-viatgers:
+- El motor de cerca de candidats exclou explícitament els membres d'un mateix grup de viatge: cap viatger farà match mai amb els seus propis companys de viatge, però cadascun d'ells pot descobrir altres viatgers externs amb qui coincideix.
 
 #### Bústia d'avisos i Notificacions Push:
 - Generació automàtica d'un avís quan es detecta una nova coincidència rellevant.

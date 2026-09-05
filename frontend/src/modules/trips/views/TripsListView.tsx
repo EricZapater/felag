@@ -139,6 +139,32 @@ export default function TripsListView() {
                     borderRadius: 2,
                   }}
                 />
+                {trip.is_owner === false && (
+                  <Chip
+                    label="👥 Compartit"
+                    size="small"
+                    sx={{
+                      bgcolor: '#EDE7F6',
+                      color: '#512DA8',
+                      fontWeight: 600,
+                      fontSize: '0.75rem',
+                      borderRadius: 2,
+                    }}
+                  />
+                )}
+                {trip.is_owner !== false && trip.companions && trip.companions.length > 1 && (
+                  <Chip
+                    label={`👥 ${trip.companions.length} viatgers`}
+                    size="small"
+                    sx={{
+                      bgcolor: '#F3E5F5',
+                      color: '#7B1FA2',
+                      fontWeight: 600,
+                      fontSize: '0.75rem',
+                      borderRadius: 2,
+                    }}
+                  />
+                )}
                 {trip.status !== 'planned' && (
                   <Chip
                     label={stat.label}

@@ -268,6 +268,14 @@ func (r *repository) FindCandidateStages(tripID, currentUserID, destinationName,
 		LEFT JOIN countries co ON rg.country_id = co.id
 		WHERE t.id != $1
 		  AND t.user_id != $2
+		  AND t.user_id NOT IN (
+		      SELECT user_id FROM trip_companions WHERE trip_id = $1
+		  )
+		  AND NOT EXISTS (
+		      SELECT 1 FROM trip_companions tc1
+		      JOIN trip_companions tc2 ON tc1.user_id = tc2.user_id
+		      WHERE tc1.trip_id = t.id AND tc2.trip_id = $1
+		  )
 		  AND t.visibility != 'private'
 		  AND t.status != 'cancelled'
 		  AND LOWER(TRIM(ts.destination_name)) = LOWER(TRIM($3))

@@ -8,8 +8,10 @@ import {
   View,
 } from 'react-native';
 import {
+  Avatar,
   Button,
   Card,
+  Chip,
   Divider,
   HelperText,
   IconButton,
@@ -18,8 +20,9 @@ import {
   TextInput,
 } from 'react-native-paper';
 import { useTripsStore } from '../store';
-import { CreateTripRequest, TripStageInput, TripVisibility } from '../types';
+import { CreateTripRequest, FelagiUserSummary, TripStageInput, TripVisibility } from '../types';
 import DestinationPickerModal from '../components/DestinationPickerModal';
+import CompanionPickerModal from '../components/CompanionPickerModal';
 
 interface Props {
   navigation: {
@@ -46,10 +49,12 @@ export default function TripCreateScreen({ navigation, route }: Props) {
   const [endDate, setEndDate] = useState('');
   const [visibility, setVisibility] = useState<TripVisibility>('public');
   const [stages, setStages] = useState<TripStageInput[]>([]);
+  const [companions, setCompanions] = useState<FelagiUserSummary[]>([]);
 
   // Modal for adding / editing a stage
   const [modalVisible, setModalVisible] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
+  const [companionPickerVisible, setCompanionPickerVisible] = useState(false);
   const [stageDest, setStageDest] = useState('');
   const [stageCountry, setStageCountry] = useState('');
   const [stageStart, setStageStart] = useState('');
@@ -77,6 +82,19 @@ export default function TripCreateScreen({ navigation, route }: Props) {
             notes: s.notes || '',
           }))
         );
+        if (currentTrip.companions) {
+          setCompanions(
+            currentTrip.companions
+              .filter((c) => c.role !== 'owner')
+              .map((c) => ({
+                id: c.user_id,
+                name: c.name,
+                avatar_url: c.avatar_url,
+                town_name: c.town_name,
+                origin_summary: c.origin_summary,
+              }))
+          );
+        }
       } else {
         fetchTripById(tripId).then((t) => {
           setTitle(t.title);
@@ -94,6 +112,19 @@ export default function TripCreateScreen({ navigation, route }: Props) {
               notes: s.notes || '',
             }))
           );
+          if (t.companions) {
+            setCompanions(
+              t.companions
+                .filter((c) => c.role !== 'owner')
+                .map((c) => ({
+                  id: c.user_id,
+                  name: c.name,
+                  avatar_url: c.avatar_url,
+                  town_name: c.town_name,
+                  origin_summary: c.origin_summary,
+                }))
+            );
+          }
         });
       }
     }
@@ -168,6 +199,7 @@ export default function TripCreateScreen({ navigation, route }: Props) {
       start_date: startDate.trim(),
       end_date: endDate.trim(),
       visibility,
+      companion_user_ids: companions.map((c) => c.id),
       stages: stages.map((s, idx) => ({
         stage_order: idx + 1,
         destination_name: s.destination_name,
@@ -283,6 +315,52 @@ export default function TripCreateScreen({ navigation, route }: Props) {
               style={styles.segmented}
               theme={{ colors: { secondaryContainer: '#F4ECE1', onSecondaryContainer: '#703817' } }}
             />
+          </Card.Content>
+        </Card>
+
+        {/* Companions Card */}
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text variant="titleSmall" style={styles.cardTitle}>
+              Amb qui viatjo? ({companions.length})
+            </Text>
+            <Text variant="bodySmall" style={styles.subtitle}>
+              Afegeix amics o familiars de FELAG. Compartireu l'àlbum de fotos i veureu el mateix itinerari sense fer match entre vosaltres.
+            </Text>
+
+            {companions.map((comp) => (
+              <View key={comp.id} style={styles.companionItem}>
+                <Avatar.Text
+                  size={32}
+                  label={(comp.name || 'F').slice(0, 2).toUpperCase()}
+                  style={styles.avatar}
+                  color="#FFFFFF"
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.companionName}>{comp.name}</Text>
+                  <Text style={styles.companionMeta}>
+                    {comp.town_name ? `📍 ${comp.town_name}` : comp.origin_summary || 'FELAGI'}
+                  </Text>
+                </View>
+                <IconButton
+                  icon="close"
+                  size={16}
+                  iconColor="#d32f2f"
+                  onPress={() => setCompanions(companions.filter((c) => c.id !== comp.id))}
+                  style={{ margin: 0 }}
+                />
+              </View>
+            ))}
+
+            <Button
+              mode="outlined"
+              icon="account-plus"
+              onPress={() => setCompanionPickerVisible(true)}
+              textColor="#C85A32"
+              style={styles.btnAddStage}
+            >
+              Afegir acompanyant
+            </Button>
           </Card.Content>
         </Card>
 
@@ -471,6 +549,17 @@ export default function TripCreateScreen({ navigation, route }: Props) {
           }
         }}
       />
+
+      <CompanionPickerModal
+        visible={companionPickerVisible}
+        onClose={() => setCompanionPickerVisible(false)}
+        excludedUserIds={companions.map((c) => c.id)}
+        onSelect={(newComp) => {
+          if (!companions.some((c) => c.id === newComp.id)) {
+            setCompanions([...companions, newComp]);
+          }
+        }}
+      />
     </View>
   );
 }
@@ -541,6 +630,29 @@ const styles = StyleSheet.create({
   },
   segmented: {
     marginTop: 4,
+  },
+  companionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FAF7F2',
+    borderWidth: 1,
+    borderColor: '#E8E2D9',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 8,
+  },
+  avatar: {
+    backgroundColor: '#C85A32',
+    marginRight: 10,
+  },
+  companionName: {
+    fontWeight: 'bold',
+    fontSize: 14,
+    color: '#2C221E',
+  },
+  companionMeta: {
+    fontSize: 12,
+    color: '#786C65',
   },
   stageItem: {
     backgroundColor: '#FAF7F2',

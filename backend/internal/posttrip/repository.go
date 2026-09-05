@@ -87,7 +87,7 @@ func (r *repository) GetActiveTripForUser(userID string) (*ActiveTripInfo, error
 			ORDER BY stage_order ASC
 			LIMIT 1
 		) ts ON true
-		WHERE t.user_id = $1
+		WHERE (t.user_id = $1 OR EXISTS (SELECT 1 FROM trip_companions tc WHERE tc.trip_id = t.id AND tc.user_id = $1 AND tc.status = 'accepted'))
 		  AND (
 		      (CURRENT_DATE BETWEEN t.start_date AND t.end_date)
 		      OR (t.status = 'active')

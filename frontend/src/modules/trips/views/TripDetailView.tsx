@@ -14,6 +14,9 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  Avatar,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
@@ -21,9 +24,15 @@ import LocationOnIcon from '@mui/icons-material/LocationOn';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import GroupIcon from '@mui/icons-material/Group';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader';
 import { useTripStore } from '../store';
+import { tripsApi } from '../api';
+import { CompanionSelector } from '../components/CompanionSelector';
+import { FelagiUserSummary } from '../types';
 import ActiveTripHubCard from '@/modules/posttrip/components/ActiveTripHubCard';
 import { usePostTripStore } from '@/modules/posttrip/store';
 
@@ -82,6 +91,15 @@ export default function TripDetailView() {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Travel companions state
+  const [openAddCompanionDialog, setOpenAddCompanionDialog] = useState(false);
+  const [selectedNewCompanions, setSelectedNewCompanions] = useState<FelagiUserSummary[]>([]);
+  const [isSubmittingCompanion, setIsSubmittingCompanion] = useState(false);
+  const [companionActionError, setCompanionActionError] = useState<string | null>(null);
+
+  const [openLeaveDialog, setOpenLeaveDialog] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
+
   useEffect(() => {
     if (id) {
       fetchTripById(id);
@@ -98,6 +116,55 @@ export default function TripDetailView() {
       navigate('/trips');
     } catch (err) {
       setIsDeleting(false);
+    }
+  };
+
+  const handleAddCompanionsConfirm = async () => {
+    if (!id || selectedNewCompanions.length === 0) return;
+    setIsSubmittingCompanion(true);
+    setCompanionActionError(null);
+    try {
+      for (const comp of selectedNewCompanions) {
+        await tripsApi.addCompanion(id, comp.id);
+      }
+      setSelectedNewCompanions([]);
+      setOpenAddCompanionDialog(false);
+      await fetchTripById(id);
+    } catch (err: any) {
+      setCompanionActionError(err?.response?.data?.error || 'Error en afegir acompanyants');
+    } finally {
+      setIsSubmittingCompanion(false);
+    }
+  };
+
+  const handleRemoveCompanion = async (companionUserId: string) => {
+    if (!id) return;
+    try {
+      await tripsApi.removeCompanion(id, companionUserId);
+      await fetchTripById(id);
+    } catch (err: any) {
+      setCompanionActionError(err?.response?.data?.error || 'Error en eliminar acompanyant');
+    }
+  };
+
+  const handleLeaveTripConfirm = async () => {
+    if (!id) return;
+    setIsLeaving(true);
+    try {
+      // For leave trip, if the companion removes themselves:
+      // Note: we can find companion record for current user or pass current user ID.
+      // In the backend repository, DeleteCompanion removes from trip_companions matching trip_id and user_id.
+      // If user is companion, we can pass their user_id or use API.
+      // Since backend verifies user is companion or owner, we can call removeCompanion with the user's ID or delete endpoint
+      const meCompanion = currentTrip?.companions?.find((c) => c.role !== 'owner');
+      if (meCompanion) {
+        await tripsApi.removeCompanion(id, meCompanion.user_id);
+      }
+      setOpenLeaveDialog(false);
+      navigate('/trips');
+    } catch (err: any) {
+      setIsLeaving(false);
+      setCompanionActionError(err?.response?.data?.error || 'Error en sortir del viatge');
     }
   };
 
@@ -311,6 +378,108 @@ export default function TripDetailView() {
               </Box>
             )}
 
+            {/* Travel Companions Section */}
+            <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid #E8E2D9' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <GroupIcon sx={{ color: '#C85A32' }} />
+                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#3E2723' }}>
+                    Amb qui viatjo ({currentTrip.companions?.length || 1})
+                  </Typography>
+                </Box>
+                {currentTrip.is_owner !== false && (
+                  <Button
+                    startIcon={<PersonAddIcon />}
+                    size="small"
+                    onClick={() => {
+                      setSelectedNewCompanions([]);
+                      setCompanionActionError(null);
+                      setOpenAddCompanionDialog(true);
+                    }}
+                    sx={{
+                      color: '#C85A32',
+                      textTransform: 'none',
+                      fontWeight: 600,
+                      '&:hover': { bgcolor: '#F4ECE1' },
+                    }}
+                  >
+                    Afegir acompanyant
+                  </Button>
+                )}
+              </Box>
+
+              {companionActionError && (
+                <Alert severity="error" sx={{ mb: 2 }} onClose={() => setCompanionActionError(null)}>
+                  {companionActionError}
+                </Alert>
+              )}
+
+              <Typography variant="body2" sx={{ color: '#786C65', mb: 2 }}>
+                Tots els viatgers d'aquest grup comparteixen l'àlbum de fotos i el tancament de viatge, i poden trobar altres viatgers externs, però mai faran match entre ells.
+              </Typography>
+
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
+                {(currentTrip.companions || []).map((comp) => {
+                  const isCreator = comp.role === 'owner';
+                  return (
+                    <Box
+                      key={comp.id || comp.user_id}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        bgcolor: '#FAF7F2',
+                        border: '1px solid #E8E2D9',
+                        borderRadius: 2,
+                        p: 1.5,
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
+                        <Avatar
+                          src={comp.avatar_url || undefined}
+                          sx={{ bgcolor: isCreator ? '#C85A32' : '#8C7A70', width: 38, height: 38, fontSize: '0.9rem', fontWeight: 700 }}
+                        >
+                          {(comp.name || 'F').slice(0, 2).toUpperCase()}
+                        </Avatar>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography variant="body2" noWrap sx={{ fontWeight: 700, color: '#2C221E' }}>
+                            {comp.name || 'Felagi'}
+                          </Typography>
+                          <Typography variant="caption" noWrap sx={{ color: '#786C65', display: 'block' }}>
+                            {comp.town_name ? `📍 ${comp.town_name}` : comp.origin_summary || 'FELAGI'}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Chip
+                          label={isCreator ? '👑 Creador' : '✈️ Acompanyant'}
+                          size="small"
+                          sx={{
+                            bgcolor: isCreator ? '#FFF3E0' : '#EDE7F6',
+                            color: isCreator ? '#E65100' : '#512DA8',
+                            fontWeight: 600,
+                            fontSize: '0.7rem',
+                            borderRadius: 1.5,
+                          }}
+                        />
+                        {currentTrip.is_owner !== false && !isCreator && (
+                          <Tooltip title="Eliminar del viatge">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleRemoveCompanion(comp.user_id)}
+                              sx={{ color: '#D32F2F', p: 0.5 }}
+                            >
+                              <DeleteOutlineIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </Box>
+                    </Box>
+                  );
+                })}
+              </Box>
+            </Box>
+
             {/* Matching Banner */}
             {currentTrip.visibility === 'public' && (
               <Box
@@ -383,20 +552,37 @@ export default function TripDetailView() {
             <Box />
           )}
 
-          <Button
-            variant="outlined"
-            color="error"
-            startIcon={<DeleteOutlineIcon />}
-            onClick={() => setOpenDeleteDialog(true)}
-            sx={{
-              textTransform: 'none',
-              fontWeight: 600,
-              borderRadius: 2,
-              px: 3,
-            }}
-          >
-            Eliminar viatge
-          </Button>
+          {currentTrip.is_owner !== false ? (
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<DeleteOutlineIcon />}
+              onClick={() => setOpenDeleteDialog(true)}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 600,
+                borderRadius: 2,
+                px: 3,
+              }}
+            >
+              Eliminar viatge
+            </Button>
+          ) : (
+            <Button
+              variant="outlined"
+              color="warning"
+              startIcon={<ExitToAppIcon />}
+              onClick={() => setOpenLeaveDialog(true)}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 600,
+                borderRadius: 2,
+                px: 3,
+              }}
+            >
+              Sortir del viatge
+            </Button>
+          )}
         </Box>
       </Container>
 
@@ -420,6 +606,58 @@ export default function TripDetailView() {
             sx={{ bgcolor: '#d32f2f', '&:hover': { bgcolor: '#b71c1c' } }}
           >
             {isDeleting ? 'Eliminant...' : 'Eliminar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Leave Trip Dialog */}
+      <Dialog open={openLeaveDialog} onClose={() => !isLeaving && setOpenLeaveDialog(false)}>
+        <DialogTitle sx={{ fontWeight: 700, color: '#2C221E' }}>Sortir del viatge</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: '#786C65' }}>
+            Estàs segur que vols sortir del viatge <strong>"{currentTrip.title}"</strong>? Ja no apareixeràs com a acompanyant ni tindràs accés a l'àlbum compartit.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setOpenLeaveDialog(false)} disabled={isLeaving} sx={{ color: '#786C65' }}>
+            Cancel·lar
+          </Button>
+          <Button
+            onClick={handleLeaveTripConfirm}
+            color="warning"
+            variant="contained"
+            disabled={isLeaving}
+            sx={{ bgcolor: '#ED6C02', '&:hover': { bgcolor: '#C75B00' } }}
+          >
+            {isLeaving ? 'Sortint...' : 'Sortir del viatge'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add Companions Dialog */}
+      <Dialog open={openAddCompanionDialog} onClose={() => !isSubmittingCompanion && setOpenAddCompanionDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, color: '#2C221E' }}>Afegir acompanyants al viatge</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: '#786C65', mb: 2 }}>
+            Cerca usuaris de FELAG pel seu nom o àlies per afegir-los al viatge. Compartiran el mateix itinerari i l'àlbum de records.
+          </DialogContentText>
+          <CompanionSelector
+            selectedCompanions={selectedNewCompanions}
+            onChange={setSelectedNewCompanions}
+            excludedUserIds={(currentTrip.companions || []).map((c) => c.user_id)}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setOpenAddCompanionDialog(false)} disabled={isSubmittingCompanion} sx={{ color: '#786C65' }}>
+            Cancel·lar
+          </Button>
+          <Button
+            onClick={handleAddCompanionsConfirm}
+            variant="contained"
+            disabled={isSubmittingCompanion || selectedNewCompanions.length === 0}
+            sx={{ bgcolor: '#C85A32', '&:hover': { bgcolor: '#A0471D' } }}
+          >
+            {isSubmittingCompanion ? 'Afegint...' : `Afegir ${selectedNewCompanions.length > 0 ? `(${selectedNewCompanions.length})` : ''}`}
           </Button>
         </DialogActions>
       </Dialog>

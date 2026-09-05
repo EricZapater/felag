@@ -114,10 +114,26 @@ export default function TripsListScreen({ navigation }: Props) {
               <Text variant="titleMedium" style={styles.tripTitle} numberOfLines={1}>
                 {trip.title}
               </Text>
-              <View style={[styles.badge, { backgroundColor: badge.bg }]}>
-                <Text style={[styles.badgeText, { color: badge.text }]}>
-                  {getVisibilityLabel(trip.visibility)}
-                </Text>
+              <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+                <View style={[styles.badge, { backgroundColor: badge.bg }]}>
+                  <Text style={[styles.badgeText, { color: badge.text }]}>
+                    {getVisibilityLabel(trip.visibility)}
+                  </Text>
+                </View>
+                {trip.is_owner === false && (
+                  <View style={[styles.badge, { backgroundColor: '#EDE7F6' }]}>
+                    <Text style={[styles.badgeText, { color: '#512DA8' }]}>
+                      👥 Compartit
+                    </Text>
+                  </View>
+                )}
+                {trip.is_owner !== false && trip.companions && trip.companions.length > 1 && (
+                  <View style={[styles.badge, { backgroundColor: '#F3E5F5' }]}>
+                    <Text style={[styles.badgeText, { color: '#7B1FA2' }]}>
+                      👥 {trip.companions.length}
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
 

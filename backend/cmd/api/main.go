@@ -211,6 +211,9 @@ func main() {
 				tripGroup.DELETE("/:trip_id", tripHandler.DeleteTrip)
 				tripGroup.GET("/:trip_id/matches", matchingHandler.GetTripMatches)
 				tripGroup.PUT("/:trip_id/photo-sharing", tripHandler.UpdatePhotoSharingMode)
+				tripGroup.GET("/:trip_id/companions", tripHandler.ListTripCompanions)
+				tripGroup.POST("/:trip_id/companions", tripHandler.AddTripCompanion)
+				tripGroup.DELETE("/:trip_id/companions/:user_id", tripHandler.RemoveTripCompanion)
 
 				// Post-Trip & Photos & Celebration & Wrapup
 				tripGroup.GET("/:trip_id/photos", posttripHandler.ListPhotos)
@@ -223,6 +226,9 @@ func main() {
 				tripGroup.POST("/:trip_id/feedback", posttripHandler.SubmitFeedback)
 				tripGroup.GET("/:trip_id/stories-card-data", posttripHandler.GetStoriesCardData)
 			}
+
+			// Users search route
+			protected.GET("/users/search", tripHandler.SearchUsers)
 
 			// Explore routes
 			protected.GET("/explore/recommendations", exploreHandler.GetRecommendations)
