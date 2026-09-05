@@ -1,0 +1,60 @@
+DOCUMENTACIO_FUNCIONAL.md
+  h_42175f19913982 84-87,105-107
+backend/cmd/api/main.go
+  h_42175f19913982 214-216,230-232
+backend/internal/db/migrations/000010_create_trip_companions.down.sql
+  h_42175f19913982 1
+backend/internal/db/migrations/000010_create_trip_companions.up.sql
+  h_42175f19913982 1-19
+backend/internal/matching/repository.go
+  h_42175f19913982 271-278
+backend/internal/posttrip/repository.go
+  h_42175f19913982 90
+backend/internal/trip/handler.go
+  h_42175f19913982 168-263
+backend/internal/trip/model.go
+  h_42175f19913982 29-53,55-68,78,89,96
+backend/internal/trip/repository.go
+  h_42175f19913982 10-11,13,16-20,31-52,115,117,119-143,218-223,227,267,269,271,327-333,346-351,355-360,364-368,408,410,432-433,479-489,496-556,565,576-577,579,652,699-720,780-784,816-822,838-1057
+backend/internal/trip/service.go
+  h_42175f19913982 25-28,165-170,187,195-208,223,333,372-440
+backend/internal/trip/service_test.go
+  h_42175f19913982 10-22,25,27,31,34-41,45,47,53,63-70,77,79,127-193,195-198,264,267,274,292-294,311-313,316,329-339,345,354,358-366,372-373,375,377-378,381-384,386-390
+contracts/trips.openapi.yaml
+  h_42175f19913982 138-248,367-377,389-463,491-499,526-533
+frontend/src/modules/trips/api.ts
+  h_42175f19913982 2-9,36-58
+frontend/src/modules/trips/components/CompanionSelector.tsx
+  h_42175f19913982 1-199
+frontend/src/modules/trips/types.ts
+  h_42175f19913982 7-35,69-71,83-84,94-95
+frontend/src/modules/trips/views/TripCreateView.tsx
+  h_42175f19913982 24,26,47,160,275-280
+frontend/src/modules/trips/views/TripDetailView.tsx
+  h_42175f19913982 17-19,27-29,33-35,94-102,122-170,381-482,555-585,612-663
+frontend/src/modules/trips/views/TripsListView.tsx
+  h_42175f19913982 142-167
+mobile/src/modules/trips/api.ts
+  h_42175f19913982 3,5,7,37-59
+mobile/src/modules/trips/components/CompanionPickerModal.tsx
+  h_42175f19913982 1-252
+mobile/src/modules/trips/screens/TripCreateScreen.tsx
+  h_42175f19913982 11,14,23,25,52,57,85-97,115-127,202,321-366,552-562,634-656
+mobile/src/modules/trips/screens/TripDetailScreen.tsx
+  h_42175f19913982 10,12-14,35-36,67-133,369-485,684-748
+mobile/src/modules/trips/screens/TripsListScreen.tsx
+  h_42175f19913982 117-136
+mobile/src/modules/trips/types.ts
+  h_42175f19913982 5-32,38-39,49-50,66-68,80-81,91-92
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "630f9b6d8f86869038d4392c67642873f7e1c8b3",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
