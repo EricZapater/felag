@@ -1,0 +1,24 @@
+backend/internal/trip/model.go
+  h_42175f19913982 64
+backend/internal/trip/repository.go
+  h_42175f19913982 233-235,254,349-351,360-362,371-373,406
+frontend/src/modules/posttrip/views/TripGalleryView.tsx
+  h_42175f19913982 28-29,34,57-61,120-129,307-347,397-398,548-709
+frontend/src/modules/trips/types.ts
+  h_42175f19913982 70
+frontend/src/modules/trips/views/TripDetailView.tsx
+  h_42175f19913982 30-31,232,262-265,539-559,562,564,571,575,577
+frontend/src/modules/trips/views/TripsListView.tsx
+  h_42175f19913982 181-191,256
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "352ab4bfab04c5470288c0eac2998d43f466e22a",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
