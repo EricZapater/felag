@@ -2,6 +2,7 @@ package posttrip
 
 import (
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -411,5 +412,56 @@ func TestSubmitFeedback_InvalidRating(t *testing.T) {
 	})
 	if !errors.Is(err, ErrInvalidFeedback) {
 		t.Errorf("expected ErrInvalidFeedback, got %v", err)
+	}
+}
+
+func TestAddPhoto_Base64Upload(t *testing.T) {
+	repo := &mockRepository{
+		tripAccessInfo: &TripAccessInfo{
+			ID:     "trip-1",
+			UserID: "user-1",
+		},
+	}
+	svc := NewService(repo)
+
+	base64Photo := "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+	caption := "Foto al cim"
+	photo, err := svc.AddPhoto("user-1", "trip-1", AddTripPhotoRequest{
+		ImageURL: base64Photo,
+		Caption:  &caption,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error adding photo: %v", err)
+	}
+
+	if photo.ImageURL == base64Photo {
+		t.Errorf("expected photo.ImageURL to be transformed to a storage URL, got base64 data")
+	}
+	if !strings.HasPrefix(photo.ImageURL, "http://localhost:8080/static/trips/trip_trip-1_") && !strings.HasPrefix(photo.ImageURL, "https://") {
+		t.Errorf("unexpected image URL format: %s", photo.ImageURL)
+	}
+}
+
+func TestCreateCelebrationCard_Base64Upload(t *testing.T) {
+	repo := &mockRepository{
+		tripAccessInfo: &TripAccessInfo{
+			ID:     "trip-1",
+			UserID: "user-1",
+		},
+	}
+	svc := NewService(repo)
+
+	base64Card := "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+	card, err := svc.CreateCelebrationCard("user-1", "trip-1", CreateCelebrationCardRequest{
+		User2ID:      "user-2",
+		ImageURL:     base64Card,
+		LocationName: "Tokyo Tower",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error creating celebration card: %v", err)
+	}
+
+	if card.ImageURL == base64Card {
+		t.Errorf("expected card.ImageURL to be transformed to a storage URL, got base64 data")
 	}
 }

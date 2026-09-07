@@ -1,11 +1,13 @@
 package posttrip
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
 
 	"felag/backend/internal/chat"
+	"felag/backend/internal/storage"
 )
 
 var (
@@ -33,17 +35,31 @@ type Service interface {
 	SubmitFeedback(userID, tripID string, req TripFeedbackRequest) error
 	GetStoriesCardData(userID, tripID string) (*StoriesCardData, error)
 	SetChatService(chatSvc ChatSender)
+	SetStorageService(storage storage.StorageService)
+	GetStorageService() storage.StorageService
 }
 
 type service struct {
 	repo    Repository
 	chatSvc ChatSender
+	storage storage.StorageService
 }
 
 func NewService(repo Repository) Service {
 	return &service{
 		repo: repo,
 	}
+}
+
+func (s *service) SetStorageService(storage storage.StorageService) {
+	s.storage = storage
+}
+
+func (s *service) GetStorageService() storage.StorageService {
+	if s.storage == nil {
+		s.storage = storage.NewStorageService()
+	}
+	return s.storage
 }
 
 func (s *service) SetChatService(chatSvc ChatSender) {
@@ -118,6 +134,15 @@ func (s *service) AddPhoto(userID, tripID string, req AddTripPhotoRequest) (*Tri
 	}
 	if trip == nil {
 		return nil, ErrTripNotFound
+	}
+
+	storageSvc := s.GetStorageService()
+	if storageSvc != nil && storageSvc.IsBase64Image(req.ImageURL) {
+		uploadedURL, err := storageSvc.UploadBase64(context.Background(), "trips", fmt.Sprintf("trip_%s", tripID), req.ImageURL)
+		if err != nil {
+			return nil, fmt.Errorf("error uploading trip photo to storage: %w", err)
+		}
+		req.ImageURL = uploadedURL
 	}
 
 	photo, err := s.repo.AddPhoto(tripID, userID, req)
@@ -230,12 +255,22 @@ func (s *service) CreateCelebrationCard(userID, tripID string, req CreateCelebra
 
 	matchID, _ := s.repo.FindMatchID(userID, req.User2ID, tripID)
 
+	imageURL := req.ImageURL
+	storageSvc := s.GetStorageService()
+	if storageSvc != nil && storageSvc.IsBase64Image(imageURL) {
+		uploadedURL, err := storageSvc.UploadBase64(context.Background(), "celebrations", fmt.Sprintf("celebration_%s", tripID), imageURL)
+		if err != nil {
+			return nil, fmt.Errorf("error uploading celebration card image: %w", err)
+		}
+		imageURL = uploadedURL
+	}
+
 	card, err := s.repo.CreateCelebrationCard(
 		tripID,
 		userID,
 		req.User2ID,
 		matchID,
-		req.ImageURL,
+		imageURL,
 		title,
 		headline,
 		subheadline,

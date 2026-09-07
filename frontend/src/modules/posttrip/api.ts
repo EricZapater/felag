@@ -22,8 +22,13 @@ export const postTripApi = {
     return res.data;
   },
 
-  addTripPhoto: async (tripId: string, req: AddTripPhotoRequest): Promise<TripPhoto> => {
-    const res = await apiClient.post<TripPhoto>(`/api/v1/trips/${tripId}/photos`, req);
+  addTripPhoto: async (tripId: string, req: AddTripPhotoRequest | FormData): Promise<TripPhoto> => {
+    const isFormData = typeof FormData !== 'undefined' && req instanceof FormData;
+    const res = await apiClient.post<TripPhoto>(
+      `/api/v1/trips/${tripId}/photos`,
+      req,
+      isFormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined
+    );
     return res.data;
   },
 

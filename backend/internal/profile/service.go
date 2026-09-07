@@ -1,13 +1,12 @@
 package profile
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"io"
 	"mime/multipart"
-	"os"
-	"path/filepath"
-	"strings"
+
+	"felag/backend/internal/storage"
 )
 
 var (
@@ -26,6 +25,7 @@ type Service interface {
 	GetTownsByRegion(regionID string) ([]Town, error)
 	SearchTowns(q string, limit int) ([]TownSearchResult, error)
 	SetModerationService(mod moderationChecker)
+	SetStorageService(storage storage.StorageService)
 }
 
 type moderationChecker interface {
@@ -35,10 +35,15 @@ type moderationChecker interface {
 type service struct {
 	repo          Repository
 	moderationSvc moderationChecker
+	storage       storage.StorageService
 }
 
 func NewService(repo Repository) Service {
 	return &service{repo: repo}
+}
+
+func (s *service) SetStorageService(storage storage.StorageService) {
+	s.storage = storage
 }
 
 func (s *service) SetModerationService(mod moderationChecker) {
@@ -92,45 +97,14 @@ func (s *service) UpdateProfile(userID string, req UpdateProfileRequest) (*Profi
 }
 
 func (s *service) UploadAvatar(userID string, fileHeader *multipart.FileHeader) (string, error) {
-	file, err := fileHeader.Open()
+	storageSvc := s.storage
+	if storageSvc == nil {
+		storageSvc = storage.NewStorageService()
+	}
+
+	avatarURL, err := storageSvc.UploadFileHeader(context.Background(), "avatars", userID, fileHeader)
 	if err != nil {
-		return "", fmt.Errorf("error opening uploaded file: %w", err)
-	}
-	defer file.Close()
-
-	fileName := fmt.Sprintf("%s_%s", userID, filepath.Base(fileHeader.Filename))
-
-	// Ensure uploads directory exists for fallback/local development
-	uploadDir := os.Getenv("UPLOAD_DIR")
-	if uploadDir == "" {
-		uploadDir = "./uploads"
-	}
-	avatarDir := filepath.Join(uploadDir, "avatars")
-	if err := os.MkdirAll(avatarDir, 0755); err != nil {
-		return "", fmt.Errorf("error creating avatar dir: %w", err)
-	}
-
-	dstPath := filepath.Join(avatarDir, fileName)
-	dst, err := os.Create(dstPath)
-	if err != nil {
-		return "", fmt.Errorf("error creating destination file: %w", err)
-	}
-	defer dst.Close()
-
-	if _, err := io.Copy(dst, file); err != nil {
-		return "", fmt.Errorf("error writing file: %w", err)
-	}
-
-	var avatarURL string
-	r2URL := os.Getenv("R2_PUBLIC_URL")
-	if r2URL != "" {
-		avatarURL = fmt.Sprintf("%s/%s", strings.TrimRight(r2URL, "/"), fileName)
-	} else {
-		baseURL := os.Getenv("BASE_URL")
-		if baseURL == "" {
-			baseURL = "http://localhost:8080"
-		}
-		avatarURL = fmt.Sprintf("%s/static/avatars/%s", strings.TrimRight(baseURL, "/"), fileName)
+		return "", fmt.Errorf("error uploading avatar: %w", err)
 	}
 
 	if err := s.repo.UpdateAvatar(userID, avatarURL); err != nil {

@@ -19,6 +19,7 @@ import (
 	"felag/backend/internal/posttrip"
 	"felag/backend/internal/profile"
 	"felag/backend/internal/shared"
+	"felag/backend/internal/storage"
 	"felag/backend/internal/trip"
 
 	"github.com/gin-gonic/gin"
@@ -59,14 +60,17 @@ func main() {
 	r.Use(CORSMiddleware())
 	r.Use(shared.MetricsMiddleware(database))
 
-	// Static route for uploaded avatars
+	// Static routes for uploaded files
 	uploadDir := os.Getenv("UPLOAD_DIR")
 	if uploadDir == "" {
 		uploadDir = "./uploads"
 	}
-	avatarDir := filepath.Join(uploadDir, "avatars")
-	_ = os.MkdirAll(avatarDir, 0755)
-	r.Static("/static/avatars", avatarDir)
+	_ = os.MkdirAll(filepath.Join(uploadDir, "avatars"), 0755)
+	_ = os.MkdirAll(filepath.Join(uploadDir, "trips"), 0755)
+	_ = os.MkdirAll(filepath.Join(uploadDir, "celebrations"), 0755)
+	_ = os.MkdirAll(filepath.Join(uploadDir, "live_moments"), 0755)
+	_ = os.MkdirAll(filepath.Join(uploadDir, "recommendations"), 0755)
+	r.Static("/static", uploadDir)
 
 	// Health check
 	r.GET("/health", func(c *gin.Context) {
@@ -74,6 +78,9 @@ func main() {
 			"status": "ok",
 		})
 	})
+
+	// Setup Storage Service (Cloudflare R2 or local fallback)
+	storageService := storage.NewStorageService()
 
 	// Setup Repositories and Services
 	authRepo := auth.NewRepository(database)
@@ -87,6 +94,7 @@ func main() {
 	profileRepo := profile.NewRepository(database)
 	profileService := profile.NewService(profileRepo)
 	profileService.SetModerationService(moderationService)
+	profileService.SetStorageService(storageService)
 	profileHandler := profile.NewHandler(profileService)
 
 	notificationRepo := notification.NewRepository(database)
@@ -116,11 +124,13 @@ func main() {
 
 	communityRepo := community.NewRepository(database)
 	communityService := community.NewService(communityRepo)
+	communityService.SetStorageService(storageService)
 	communityHandler := community.NewHandler(communityService)
 
 	posttripRepo := posttrip.NewRepository(database)
 	posttripService := posttrip.NewService(posttripRepo)
 	posttripService.SetChatService(chatService)
+	posttripService.SetStorageService(storageService)
 	posttripHandler := posttrip.NewHandler(posttripService)
 
 	exploreRepo := explore.NewRepository(database)

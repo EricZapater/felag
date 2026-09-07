@@ -1,7 +1,11 @@
 package profile
 
 import (
+	"bytes"
 	"errors"
+	"mime/multipart"
+	"net/textproto"
+	"strings"
 	"testing"
 )
 
@@ -153,5 +157,51 @@ func TestProfileService_GetPublicProfile(t *testing.T) {
 	_, err = svc.GetPublicProfile("u2", "u-not-found")
 	if !errors.Is(err, ErrProfileNotFound) {
 		t.Fatalf("expected ErrProfileNotFound, got %v", err)
+	}
+}
+
+func TestProfileService_UploadAvatar(t *testing.T) {
+	repo := newMockProfileRepo()
+	svc := NewService(repo)
+
+	header := &multipart.FileHeader{
+		Filename: "avatar.jpg",
+		Size:     12,
+		Header:   make(textproto.MIMEHeader),
+	}
+	header.Header.Set("Content-Type", "image/jpeg")
+
+	// We create a mock multipart header with content
+	var buf bytes.Buffer
+	w := multipart.NewWriter(&buf)
+	part, err := w.CreateFormFile("file", "avatar.jpg")
+	if err != nil {
+		t.Fatalf("failed to create form file: %v", err)
+	}
+	_, _ = part.Write([]byte("fake-img-data"))
+	_ = w.Close()
+
+	reader := multipart.NewReader(&buf, w.Boundary())
+	form, err := reader.ReadForm(1024)
+	if err != nil {
+		t.Fatalf("failed to read form: %v", err)
+	}
+	fileHeaders := form.File["file"]
+	if len(fileHeaders) == 0 {
+		t.Fatalf("no file in form")
+	}
+
+	url, err := svc.UploadAvatar("u1", fileHeaders[0])
+	if err != nil {
+		t.Fatalf("unexpected error uploading avatar: %v", err)
+	}
+
+	if !strings.HasPrefix(url, "http://localhost:8080/static/avatars/u1_") || !strings.HasSuffix(url, ".jpg") {
+		t.Errorf("unexpected avatar url: %s", url)
+	}
+
+	p, _ := svc.GetProfile("u1")
+	if p.AvatarURL == nil || *p.AvatarURL != url {
+		t.Errorf("expected profile avatar_url to be updated to %s, got %v", url, p.AvatarURL)
 	}
 }

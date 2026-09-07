@@ -22,7 +22,7 @@ interface PostTripState {
 
   fetchActiveHub: () => Promise<ActiveTripHubResponse | null>;
   fetchTripPhotos: (tripId: string) => Promise<void>;
-  addTripPhoto: (tripId: string, req: AddTripPhotoRequest) => Promise<TripPhoto>;
+  addTripPhoto: (tripId: string, req: AddTripPhotoRequest | FormData) => Promise<TripPhoto>;
   togglePhotoFeatured: (tripId: string, photoId: string) => Promise<void>;
   deleteTripPhoto: (tripId: string, photoId: string) => Promise<void>;
   fetchCelebrationCards: (tripId: string) => Promise<void>;
@@ -73,7 +73,7 @@ export const usePostTripStore = create<PostTripState>((set) => ({
     }
   },
 
-  addTripPhoto: async (tripId: string, req: AddTripPhotoRequest) => {
+  addTripPhoto: async (tripId: string, req: AddTripPhotoRequest | FormData) => {
     set({ isLoading: true, error: null });
     try {
       const photo = await postTripApi.addTripPhoto(tripId, req);

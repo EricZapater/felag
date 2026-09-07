@@ -1,10 +1,13 @@
 package community
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
+
+	"felag/backend/internal/storage"
 )
 
 var (
@@ -43,14 +46,28 @@ type Service interface {
 	GetLiveFeed(destID string, userID string) (*LiveFeedResponse, error)
 	CreateLiveMoment(destID string, userID string, req CreateLiveMomentRequest) (*LiveMoment, error)
 	CreateReport(reporterID string, req CommunityReportRequest) error
+	SetStorageService(storage storage.StorageService)
+	GetStorageService() storage.StorageService
 }
 
 type service struct {
-	repo Repository
+	repo    Repository
+	storage storage.StorageService
 }
 
 func NewService(repo Repository) Service {
 	return &service{repo: repo}
+}
+
+func (s *service) SetStorageService(storage storage.StorageService) {
+	s.storage = storage
+}
+
+func (s *service) GetStorageService() storage.StorageService {
+	if s.storage == nil {
+		s.storage = storage.NewStorageService()
+	}
+	return s.storage
 }
 
 func (s *service) SearchDestinations(q string, limit int) ([]DestinationSummary, error) {
@@ -126,6 +143,18 @@ func (s *service) CreateRecommendation(destID string, userID string, req CreateR
 	req.Category = cat
 	req.Title = title
 	req.Description = desc
+
+	if req.ImageURL != nil {
+		rawImg := strings.TrimSpace(*req.ImageURL)
+		storageSvc := s.GetStorageService()
+		if storageSvc != nil && storageSvc.IsBase64Image(rawImg) {
+			uploadedURL, err := storageSvc.UploadBase64(context.Background(), "recommendations", fmt.Sprintf("rec_%s", destID), rawImg)
+			if err != nil {
+				return nil, fmt.Errorf("error uploading recommendation image: %w", err)
+			}
+			req.ImageURL = &uploadedURL
+		}
+	}
 
 	return s.repo.CreateRecommendation(destID, info, userID, req)
 }
@@ -217,6 +246,15 @@ func (s *service) CreateLiveMoment(destID string, userID string, req CreateLiveM
 	imgURL := strings.TrimSpace(req.ImageURL)
 	if imgURL == "" {
 		return nil, fmt.Errorf("la imatge és obligatòria")
+	}
+
+	storageSvc := s.GetStorageService()
+	if storageSvc != nil && storageSvc.IsBase64Image(imgURL) {
+		uploadedURL, err := storageSvc.UploadBase64(context.Background(), "live_moments", fmt.Sprintf("moment_%s", destID), imgURL)
+		if err != nil {
+			return nil, fmt.Errorf("error uploading live moment image: %w", err)
+		}
+		imgURL = uploadedURL
 	}
 
 	var caption *string

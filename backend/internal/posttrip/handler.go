@@ -2,7 +2,9 @@ package posttrip
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"felag/backend/internal/shared"
 	"github.com/gin-gonic/gin"
@@ -83,9 +85,31 @@ func (h *Handler) AddPhoto(c *gin.Context) {
 	}
 
 	var req AddTripPhotoRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		shared.ErrorResponse(c, http.StatusBadRequest, "INVALID_INPUT", err.Error())
-		return
+	contentType := c.ContentType()
+	if strings.HasPrefix(contentType, "multipart/form-data") {
+		fileHeader, err := c.FormFile("file")
+		if err != nil {
+			shared.ErrorResponse(c, http.StatusBadRequest, "INVALID_FILE", "És necessari incloure un fitxer a la petició (camp 'file').")
+			return
+		}
+		storageSvc := h.service.GetStorageService()
+		uploadedURL, err := storageSvc.UploadFileHeader(c.Request.Context(), "trips", fmt.Sprintf("trip_%s", tripID), fileHeader)
+		if err != nil {
+			shared.ErrorResponse(c, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+			return
+		}
+		req.ImageURL = uploadedURL
+		if caption := c.PostForm("caption"); caption != "" {
+			req.Caption = &caption
+		}
+		if loc := c.PostForm("location_name"); loc != "" {
+			req.LocationName = &loc
+		}
+	} else {
+		if err := c.ShouldBindJSON(&req); err != nil {
+			shared.ErrorResponse(c, http.StatusBadRequest, "INVALID_INPUT", err.Error())
+			return
+		}
 	}
 
 	photo, err := h.service.AddPhoto(userID, tripID, req)
