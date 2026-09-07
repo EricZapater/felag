@@ -25,10 +25,13 @@ import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import ZoomInIcon from '@mui/icons-material/ZoomIn';
+import CloseIcon from '@mui/icons-material/Close';
 import { Link as RouterLink, useParams } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader';
 import { usePostTripStore } from '../store';
 import { useTripStore } from '@/modules/trips/store';
+import { TripPhoto } from '../types';
 
 export default function TripGalleryView() {
   const { id: tripId } = useParams<{ id: string }>();
@@ -50,6 +53,11 @@ export default function TripGalleryView() {
   const [isFeatured, setIsFeatured] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
+
+  // Lightbox & delete states
+  const [selectedPhoto, setSelectedPhoto] = useState<TripPhoto | null>(null);
+  const [photoToDelete, setPhotoToDelete] = useState<TripPhoto | null>(null);
+  const [isDeletingPhoto, setIsDeletingPhoto] = useState(false);
 
   useEffect(() => {
     if (tripId) {
@@ -109,14 +117,16 @@ export default function TripGalleryView() {
     }
   };
 
-  const handleDeletePhoto = async (photoId: string) => {
-    if (!tripId) return;
-    if (window.confirm('Vols eliminar aquesta fotografia de l’àlbum?')) {
-      try {
-        await deleteTripPhoto(tripId, photoId);
-      } catch {
-        // error handled in store
-      }
+  const handleConfirmDelete = async () => {
+    if (!tripId || !photoToDelete) return;
+    setIsDeletingPhoto(true);
+    try {
+      await deleteTripPhoto(tripId, photoToDelete.id);
+      setPhotoToDelete(null);
+    } catch {
+      // error handled in store
+    } finally {
+      setIsDeletingPhoto(false);
     }
   };
 
@@ -294,14 +304,47 @@ export default function TripGalleryView() {
                   />
                 )}
 
-                {/* Card Media */}
-                <CardMedia
-                  component="img"
-                  height="220"
-                  image={photo.image_url}
-                  alt={photo.caption || 'Foto del viatge'}
-                  sx={{ objectFit: 'cover' }}
-                />
+                {/* Card Media with Lightbox click */}
+                <Box
+                  onClick={() => setSelectedPhoto(photo)}
+                  sx={{
+                    position: 'relative',
+                    cursor: 'pointer',
+                    overflow: 'hidden',
+                    '&:hover .zoom-overlay': {
+                      opacity: 1,
+                    },
+                    '&:hover img': {
+                      transform: 'scale(1.05)',
+                    },
+                  }}
+                >
+                  <CardMedia
+                    component="img"
+                    height="220"
+                    image={photo.image_url}
+                    alt={photo.caption || 'Foto del viatge'}
+                    sx={{
+                      objectFit: 'cover',
+                      transition: 'transform 0.35s ease',
+                    }}
+                  />
+                  <Box
+                    className="zoom-overlay"
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      bgcolor: 'rgba(0, 0, 0, 0.3)',
+                      opacity: 0,
+                      transition: 'opacity 0.25s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <ZoomInIcon sx={{ color: '#FFFFFF', fontSize: 38, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }} />
+                  </Box>
+                </Box>
 
                 {/* Card Content & Action Bar */}
                 <CardContent sx={{ p: 2 }}>
@@ -351,7 +394,8 @@ export default function TripGalleryView() {
                     <IconButton
                       size="small"
                       color="error"
-                      onClick={() => handleDeletePhoto(photo.id)}
+                      onClick={() => setPhotoToDelete(photo)}
+                      title="Eliminar fotografia"
                       sx={{ p: 0.5 }}
                     >
                       <DeleteOutlineIcon sx={{ fontSize: 18 }} />
@@ -500,6 +544,168 @@ export default function TripGalleryView() {
             </Button>
           </DialogActions>
         </form>
+      </Dialog>
+
+      {/* Lightbox / Full-size Image Dialog */}
+      <Dialog
+        open={!!selectedPhoto}
+        onClose={() => setSelectedPhoto(null)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            bgcolor: '#1E1815',
+            color: '#FFFFFF',
+            overflow: 'hidden',
+            position: 'relative',
+          },
+        }}
+      >
+        <IconButton
+          onClick={() => setSelectedPhoto(null)}
+          sx={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            color: '#FFFFFF',
+            bgcolor: 'rgba(0, 0, 0, 0.55)',
+            zIndex: 10,
+            '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.85)' },
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
+
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            bgcolor: '#000000',
+            minHeight: { xs: 240, md: 360 },
+            maxHeight: '75vh',
+          }}
+        >
+          {selectedPhoto && (
+            <Box
+              component="img"
+              src={selectedPhoto.image_url}
+              alt={selectedPhoto.caption || 'Fotografia ampliada'}
+              sx={{
+                maxWidth: '100%',
+                maxHeight: '75vh',
+                objectFit: 'contain',
+                display: 'block',
+              }}
+            />
+          )}
+        </Box>
+
+        {selectedPhoto && (
+          <Box sx={{ p: { xs: 2, md: 2.5 }, bgcolor: '#2C221E' }}>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 1,
+                mb: 0.5,
+              }}
+            >
+              <Typography variant="h6" sx={{ fontWeight: 700, color: '#FFFFFF', fontSize: '1.1rem' }}>
+                {selectedPhoto.caption || 'Sense títol'}
+              </Typography>
+              {selectedPhoto.is_featured && (
+                <Chip
+                  label="⭐ Destacada per Stories"
+                  size="small"
+                  sx={{
+                    bgcolor: 'rgba(200,90,50,0.95)',
+                    color: '#FFFFFF',
+                    fontWeight: 700,
+                    fontSize: '0.72rem',
+                  }}
+                />
+              )}
+            </Box>
+            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.75)' }}>
+              {selectedPhoto.location_name ? `📍 ${selectedPhoto.location_name}` : '📍 Sense ubicació especificada'}
+            </Typography>
+          </Box>
+        )}
+      </Dialog>
+
+      {/* Delete Photo Confirmation Dialog */}
+      <Dialog
+        open={!!photoToDelete}
+        onClose={() => !isDeletingPhoto && setPhotoToDelete(null)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3, p: 1 },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, color: '#2C221E', pb: 1 }}>
+          🗑️ Eliminar fotografia
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ color: '#786C65', mb: 2 }}>
+            Estàs segur que vols eliminar aquesta fotografia de l'àlbum del viatge? Aquesta acció no es pot desfer.
+          </Typography>
+          {photoToDelete && (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                p: 1.5,
+                bgcolor: '#FAF7F2',
+                border: '1px solid #E8E2D9',
+                borderRadius: 2,
+              }}
+            >
+              <Box
+                component="img"
+                src={photoToDelete.image_url}
+                alt="Miniatura"
+                sx={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 1.5 }}
+              />
+              <Box sx={{ minWidth: 0 }}>
+                <Typography variant="subtitle2" noWrap sx={{ fontWeight: 700, color: '#2C221E' }}>
+                  {photoToDelete.caption || 'Fotografia'}
+                </Typography>
+                <Typography variant="caption" noWrap sx={{ color: '#786C65', display: 'block' }}>
+                  {photoToDelete.location_name || 'Sense ubicació'}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2, pt: 1 }}>
+          <Button
+            onClick={() => setPhotoToDelete(null)}
+            disabled={isDeletingPhoto}
+            sx={{ color: '#786C65', textTransform: 'none', fontWeight: 600 }}
+          >
+            Cancel·lar
+          </Button>
+          <Button
+            onClick={handleConfirmDelete}
+            variant="contained"
+            color="error"
+            disabled={isDeletingPhoto}
+            sx={{
+              textTransform: 'none',
+              fontWeight: 700,
+              borderRadius: 2,
+              px: 2.5,
+            }}
+          >
+            {isDeletingPhoto ? 'Eliminant...' : 'Eliminar foto'}
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );

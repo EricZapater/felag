@@ -67,6 +67,7 @@ export interface Trip {
   visibility: TripVisibility;
   status: TripStatus;
   photo_sharing_mode?: string;
+  photos_count?: number;
   is_owner?: boolean;
   companions?: TripCompanion[];
   stages: TripStage[];

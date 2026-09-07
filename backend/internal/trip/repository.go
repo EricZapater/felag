@@ -230,7 +230,9 @@ func (r *repository) GetByID(tripID, currentUserID string) (*Trip, error) {
 	}
 
 	queryTrip := `
-		SELECT id, user_id, title, description, start_date, end_date, visibility, status, photo_sharing_mode, created_at, updated_at
+		SELECT id, user_id, title, description, start_date, end_date, visibility, status, photo_sharing_mode,
+		       COALESCE((SELECT COUNT(*) FROM trip_photos WHERE trip_id = trips.id), 0) AS photos_count,
+		       created_at, updated_at
 		FROM trips
 		WHERE id = $1
 	`
@@ -249,6 +251,7 @@ func (r *repository) GetByID(tripID, currentUserID string) (*Trip, error) {
 		&trip.Visibility,
 		&trip.Status,
 		&trip.PhotoSharingMode,
+		&trip.PhotosCount,
 		&trip.CreatedAt,
 		&trip.UpdatedAt,
 	)
@@ -343,7 +346,9 @@ func (r *repository) ListByUserID(userID string, filter string) ([]Trip, error) 
 	switch filter {
 	case "upcoming":
 		queryTrips = `
-			SELECT DISTINCT t.id, t.user_id, t.title, t.description, t.start_date, t.end_date, t.visibility, t.status, t.photo_sharing_mode, t.created_at, t.updated_at
+			SELECT DISTINCT t.id, t.user_id, t.title, t.description, t.start_date, t.end_date, t.visibility, t.status, t.photo_sharing_mode,
+			       COALESCE((SELECT COUNT(*) FROM trip_photos WHERE trip_id = t.id), 0) AS photos_count,
+			       t.created_at, t.updated_at
 			FROM trips t
 			LEFT JOIN trip_companions tc ON t.id = tc.trip_id
 			WHERE (t.user_id = $1 OR (tc.user_id = $1 AND tc.status = 'accepted'))
@@ -352,7 +357,9 @@ func (r *repository) ListByUserID(userID string, filter string) ([]Trip, error) 
 		`
 	case "past":
 		queryTrips = `
-			SELECT DISTINCT t.id, t.user_id, t.title, t.description, t.start_date, t.end_date, t.visibility, t.status, t.photo_sharing_mode, t.created_at, t.updated_at
+			SELECT DISTINCT t.id, t.user_id, t.title, t.description, t.start_date, t.end_date, t.visibility, t.status, t.photo_sharing_mode,
+			       COALESCE((SELECT COUNT(*) FROM trip_photos WHERE trip_id = t.id), 0) AS photos_count,
+			       t.created_at, t.updated_at
 			FROM trips t
 			LEFT JOIN trip_companions tc ON t.id = tc.trip_id
 			WHERE (t.user_id = $1 OR (tc.user_id = $1 AND tc.status = 'accepted'))
@@ -361,7 +368,9 @@ func (r *repository) ListByUserID(userID string, filter string) ([]Trip, error) 
 		`
 	default: // "all" or any other
 		queryTrips = `
-			SELECT DISTINCT t.id, t.user_id, t.title, t.description, t.start_date, t.end_date, t.visibility, t.status, t.photo_sharing_mode, t.created_at, t.updated_at
+			SELECT DISTINCT t.id, t.user_id, t.title, t.description, t.start_date, t.end_date, t.visibility, t.status, t.photo_sharing_mode,
+			       COALESCE((SELECT COUNT(*) FROM trip_photos WHERE trip_id = t.id), 0) AS photos_count,
+			       t.created_at, t.updated_at
 			FROM trips t
 			LEFT JOIN trip_companions tc ON t.id = tc.trip_id
 			WHERE (t.user_id = $1 OR (tc.user_id = $1 AND tc.status = 'accepted'))
@@ -394,6 +403,7 @@ func (r *repository) ListByUserID(userID string, filter string) ([]Trip, error) 
 			&trip.Visibility,
 			&trip.Status,
 			&trip.PhotoSharingMode,
+			&trip.PhotosCount,
 			&trip.CreatedAt,
 			&trip.UpdatedAt,
 		); err != nil {

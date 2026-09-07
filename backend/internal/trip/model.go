@@ -61,6 +61,7 @@ type Trip struct {
 	Visibility       string          `json:"visibility"`
 	Status           string          `json:"status"`
 	PhotoSharingMode string          `json:"photo_sharing_mode"`
+	PhotosCount      int             `json:"photos_count"`
 	IsOwner          bool            `json:"is_owner"`
 	Companions       []TripCompanion `json:"companions"`
 	Stages           []TripStage     `json:"stages"`

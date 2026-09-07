@@ -27,6 +27,8 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import GroupIcon from '@mui/icons-material/Group';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
+import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
+import CollectionsIcon from '@mui/icons-material/Collections';
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader';
 import { useTripStore } from '../store';
@@ -227,7 +229,7 @@ export default function TripDetailView() {
           destinationName={sortedStages[0]?.destination_name || 'Viatge'}
           countryFlag={sortedStages[0]?.country_code ? '✈️' : '🌍'}
           isFinalDayOrPast={currentTrip.end_date <= new Date().toISOString().split('T')[0] || currentTrip.status === 'completed'}
-          photosCount={activeHub && activeHub.trip_id === currentTrip.id ? activeHub.photos_count : 0}
+          photosCount={activeHub && activeHub.trip_id === currentTrip.id ? (activeHub.photos_count ?? currentTrip.photos_count ?? 0) : (currentTrip.photos_count ?? 0)}
           activeFelagisCount={activeHub && activeHub.trip_id === currentTrip.id ? activeHub.active_felagis_count : 0}
         />
 
@@ -256,6 +258,10 @@ export default function TripDetailView() {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     <LocationOnIcon sx={{ fontSize: 18, color: '#8C7A70' }} />
                     <Typography variant="body2">{sortedStages.length} {sortedStages.length === 1 ? 'etapa' : 'etapes'}</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <PhotoCameraIcon sx={{ fontSize: 18, color: '#8C7A70' }} />
+                    <Typography variant="body2">{currentTrip.photos_count ?? 0} {(currentTrip.photos_count ?? 0) === 1 ? 'foto' : 'fotos'}</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     <VisibilityIcon sx={{ fontSize: 18, color: '#8C7A70' }} />
@@ -530,27 +536,45 @@ export default function TripDetailView() {
 
         {/* Action Buttons */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-          {currentTrip.visibility === 'public' ? (
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+            {currentTrip.visibility === 'public' && (
+              <Button
+                component={RouterLink}
+                to={`/trips/${currentTrip.id}/matches`}
+                variant="outlined"
+                startIcon={<AutoAwesomeIcon />}
+                sx={{
+                  color: '#C85A32',
+                  borderColor: '#C85A32',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  px: 2.5,
+                  '&:hover': { bgcolor: '#F4ECE1', borderColor: '#A0471D' },
+                }}
+              >
+                Coincidències FELAGIS ✨
+              </Button>
+            )}
+
             <Button
               component={RouterLink}
-              to={`/trips/${currentTrip.id}/matches`}
+              to={`/trips/${currentTrip.id}/gallery`}
               variant="outlined"
-              startIcon={<AutoAwesomeIcon />}
+              startIcon={<CollectionsIcon />}
               sx={{
                 color: '#C85A32',
                 borderColor: '#C85A32',
                 textTransform: 'none',
                 fontWeight: 600,
                 borderRadius: 2,
-                px: 3,
+                px: 2.5,
                 '&:hover': { bgcolor: '#F4ECE1', borderColor: '#A0471D' },
               }}
             >
-              Coincidències FELAGIS ✨
+              🖼️ Àlbum ({currentTrip.photos_count ?? 0})
             </Button>
-          ) : (
-            <Box />
-          )}
+          </Box>
 
           {currentTrip.is_owner !== false ? (
             <Button

@@ -178,6 +178,17 @@ export default function TripsListView() {
                     }}
                   />
                 )}
+                <Chip
+                  label={`📷 ${trip.photos_count || 0} ${trip.photos_count === 1 ? 'foto' : 'fotos'}`}
+                  size="small"
+                  sx={{
+                    bgcolor: trip.photos_count && trip.photos_count > 0 ? '#E0F2FE' : '#F5F5F5',
+                    color: trip.photos_count && trip.photos_count > 0 ? '#0369A1' : '#786C65',
+                    fontWeight: 600,
+                    fontSize: '0.75rem',
+                    borderRadius: 2,
+                  }}
+                />
               </Box>
             </Box>
 
@@ -242,7 +253,7 @@ export default function TripsListView() {
                   '&:hover': { bgcolor: '#FDF7F4', borderColor: '#C85A32', color: '#C85A32' },
                 }}
               >
-                🖼️ Àlbum
+                🖼️ Àlbum ({trip.photos_count || 0})
               </Button>
               <Button
                 component={RouterLink}
