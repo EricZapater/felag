@@ -83,22 +83,27 @@ export default function AppHeader() {
       }}
     >
       {/* Brand Logo */}
-      <Typography
+      <Box
         component={RouterLink}
         to="/trips"
-        variant="h5"
         sx={{
-          color: '#C85A32',
-          fontWeight: 800,
-          letterSpacing: 1.5,
-          textDecoration: 'none',
           display: 'flex',
           alignItems: 'center',
-          gap: 1,
+          textDecoration: 'none',
         }}
       >
-        FELAG
-      </Typography>
+        <Box
+          component="img"
+          src="/logo.png"
+          alt="FELAG"
+          sx={{
+            height: { xs: 26, md: 32 },
+            width: 'auto',
+            objectFit: 'contain',
+            display: 'block',
+          }}
+        />
+      </Box>
 
       {/* Right Navigation & User Avatar */}
       <Box sx={{ display: 'flex', gap: { xs: 1.5, sm: 3 }, alignItems: 'center' }}>

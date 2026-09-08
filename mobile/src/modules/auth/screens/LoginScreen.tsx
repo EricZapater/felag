@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import { Button, HelperText, Text, TextInput } from 'react-native-paper';
 import { useAuthStore } from '../store';
 
@@ -18,9 +18,13 @@ export default function LoginScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      <Text variant="headlineLarge" style={styles.title}>
-        FELAG
-      </Text>
+      <View style={styles.logoContainer}>
+        <Image
+          source={require('../../../../assets/logo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+      </View>
       <Text variant="bodyMedium" style={styles.subtitle}>
         Troba gent de la teva terra allà on viatgis
       </Text>
@@ -78,11 +82,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#F9F6F0',
   },
-  title: {
-    color: '#C85A32',
-    fontWeight: 'bold',
-    textAlign: 'center',
-    letterSpacing: 2,
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  logo: {
+    width: 190,
+    height: 64,
   },
   subtitle: {
     color: '#786C65',

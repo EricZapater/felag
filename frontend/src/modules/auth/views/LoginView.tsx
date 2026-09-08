@@ -23,9 +23,14 @@ export default function LoginView() {
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#F9F6F0' }}>
       <Card sx={{ maxWidth: 420, width: '100%', p: 2, boxShadow: '0 4px 20px rgba(74, 46, 43, 0.08)', borderRadius: 3, border: '1px solid #E8E2D9' }}>
         <CardContent>
-          <Typography variant="h4" component="h1" align="center" sx={{ color: '#C85A32', fontWeight: 700, letterSpacing: 2, mb: 1 }}>
-            FELAG
-          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+            <Box
+              component="img"
+              src="/logo.png"
+              alt="FELAG"
+              sx={{ height: 42, width: 'auto', objectFit: 'contain' }}
+            />
+          </Box>
           <Typography variant="body2" align="center" sx={{ color: '#786C65', mb: 3 }}>
             Troba gent de la teva terra allà on viatgis
           </Typography>
