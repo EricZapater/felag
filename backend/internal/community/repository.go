@@ -213,10 +213,7 @@ func (r *repository) SearchDestinations(q string, limit int) ([]DestinationSumma
 			SELECT mc.id, mc.name, mc.region_name, mc.country_name, mc.country_code,
 			       COALESCE(rc.rec_count, 0) AS recommendations_count,
 			       COALESCE(atc.active_felagis_count, 0) AS active_felagis_count,
-			       COALESCE(
-			           (SELECT dr.image_url FROM destination_recommendations dr WHERE dr.country_code = mc.country_code AND dr.image_url IS NOT NULL AND dr.image_url != '' ORDER BY dr.useful_votes_count DESC, dr.created_at DESC LIMIT 1),
-			           (SELECT lm.image_url FROM destination_live_moments lm WHERE lm.country_code = mc.country_code AND lm.image_url IS NOT NULL AND lm.image_url != '' ORDER BY lm.created_at DESC LIMIT 1)
-			       ) AS banner_url
+			       (SELECT dr.image_url FROM destination_recommendations dr WHERE dr.country_code = mc.country_code AND dr.image_url IS NOT NULL AND dr.image_url != '' ORDER BY dr.useful_votes_count DESC, dr.created_at DESC LIMIT 1) AS banner_url
 			FROM matched_countries mc
 			LEFT JOIN rec_countries rc ON rc.country_code = mc.country_code
 			LEFT JOIN active_trip_countries atc ON atc.country_code = mc.country_code
@@ -250,10 +247,7 @@ func (r *repository) SearchDestinations(q string, limit int) ([]DestinationSumma
 			SELECT c.code AS id, c.name, NULL::text AS region_name, c.name AS country_name, c.code AS country_code,
 			       COALESCE(rc.rec_count, 0) AS recommendations_count,
 			       COALESCE(atc.active_felagis_count, 0) AS active_felagis_count,
-			       COALESCE(
-			           (SELECT dr.image_url FROM destination_recommendations dr WHERE dr.country_code = c.code AND dr.image_url IS NOT NULL AND dr.image_url != '' ORDER BY dr.useful_votes_count DESC, dr.created_at DESC LIMIT 1),
-			           (SELECT lm.image_url FROM destination_live_moments lm WHERE lm.country_code = c.code AND lm.image_url IS NOT NULL AND lm.image_url != '' ORDER BY lm.created_at DESC LIMIT 1)
-			       ) AS banner_url
+			       (SELECT dr.image_url FROM destination_recommendations dr WHERE dr.country_code = c.code AND dr.image_url IS NOT NULL AND dr.image_url != '' ORDER BY dr.useful_votes_count DESC, dr.created_at DESC LIMIT 1) AS banner_url
 			FROM existing_country_codes ecc
 			JOIN countries c ON ecc.country_code = c.code
 			LEFT JOIN rec_countries rc ON rc.country_code = c.code
