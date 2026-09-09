@@ -117,6 +117,8 @@ func (c *GooglePlacesClient) Autocomplete(ctx context.Context, input, language, 
 	}
 	if len(types) > 0 {
 		reqBody["includedPrimaryTypes"] = types
+	} else {
+		reqBody["includedPrimaryTypes"] = []string{"(cities)"}
 	}
 
 	jsonBytes, err := json.Marshal(reqBody)

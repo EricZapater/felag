@@ -270,14 +270,12 @@ func (r *repository) SearchTowns(q string, limit int) ([]TownSearchResult, error
 		FROM towns t
 		JOIN regions r ON t.region_id = r.id
 		JOIN countries c ON r.country_id = c.id
-		WHERE t.name ILIKE $1 OR r.name ILIKE $1
+		WHERE t.name ILIKE $1
 		ORDER BY 
 			CASE 
 				WHEN LOWER(t.name) = LOWER($2) THEN 1
 				WHEN LOWER(t.name) LIKE LOWER($2) || '%' THEN 2
-				WHEN LOWER(r.name) = LOWER($2) THEN 3
-				WHEN LOWER(t.name) LIKE '%' || LOWER($2) || '%' THEN 4
-				ELSE 5
+				ELSE 3
 			END ASC,
 			t.name ASC
 		LIMIT $3
