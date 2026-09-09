@@ -242,12 +242,14 @@ func (r *repository) SearchDestinations(q string, limit int) ([]DestinationSumma
 
 	for cRows.Next() {
 		var s DestinationSummary
-		var countryName, countryCode sql.NullString
+		var regionName, countryName, countryCode sql.NullString
 		s.Type = "country"
 
 		if err := cRows.Scan(
 			&s.ID,
 			&s.Name,
+			&regionName,
+			&countryName,
 			&countryCode,
 			&s.RecommendationsCount,
 			&s.ActiveFelagisCount,
@@ -255,6 +257,9 @@ func (r *repository) SearchDestinations(q string, limit int) ([]DestinationSumma
 			return nil, fmt.Errorf("error scanning country search row: %w", err)
 		}
 
+		if regionName.Valid {
+			s.RegionName = &regionName.String
+		}
 		if countryName.Valid {
 			s.CountryName = &countryName.String
 		} else {

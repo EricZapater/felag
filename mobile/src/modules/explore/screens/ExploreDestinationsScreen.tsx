@@ -19,48 +19,6 @@ interface Props {
   };
 }
 
-const FALLBACK_DESTINATIONS: ExploreDestinationItem[] = [
-  {
-    id: 'tokyo',
-    name: 'Tòquio',
-    region_name: 'Regió de Kantō',
-    country_name: 'Japó',
-    country_code: 'JP',
-    flag_emoji: '🇯🇵',
-    banner_url:
-      'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=600&auto=format&fit=crop&q=80',
-    total_recommendations: 24,
-    active_felagis_count: 8,
-    affinity_reason: 'Molt popular entre viatgers de Terrassa i Vallès Occidental',
-  },
-  {
-    id: 'kyoto',
-    name: 'Kyoto',
-    region_name: 'Regió de Kansai',
-    country_name: 'Japó',
-    country_code: 'JP',
-    flag_emoji: '🇯🇵',
-    banner_url:
-      'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=600&auto=format&fit=crop&q=80',
-    total_recommendations: 18,
-    active_felagis_count: 4,
-    affinity_reason: 'Preferit pels amants de la cultura i temples tradicionals',
-  },
-  {
-    id: 'reykjavik',
-    name: 'Reykjavík',
-    region_name: 'Regió de la Capital',
-    country_name: 'Islàndia',
-    country_code: 'IS',
-    flag_emoji: '🇮🇸',
-    banner_url:
-      'https://images.unsplash.com/photo-1504893524553-b855bce32c67?w=600&auto=format&fit=crop&q=80',
-    total_recommendations: 15,
-    active_felagis_count: 6,
-    affinity_reason: 'Ruta popular per a aurores boreals i natura salvatge',
-  },
-];
-
 export default function ExploreDestinationsScreen({ navigation }: Props) {
   const { recommendations, isLoading, error, fetchRecommendations } = useExploreStore();
   const [searchQuery, setSearchQuery] = useState('');
@@ -73,7 +31,7 @@ export default function ExploreDestinationsScreen({ navigation }: Props) {
     fetchRecommendations();
   };
 
-  const rawList = recommendations.length > 0 ? recommendations : FALLBACK_DESTINATIONS;
+  const rawList = recommendations;
   const filteredList = rawList.filter((item) => {
     const q = searchQuery.toLowerCase().trim();
     if (!q) return true;
@@ -132,9 +90,22 @@ export default function ExploreDestinationsScreen({ navigation }: Props) {
             />
           }
         >
-          <Text style={styles.sectionHeading}>🏡 Destins populars (Catalunya)</Text>
+          <Text style={styles.sectionHeading}>🏡 Destins populars</Text>
 
-          {filteredList.map((dest) => (
+          {filteredList.length === 0 ? (
+            <Card style={[styles.destCard, { padding: 24, alignItems: 'center' }]}>
+              <Text style={{ fontSize: 40, textAlign: 'center', marginBottom: 8 }}>🗺️</Text>
+              <Text variant="titleMedium" style={{ fontWeight: 'bold', color: '#2C221E', textAlign: 'center' }}>
+                Cap destinació trobada
+              </Text>
+              <Text variant="bodySmall" style={{ color: '#786C65', textAlign: 'center', marginTop: 4 }}>
+                {searchQuery.trim()
+                  ? `No s'han trobat viatges o recomanacions per a "${searchQuery}".`
+                  : 'Encara no hi ha viatges o recomanacions registrades a la comunitat.'}
+              </Text>
+            </Card>
+          ) : (
+            filteredList.map((dest) => (
             <TouchableOpacity
               key={dest.id}
               activeOpacity={0.8}
@@ -186,7 +157,7 @@ export default function ExploreDestinationsScreen({ navigation }: Props) {
                 </Card.Content>
               </Card>
             </TouchableOpacity>
-          ))}
+          )))}
         </ScrollView>
       )}
     </View>
