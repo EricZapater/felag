@@ -13,6 +13,7 @@ import {
   Chip,
   Divider,
   HelperText,
+  Switch,
   Text,
   TextInput,
 } from 'react-native-paper';
@@ -51,6 +52,7 @@ export default function RecommendationCreateScreen({ navigation, route }: Props)
   const [description, setDescription] = useState('');
   const [locationName, setLocationName] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [isPublic, setIsPublic] = useState(true);
   const [formError, setFormError] = useState('');
 
   const handleSubmit = async () => {
@@ -75,6 +77,7 @@ export default function RecommendationCreateScreen({ navigation, route }: Props)
         description: description.trim(),
         location_name: locationName.trim() ? locationName.trim() : undefined,
         image_url: imageUrl.trim() ? imageUrl.trim() : undefined,
+        is_public: isPublic,
       });
 
       Alert.alert(
@@ -183,6 +186,22 @@ export default function RecommendationCreateScreen({ navigation, route }: Props)
               activeOutlineColor="#C85A32"
               mode="outlined"
             />
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingVertical: 4 }}>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={{ fontWeight: 'bold', color: '#2C221E', fontSize: 14 }}>
+                  🌍 Mostrar a la guia web pública
+                </Text>
+                <Text style={{ color: '#786C65', fontSize: 12, marginTop: 2 }}>
+                  Ajuda altres viatgers que cerquin a Google (sense mostrar el teu nom).
+                </Text>
+              </View>
+              <Switch
+                value={isPublic}
+                onValueChange={setIsPublic}
+                color="#C85A32"
+              />
+            </View>
           </Card.Content>
         </Card>
 

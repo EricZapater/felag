@@ -18,6 +18,7 @@ import (
 	"felag/backend/internal/notification"
 	"felag/backend/internal/posttrip"
 	"felag/backend/internal/profile"
+	"felag/backend/internal/publicseo"
 	"felag/backend/internal/shared"
 	"felag/backend/internal/storage"
 	"felag/backend/internal/trip"
@@ -141,9 +142,16 @@ func main() {
 	adminService := admin.NewService(adminRepo, database, chatHub, serverStartTime)
 	adminHandler := admin.NewHandler(adminService)
 
+	publicseoRepo := publicseo.NewRepository(database)
+	publicseoService := publicseo.NewService(publicseoRepo)
+	publicseoHandler := publicseo.NewHandler(publicseoService)
+
 	// API Routes (matching OpenAPI specs)
 	v1 := r.Group("/api/v1")
 	{
+		// Public SEO & Destination Guides (no auth required)
+		publicseoHandler.RegisterRoutes(v1)
+
 		// Auth public routes
 		authGroup := v1.Group("/auth")
 		{

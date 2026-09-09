@@ -49,6 +49,7 @@ type Recommendation struct {
 	UsefulVotesCount int           `json:"useful_votes_count"`
 	UserHasVoted     bool          `json:"user_has_voted"`
 	CommentsCount    int           `json:"comments_count"`
+	IsPublic         bool          `json:"is_public"`
 	Author           AuthorSummary `json:"author"`
 	CreatedAt        time.Time     `json:"created_at"`
 }
@@ -59,6 +60,7 @@ type CreateRecommendationRequest struct {
 	Description  string  `json:"description" binding:"required,max=2000"`
 	ImageURL     *string `json:"image_url,omitempty"`
 	LocationName *string `json:"location_name,omitempty"`
+	IsPublic     *bool   `json:"is_public,omitempty"`
 }
 
 type VoteResponse struct {

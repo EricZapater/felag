@@ -13,6 +13,8 @@ import {
   Alert,
   Box,
   Typography,
+  FormControlLabel,
+  Checkbox,
 } from '@mui/material';
 import { useCommunityStore } from '../store';
 import { RecommendationCategory } from '../types';
@@ -39,6 +41,7 @@ export default function CreateRecommendationDialog({
   const [description, setDescription] = useState('');
   const [locationName, setLocationName] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [isPublic, setIsPublic] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -63,12 +66,14 @@ export default function CreateRecommendationDialog({
         description: description.trim(),
         location_name: locationName.trim() || undefined,
         image_url: imageUrl.trim() || undefined,
+        is_public: isPublic,
       });
       // Reset form
       setTitle('');
       setDescription('');
       setLocationName('');
       setImageUrl('');
+      setIsPublic(true);
       onCreated();
       onClose();
     } catch (err: any) {
@@ -168,6 +173,26 @@ export default function CreateRecommendationDialog({
             value={imageUrl}
             onChange={(e) => setImageUrl(e.target.value)}
             helperText="Enllaç d'una foto de la recomanació"
+          />
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={isPublic}
+                onChange={(e) => setIsPublic(e.target.checked)}
+                sx={{ color: '#C85A32', '&.Mui-checked': { color: '#C85A32' } }}
+              />
+            }
+            label={
+              <Box>
+                <Typography sx={{ fontSize: '0.88rem', fontWeight: 600, color: '#2C221E' }}>
+                  🌍 Mostrar a la guia pública de la web
+                </Typography>
+                <Typography sx={{ fontSize: '0.75rem', color: '#786C65' }}>
+                  El teu consell ajudarà altres viatgers que cerquin a Google (sense revelar el teu nom ni dades personals).
+                </Typography>
+              </Box>
+            }
           />
         </DialogContent>
 

@@ -1,0 +1,512 @@
+openapi: 3.0.3
+info:
+  title: FELAG Public Destinations & SEO API
+  version: 0.1.0
+  description: Public, unauthenticated endpoints providing consolidated, strictly anonymized travel tips, social endorsements, and SEO structured data (JSON-LD, OpenGraph, keywords, sitemaps) for dynamic web pages.
+paths:
+  /api/v1/public/destinations:
+    get:
+      summary: List public destinations with consolidated tips
+      description: Returns a paginated index of destinations with public content, visitor counts, and SEO metadata. Designed for public landing pages, directory exploration, and crawler indexing. No authentication required.
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Search term matching destination name or country
+        - name: country_code
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 2
+            example: "JP"
+          description: 2-letter ISO country code
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+          description: Page number
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+          description: Items per page
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [popular, tips_count, name]
+            default: popular
+          description: Sorting criteria
+      responses:
+        '200':
+          description: Paginated destination index with SEO metadata
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: "public, max-age=3600, s-maxage=86400, stale-while-revalidate=43200"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicDestinationsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/public/destinations/{slug_or_id}:
+    get:
+      summary: Get consolidated public destination guide & SEO data
+      description: Returns fully aggregated and strictly anonymized tips, endorsements ("X felagis ho avalen"), practical advice, FAQs, and Schema.org JSON-LD structured data for a destination. Accepts semantic SEO slugs (e.g. 'tokyo-japo') or technical town/country IDs. No authentication required.
+      parameters:
+        - name: slug_or_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "tokyo-japo"
+          description: Semantic SEO slug or unique town ID / country code
+        - name: lang
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ca, es, en]
+            default: ca
+          description: Preferred language for SEO labels and UI texts
+      responses:
+        '200':
+          description: Consolidated destination guide with SEO metadata
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: "public, max-age=3600, s-maxage=86400, stale-while-revalidate=43200"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicDestinationGuide'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/public/sitemap:
+    get:
+      summary: Get public sitemap entries for destination pages
+      description: Returns all indexable destination URLs with last modified months and crawl priorities for generating sitemap.xml.
+      responses:
+        '200':
+          description: List of sitemap entries
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: "public, max-age=86400, s-maxage=604800"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicSitemapResponse'
+
+components:
+  schemas:
+    PublicDestinationsResponse:
+      type: object
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicDestinationItem'
+        pagination:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    PublicDestinationItem:
+      type: object
+      required:
+        - id
+        - slug
+        - name
+        - country_name
+        - country_code
+        - total_felagis_count
+        - total_tips_count
+        - updated_at_period
+      properties:
+        id:
+          type: string
+          description: Town ID or Country Code
+          example: "3891"
+        slug:
+          type: string
+          description: URL-friendly SEO slug
+          example: "tokyo-japo"
+        name:
+          type: string
+          example: "Tòquio"
+        region_name:
+          type: string
+          nullable: true
+          example: "Kantō"
+        country_name:
+          type: string
+          example: "Japó"
+        country_code:
+          type: string
+          example: "JP"
+        flag_emoji:
+          type: string
+          example: "🇯🇵"
+        cover_image_url:
+          type: string
+          nullable: true
+          format: uri
+          example: "https://r2.felag.app/destinations/tokyo-cover.jpg"
+        total_felagis_count:
+          type: integer
+          description: Total registered FELAGIS who traveled here or endorsed tips
+          example: 28
+        total_tips_count:
+          type: integer
+          description: Total number of public tips available
+          example: 14
+        endorsement_summary:
+          type: string
+          description: Human-readable endorsement line
+          example: "Avalat per 28 felagis"
+        updated_at_period:
+          type: string
+          description: Year and month of most recent advice (YYYY-MM)
+          example: "2025-06"
+
+    PublicDestinationGuide:
+      type: object
+      required:
+        - destination
+        - stats
+        - categories
+        - faqs
+        - seo
+      properties:
+        destination:
+          $ref: '#/components/schemas/PublicDestinationItem'
+        stats:
+          type: object
+          required:
+            - total_felagis
+            - total_tips
+            - hidden_gems_count
+            - food_spots_count
+          properties:
+            total_felagis:
+              type: integer
+              example: 28
+            total_tips:
+              type: integer
+              example: 14
+            hidden_gems_count:
+              type: integer
+              example: 4
+            food_spots_count:
+              type: integer
+              example: 6
+            practical_tips_count:
+              type: integer
+              example: 4
+        categories:
+          type: object
+          description: Consolidated tips grouped by topic
+          required:
+            - food
+            - hidden_gem
+            - transport
+            - practical_tip
+            - anecdote
+          properties:
+            food:
+              type: array
+              items:
+                $ref: '#/components/schemas/PublicAnonymousTip'
+            hidden_gem:
+              type: array
+              items:
+                $ref: '#/components/schemas/PublicAnonymousTip'
+            transport:
+              type: array
+              items:
+                $ref: '#/components/schemas/PublicAnonymousTip'
+            practical_tip:
+              type: array
+              items:
+                $ref: '#/components/schemas/PublicAnonymousTip'
+            anecdote:
+              type: array
+              items:
+                $ref: '#/components/schemas/PublicAnonymousTip'
+        faqs:
+          type: array
+          description: Frequently asked questions derived from community tips
+          items:
+            $ref: '#/components/schemas/PublicFaqItem'
+        related_destinations:
+          type: array
+          description: Nearby or frequently paired destinations for internal SEO linking
+          items:
+            $ref: '#/components/schemas/PublicDestinationItem'
+        seo:
+          $ref: '#/components/schemas/SeoMetadata'
+
+    PublicAnonymousTip:
+      type: object
+      description: A strictly anonymized recommendation consolidated from one or more FELAG travelers.
+      required:
+        - id
+        - title
+        - description
+        - category
+        - endorsements_count
+        - endorsement_label
+        - period
+      properties:
+        id:
+          type: string
+          description: Unique tip identifier
+          example: "tip_8273"
+        title:
+          type: string
+          maxLength: 120
+          example: "Targeta Suica digital i com evitar cues a Shibuya"
+        description:
+          type: string
+          maxLength: 2000
+          example: "Instal·leu la Suica a Apple Wallet directament per viatjar en metro i trens sense fer cues. Es pot recarregar amb targetes de crèdit en segons."
+        category:
+          type: string
+          enum: [food, hidden_gem, transport, practical_tip, anecdote]
+          example: "transport"
+        location_hint:
+          type: string
+          nullable: true
+          description: General neighborhood, landmark or area without exact personal GPS track
+          example: "Estació de Shibuya / Línia Yamanote"
+        photo_url:
+          type: string
+          nullable: true
+          format: uri
+          description: Landscape or venue photo without identifiable persons
+          example: "https://r2.felag.app/tips/suica-metro-tokyo.jpg"
+        endorsements_count:
+          type: integer
+          description: Total number of FELAGIS endorsing this advice
+          example: 7
+        endorsement_label:
+          type: string
+          description: Localized social proof label
+          example: "7 felagis ho avalen"
+        period:
+          type: string
+          description: Coarse time indicator (YYYY or YYYY-MM) preventing exact trip correlation
+          example: "2025-05"
+
+    PublicFaqItem:
+      type: object
+      required:
+        - question
+        - answer
+        - endorsement_label
+      properties:
+        question:
+          type: string
+          example: "Com és millor moure's en transport públic per Tòquio?"
+        answer:
+          type: string
+          example: "La millor opció és utilitzar la targeta digital Suica o Pasmo al mòbil per a tota la xarxa de metro i trens urbans."
+        endorsement_label:
+          type: string
+          example: "Avalat per 7 felagis"
+
+    SeoMetadata:
+      type: object
+      description: Dynamic SEO payload for direct HTML head rendering and crawlers
+      required:
+        - meta_title
+        - meta_description
+        - keywords
+        - canonical_url
+        - og_title
+        - og_description
+        - og_image_url
+        - robots
+        - json_ld
+      properties:
+        meta_title:
+          type: string
+          maxLength: 70
+          example: "Guia de viatge a Tòquio: consells i racons de felagis | FELAG"
+        meta_description:
+          type: string
+          maxLength: 160
+          example: "Descobreix 14 consells pràctics i racons secrets a Tòquio avalats per 28 felagis. Gastronomia, transport i rutes locals."
+        keywords:
+          type: array
+          items:
+            type: string
+          example: ["viatjar a Tòquio", "consells Tòquio", "racons secrets Tòquio", "metro Tòquio", "felagis Japó"]
+        canonical_url:
+          type: string
+          format: uri
+          example: "https://felag.app/destinacions/tokyo-japo"
+        og_title:
+          type: string
+          example: "Guia de viatge a Tòquio — Consells de la comunitat FELAG"
+        og_description:
+          type: string
+          example: "14 recomanacions i racons secrets a Tòquio avalats per 28 felagis."
+        og_image_url:
+          type: string
+          format: uri
+          example: "https://r2.felag.app/og/tokyo-japo.jpg"
+        robots:
+          type: string
+          enum: ["index, follow", "noindex, follow"]
+          example: "index, follow"
+        breadcrumbs:
+          type: array
+          items:
+            $ref: '#/components/schemas/BreadcrumbItem'
+        json_ld:
+          type: object
+          description: Ready-to-inject Schema.org JSON-LD object (TouristDestination + ItemList + FAQPage)
+          required:
+            - "@context"
+            - "@type"
+            - name
+            - description
+          properties:
+            "@context":
+              type: string
+              example: "https://schema.org"
+            "@type":
+              type: string
+              example: "TouristDestination"
+            name:
+              type: string
+              example: "Tòquio"
+            description:
+              type: string
+              example: "Guia de viatge a Tòquio amb recomanacions autèntiques de la comunitat FELAG."
+            url:
+              type: string
+              example: "https://felag.app/destinacions/tokyo-japo"
+          additionalProperties: true
+
+    BreadcrumbItem:
+      type: object
+      required:
+        - name
+        - url
+      properties:
+        name:
+          type: string
+          example: "Japó"
+        url:
+          type: string
+          example: "https://felag.app/destinacions/japo"
+
+    PublicSitemapResponse:
+      type: object
+      required:
+        - total
+        - entries
+      properties:
+        total:
+          type: integer
+          example: 450
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/SitemapEntry'
+
+    SitemapEntry:
+      type: object
+      required:
+        - loc
+        - lastmod_period
+        - changefreq
+        - priority
+      properties:
+        loc:
+          type: string
+          format: uri
+          example: "https://felag.app/destinacions/tokyo-japo"
+        lastmod_period:
+          type: string
+          example: "2025-06"
+        changefreq:
+          type: string
+          enum: [always, hourly, daily, weekly, monthly, yearly, never]
+          example: "weekly"
+        priority:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          example: 0.8
+
+    PaginationMeta:
+      type: object
+      required:
+        - page
+        - limit
+        - total_items
+        - total_pages
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total_items:
+          type: integer
+          example: 120
+        total_pages:
+          type: integer
+          example: 6
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          example: "not_found"
+        message:
+          type: string
+          example: "Destination not found"
+
+  responses:
+    BadRequest:
+      description: Invalid query parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Destination not found or not indexable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

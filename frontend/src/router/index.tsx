@@ -20,6 +20,8 @@ import CelebrationCardGeneratorView from '@/modules/posttrip/views/CelebrationCa
 import TripWrapupView from '@/modules/posttrip/views/TripWrapupView';
 import ExploreDestinationsView from '@/modules/explore/views/ExploreDestinationsView';
 import AdminDashboardView from '@/modules/admin/views/AdminDashboardView';
+import PublicDestinationsIndexView from '@/modules/publicseo/views/PublicDestinationsIndexView';
+import PublicDestinationGuideView from '@/modules/publicseo/views/PublicDestinationGuideView';
 import { useAuthStore } from '@/modules/auth/store';
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
@@ -66,6 +68,10 @@ export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Public SEO landing & destination guide routes */}
+        <Route path="/destinacions" element={<PublicDestinationsIndexView />} />
+        <Route path="/destinacions/:slug" element={<PublicDestinationGuideView />} />
+
         <Route path="/login" element={<LoginView />} />
         <Route path="/register" element={<RegisterView />} />
         <Route

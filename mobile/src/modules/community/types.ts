@@ -61,6 +61,7 @@ export interface Recommendation {
   useful_votes_count: number;
   user_has_voted?: boolean;
   comments_count?: number;
+  is_public?: boolean;
   author: AuthorSummary;
   created_at: string;
 }
@@ -71,6 +72,7 @@ export interface CreateRecommendationRequest {
   description: string;
   image_url?: string;
   location_name?: string;
+  is_public?: boolean;
 }
 
 export interface VoteResponse {
