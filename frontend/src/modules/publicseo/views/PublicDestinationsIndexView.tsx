@@ -10,6 +10,7 @@ import {
   Pagination,
   TextField,
   Typography,
+  CardMedia,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import VerifiedIcon from '@mui/icons-material/Verified';
@@ -163,6 +164,7 @@ export default function PublicDestinationsIndexView() {
                       border: '1px solid #E8E2D9',
                       bgcolor: '#FFFFFF',
                       textDecoration: 'none',
+                      overflow: 'hidden',
                       boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                       transition: 'transform 0.2s, box-shadow 0.2s',
                       '&:hover': {
@@ -171,6 +173,30 @@ export default function PublicDestinationsIndexView() {
                       },
                     }}
                   >
+                    {dest.cover_image_url ? (
+                      <CardMedia
+                        component="img"
+                        height="160"
+                        image={dest.cover_image_url}
+                        alt={dest.name}
+                        sx={{ objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <Box
+                        sx={{
+                          height: 120,
+                          bgcolor: '#FAF7F2',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 48,
+                          borderBottom: '1px solid #E8E2D9',
+                        }}
+                      >
+                        {dest.flag_emoji || '🌍'}
+                      </Box>
+                    )}
+
                     <CardContent sx={{ p: 3, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
                         <Typography variant="h5" sx={{ fontWeight: 800, color: '#2C221E' }}>

@@ -23,6 +23,7 @@ export interface DestinationSummary {
   country_code?: string;
   type: DestinationType;
   banner_url?: string;
+  flag_emoji?: string;
   recommendations_count?: number;
   active_felagis_count?: number;
 }

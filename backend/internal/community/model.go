@@ -12,6 +12,7 @@ type DestinationSummary struct {
 	RecommendationsCount int     `json:"recommendations_count"`
 	ActiveFelagisCount   int     `json:"active_felagis_count"`
 	BannerURL            *string `json:"banner_url,omitempty"`
+	FlagEmoji            *string `json:"flag_emoji,omitempty"`
 }
 
 type DestinationDetail struct {

@@ -12,6 +12,7 @@ import {
   CircularProgress,
   Chip,
   Alert,
+  CardMedia,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
@@ -120,6 +121,7 @@ export default function DestinationsListView() {
                     bgcolor: '#FFFFFF',
                     border: '1px solid #E8E2D9',
                     boxShadow: '0 2px 8px rgba(74, 46, 43, 0.04)',
+                    overflow: 'hidden',
                     transition: 'all 0.2s ease-in-out',
                     '&:hover': {
                       transform: 'translateY(-3px)',
@@ -130,12 +132,35 @@ export default function DestinationsListView() {
                 >
                   <CardActionArea
                     onClick={() => navigate(`/destinations/${dest.id}`)}
-                    sx={{ p: 2.5 }}
                   >
-                    <CardContent sx={{ p: 0 }}>
+                    {dest.banner_url ? (
+                      <CardMedia
+                        component="img"
+                        height="160"
+                        image={dest.banner_url}
+                        alt={dest.name}
+                        sx={{ objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <Box
+                        sx={{
+                          height: 120,
+                          bgcolor: '#FAF7F2',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 48,
+                          borderBottom: '1px solid #E8E2D9',
+                        }}
+                      >
+                        {dest.flag_emoji || '🌍'}
+                      </Box>
+                    )}
+
+                    <CardContent sx={{ p: 2.5 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                         <Typography variant="h6" sx={{ fontWeight: 800, color: '#2C221E' }}>
-                          {dest.name}
+                          {dest.name} {dest.flag_emoji ? `${dest.flag_emoji}` : ''}
                         </Typography>
                         <Chip
                           label={dest.type === 'town' ? 'Ciutat' : 'País'}

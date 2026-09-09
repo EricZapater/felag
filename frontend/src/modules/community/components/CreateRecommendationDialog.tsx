@@ -76,6 +76,24 @@ export default function CreateRecommendationDialog({
     return () => clearTimeout(timer);
   }, [townSearchQuery]);
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      setError('La imatge és massa gran. El límit és de 10MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        setImageUrl(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -233,15 +251,73 @@ export default function CreateRecommendationDialog({
             onChange={(e) => setLocationName(e.target.value)}
           />
 
-          <TextField
-            fullWidth
-            size="small"
-            label="URL de la imatge (opcional)"
-            placeholder="https://images.unsplash.com/photo-..."
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            helperText="Enllaç d'una foto de la recomanació"
-          />
+          <Box sx={{ p: 2, bgcolor: '#FAF7F2', borderRadius: 2.5, border: '1px solid #E8E2D9' }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#2C221E', mb: 1 }}>
+              📸 Foto de la recomanació (opcional)
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#786C65', mb: 2 }}>
+              Afegeix una foto per il·lustrar el racó, el plat o el paisatge. Es convertirà en la imatge de portada de la destinació.
+            </Typography>
+
+            {imageUrl ? (
+              <Box sx={{ mb: 2 }}>
+                <Box
+                  sx={{
+                    height: 180,
+                    borderRadius: 2,
+                    overflow: 'hidden',
+                    border: '1px solid #DDCFBF',
+                    mb: 1,
+                    position: 'relative',
+                  }}
+                >
+                  <Box
+                    component="img"
+                    src={imageUrl}
+                    alt="Previsualització"
+                    sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                </Box>
+                <Button
+                  size="small"
+                  color="error"
+                  variant="outlined"
+                  onClick={() => setImageUrl('')}
+                  sx={{ textTransform: 'none', fontWeight: 600 }}
+                >
+                  🗑️ Eliminar foto
+                </Button>
+              </Box>
+            ) : (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Button
+                  variant="contained"
+                  component="label"
+                  sx={{
+                    bgcolor: '#4A2E2B',
+                    color: '#FFFFFF',
+                    textTransform: 'none',
+                    fontWeight: 700,
+                    py: 1,
+                    '&:hover': { bgcolor: '#2C221E' },
+                  }}
+                >
+                  📁 Seleccionar foto del dispositiu...
+                  <input type="file" accept="image/*" hidden onChange={handleFileUpload} />
+                </Button>
+
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="O enganxa l'enllaç d'una foto"
+                  placeholder="https://images.unsplash.com/photo-..."
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  sx={{ bgcolor: '#FFFFFF' }}
+                />
+              </Box>
+            )}
+          </Box>
 
           <FormControlLabel
             control={

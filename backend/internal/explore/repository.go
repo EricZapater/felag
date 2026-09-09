@@ -98,11 +98,11 @@ func (r *repository) GetExploreDestinations(origin *UserOriginInfo, limit int) (
 		existing_countries AS (
 			SELECT ts.country_code
 			FROM trip_stages ts
-			WHERE ts.country_code IS NOT NULL
+			WHERE ts.country_code IS NOT NULL AND ts.town_id IS NULL
 			UNION
 			SELECT dr.country_code
 			FROM destination_recommendations dr
-			WHERE dr.country_code IS NOT NULL
+			WHERE dr.country_code IS NOT NULL AND dr.town_id IS NULL
 		),
 		town_recs AS (
 			SELECT dr.town_id,

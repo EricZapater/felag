@@ -165,7 +165,8 @@ func (r *repository) ListPublicDestinations(ctx context.Context, q, countryCode,
 		               ELSE tcf.trip_users_count
 		           END, 0
 		       ) + fd.rec_felagis_count AS total_felagis_count,
-		       COALESCE(TO_CHAR(fd.last_tip_at, 'YYYY-MM'), TO_CHAR(CURRENT_DATE, 'YYYY-MM')) AS updated_at_period
+		       COALESCE(TO_CHAR(fd.last_tip_at, 'YYYY-MM'), TO_CHAR(CURRENT_DATE, 'YYYY-MM')) AS updated_at_period,
+		       (SELECT dr.image_url FROM destination_recommendations dr WHERE dr.is_public = true AND (dr.town_id = fd.town_id OR (fd.town_id IS NULL AND dr.country_code = fd.country_code)) AND dr.image_url IS NOT NULL AND dr.image_url != '' ORDER BY dr.useful_votes_count DESC, dr.created_at DESC LIMIT 1) AS cover_image_url
 		FROM filtered_destinations fd
 		LEFT JOIN trip_town_felagis ttf ON ttf.town_id = fd.town_id
 		LEFT JOIN trip_country_felagis tcf ON tcf.country_code = fd.country_code AND fd.dest_type = 'country'
@@ -184,7 +185,7 @@ func (r *repository) ListPublicDestinations(ctx context.Context, q, countryCode,
 	var items []PublicDestinationItem
 	for rows.Next() {
 		var item PublicDestinationItem
-		var regName sql.NullString
+		var regName, coverImg sql.NullString
 
 		if err := rows.Scan(
 			&item.ID,
@@ -196,12 +197,16 @@ func (r *repository) ListPublicDestinations(ctx context.Context, q, countryCode,
 			&item.TotalTipsCount,
 			&item.TotalFelagisCount,
 			&item.UpdatedAtPeriod,
+			&coverImg,
 		); err != nil {
 			return nil, fmt.Errorf("error scanning public destination: %w", err)
 		}
 
 		if regName.Valid {
 			item.RegionName = &regName.String
+		}
+		if coverImg.Valid && coverImg.String != "" {
+			item.CoverImageURL = &coverImg.String
 		}
 		flag := countryCodeToEmoji(item.CountryCode)
 		item.FlagEmoji = &flag
@@ -295,6 +300,18 @@ func (r *repository) GetPublicDestinationBySlugOrID(ctx context.Context, slugOrI
 			item.UpdatedAtPeriod = "2026-09"
 		}
 
+		// Cover image from top recommendation
+		var coverImg sql.NullString
+		_ = r.db.QueryRowContext(ctx, `
+			SELECT image_url FROM destination_recommendations
+			WHERE town_id = $1 AND is_public = true AND image_url IS NOT NULL AND image_url != ''
+			ORDER BY useful_votes_count DESC, created_at DESC
+			LIMIT 1
+		`, item.ID).Scan(&coverImg)
+		if coverImg.Valid && coverImg.String != "" {
+			item.CoverImageURL = &coverImg.String
+		}
+
 		if item.TotalFelagisCount <= 1 {
 			item.EndorsementSummary = "Avalat per 1 felagi"
 		} else {
@@ -360,6 +377,19 @@ func (r *repository) GetPublicDestinationBySlugOrID(ctx context.Context, slugOrI
 			item.UpdatedAtPeriod = maxCreatedAt.String
 		} else {
 			item.UpdatedAtPeriod = "2026-09"
+		}
+
+		var countryCoverImg sql.NullString
+		_ = r.db.QueryRowContext(ctx, `
+			SELECT image_url FROM destination_recommendations
+			WHERE (country_code = $1 OR town_id IN (
+				SELECT t.id FROM towns t JOIN regions r ON t.region_id = r.id JOIN countries c ON r.country_id = c.id WHERE c.code = $1
+			)) AND is_public = true AND image_url IS NOT NULL AND image_url != ''
+			ORDER BY useful_votes_count DESC, created_at DESC
+			LIMIT 1
+		`, item.CountryCode).Scan(&countryCoverImg)
+		if countryCoverImg.Valid && countryCoverImg.String != "" {
+			item.CoverImageURL = &countryCoverImg.String
 		}
 
 		if item.TotalFelagisCount <= 1 {
