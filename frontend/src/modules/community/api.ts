@@ -129,19 +129,9 @@ export const communityApi = {
       const res = await apiClient.get<TownSearchResult[]>('/api/v1/geo/towns', {
         params: { search: q },
       });
-      return res.data;
+      return res.data || [];
     } catch {
-      // Fallback to /api/v1/destinations if /geo/towns is not available
-      const res = await apiClient.get<DestinationSummary[]>('/api/v1/destinations', {
-        params: { q },
-      });
-      return res.data.map((d) => ({
-        id: d.id,
-        name: d.name,
-        region_name: d.region_name,
-        country_name: d.country_name,
-        country_code: d.country_code,
-      }));
+      return [];
     }
   },
 };

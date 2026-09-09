@@ -61,20 +61,21 @@ export default function DestinationAutocomplete({
   const [options, setOptions] = useState<DestinationOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [inputValue, setInputValue] = useState(value || '');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Keep track of internal vs prop updates
-  const lastEmittedValue = useRef<string>(value || '');
+  // Keep countryCode in a ref so changes in countryCode don't trigger re-searches
+  const countryCodeRef = useRef(countryCode);
+  countryCodeRef.current = countryCode;
 
+  // Sync inputValue only when external value prop changes
   useEffect(() => {
-    if (value !== undefined && value !== lastEmittedValue.current) {
-      lastEmittedValue.current = value;
-      setInputValue(value);
-    }
+    setInputValue(value || '');
   }, [value]);
 
+  // Search effect: ONLY triggers when searchQuery changes (i.e. user typed)
   useEffect(() => {
     let active = true;
-    const query = inputValue.trim();
+    const query = searchQuery.trim();
 
     if (!query || query.length < 2) {
       setOptions([]);
@@ -87,7 +88,7 @@ export default function DestinationAutocomplete({
     const timer = setTimeout(async () => {
       try {
         // 1. Try Google Places Autocomplete first
-        const predictions = await placesApi.autocomplete(query, 'ca', countryCode);
+        const predictions = await placesApi.autocomplete(query, 'ca', countryCodeRef.current);
         
         if (!active) return;
 
@@ -101,22 +102,32 @@ export default function DestinationAutocomplete({
           return;
         }
 
-        // 2. Fallback to local geographic database if no Google predictions
+        // 2. Fallback to local database if no Google predictions
         const townResults = await communityApi.searchTowns(query);
         if (!active) return;
 
         if (townResults && townResults.length > 0) {
-          const mappedTowns: DestinationOption[] = townResults.map((t) => ({
-            id: t.id,
-            name: t.name,
-            secondary_text: [t.region_name, t.country_name || t.country_code]
-              .filter(Boolean)
-              .join(' • '),
-            country_code: t.country_code,
-            country_name: t.country_name,
-            region_name: t.region_name,
-          }));
-          setOptions(mappedTowns);
+          // Deduplicate by name + region_name + country_code
+          const seen = new Set<string>();
+          const deduped: DestinationOption[] = [];
+
+          for (const t of townResults) {
+            const key = `${t.name.toLowerCase()}|${(t.region_name || '').toLowerCase()}|${(t.country_code || '').toLowerCase()}`;
+            if (!seen.has(key)) {
+              seen.add(key);
+              deduped.push({
+                id: t.id,
+                name: t.name,
+                secondary_text: [t.region_name, t.country_name || t.country_code]
+                  .filter(Boolean)
+                  .join(' • '),
+                country_code: t.country_code,
+                country_name: t.country_name,
+                region_name: t.region_name,
+              });
+            }
+          }
+          setOptions(deduped);
         } else {
           setOptions([]);
         }
@@ -135,11 +146,13 @@ export default function DestinationAutocomplete({
       active = false;
       clearTimeout(timer);
     };
-  }, [inputValue, countryCode]);
+  }, [searchQuery]);
 
   const handleSelectOption = async (option: DestinationOption | string | null) => {
+    setSearchQuery(''); // stop any pending search
+    setOpen(false);
+
     if (!option) {
-      lastEmittedValue.current = '';
       setInputValue('');
       onChange({
         destination_name: '',
@@ -149,25 +162,22 @@ export default function DestinationAutocomplete({
     }
 
     if (typeof option === 'string') {
-      lastEmittedValue.current = option;
       setInputValue(option);
       onChange({
         destination_name: option,
-        country_code: countryCode || '',
+        country_code: countryCodeRef.current || '',
       });
       return;
     }
 
     const placeName = option.name;
-    lastEmittedValue.current = placeName;
     setInputValue(placeName);
 
-    // If it's a Google Place, resolve it to get accurate country code, coords & place_id
+    // If it's a Google Place, resolve it
     if (option.google_place_id) {
-      // Immediate callback with what we have
       onChange({
         destination_name: placeName,
-        country_code: option.country_code || countryCode || '',
+        country_code: option.country_code || countryCodeRef.current || '',
         google_place_id: option.google_place_id,
       });
 
@@ -176,7 +186,7 @@ export default function DestinationAutocomplete({
         if (placeDetails) {
           onChange({
             destination_name: placeDetails.name || placeName,
-            country_code: placeDetails.country_code || option.country_code || countryCode || '',
+            country_code: placeDetails.country_code || option.country_code || countryCodeRef.current || '',
             place_id: placeDetails.id,
             google_place_id: option.google_place_id,
             latitude: placeDetails.latitude,
@@ -189,7 +199,7 @@ export default function DestinationAutocomplete({
     } else {
       onChange({
         destination_name: placeName,
-        country_code: option.country_code || countryCode || '',
+        country_code: option.country_code || countryCodeRef.current || '',
         town_id: option.id,
         region_id: option.region_name,
       });
@@ -202,21 +212,26 @@ export default function DestinationAutocomplete({
       onOpen={() => setOpen(true)}
       onClose={() => setOpen(false)}
       freeSolo
-      filterOptions={(x) => x} // Disable client-side filtering since server already filtered
-      value={value || ''}
+      filterOptions={(x) => x}
+      value={value || null}
       inputValue={inputValue}
       onInputChange={(_, newInputValue, reason) => {
         setInputValue(newInputValue);
         if (reason === 'input') {
-          lastEmittedValue.current = newInputValue;
+          // User typed on keyboard -> trigger debounced search and update parent
+          setSearchQuery(newInputValue);
           onChange({
             destination_name: newInputValue,
-            country_code: countryCode || '',
+            country_code: countryCodeRef.current || '',
             town_id: undefined,
             place_id: undefined,
             google_place_id: undefined,
           });
+        } else if (reason === 'clear') {
+          setSearchQuery('');
+          setOptions([]);
         }
+        // If reason === 'reset', ignore to prevent infinite loop!
       }}
       onChange={(_, newValue) => {
         handleSelectOption(newValue);
@@ -246,7 +261,7 @@ export default function DestinationAutocomplete({
         return (
           <Box
             component="li"
-            key={option.google_place_id || option.id || option.name}
+            key={option.google_place_id || option.id || `${option.name}-${option.secondary_text}`}
             {...otherProps}
             sx={{
               display: 'flex',
