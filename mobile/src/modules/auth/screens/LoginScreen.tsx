@@ -62,15 +62,6 @@ export default function LoginScreen({ navigation }: any) {
       >
         Inicia sessió
       </Button>
-
-      <Button
-        mode="text"
-        onPress={() => navigation.navigate('Register')}
-        textColor="#C85A32"
-        style={styles.link}
-      >
-        No tens un compte? Registra't
-      </Button>
     </View>
   );
 }

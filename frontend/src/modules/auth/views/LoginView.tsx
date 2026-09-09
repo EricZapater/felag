@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Box, Button, Card, CardContent, TextField, Typography, Alert, Link } from '@mui/material';
+import { Box, Button, Card, CardContent, TextField, Typography, Alert } from '@mui/material';
 import { useAuthStore } from '../store';
-import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 export default function LoginView() {
   const [email, setEmail] = useState('');
@@ -69,18 +69,10 @@ export default function LoginView() {
               fullWidth
               variant="contained"
               disabled={isLoading}
-              sx={{ mt: 3, mb: 2, py: 1.5, bgcolor: '#C85A32', '&:hover': { bgcolor: '#A0471D' }, borderRadius: 2 }}
+              sx={{ mt: 3, mb: 1, py: 1.5, bgcolor: '#C85A32', '&:hover': { bgcolor: '#A0471D' }, borderRadius: 2 }}
             >
               {isLoading ? 'Iniciant sessió...' : 'Inicia sessió'}
             </Button>
-            <Box textAlign="center" sx={{ mt: 2 }}>
-              <Typography variant="body2" sx={{ color: '#786C65' }}>
-                No tens un compte?{' '}
-                <Link component={RouterLink} to="/register" sx={{ color: '#C85A32', fontWeight: 600 }}>
-                  Registra't
-                </Link>
-              </Typography>
-            </Box>
           </Box>
         </CardContent>
       </Card>
