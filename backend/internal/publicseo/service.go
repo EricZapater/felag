@@ -59,7 +59,7 @@ func (s *service) ListPublicDestinations(ctx context.Context, q, countryCode, so
 	s.mu.Lock()
 	s.listCache[cacheKey] = cacheEntry[*PublicDestinationsResponse]{
 		data:      res,
-		expiresAt: time.Now().Add(2 * time.Minute),
+		expiresAt: time.Now().Add(30 * time.Second),
 	}
 	s.mu.Unlock()
 
@@ -158,7 +158,7 @@ func (s *service) GetPublicDestinationGuide(ctx context.Context, slugOrID string
 	s.mu.Lock()
 	s.guideCache[cacheKey] = cacheEntry[*PublicDestinationGuide]{
 		data:      guide,
-		expiresAt: time.Now().Add(5 * time.Minute),
+		expiresAt: time.Now().Add(60 * time.Second),
 	}
 	s.mu.Unlock()
 

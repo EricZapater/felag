@@ -38,39 +38,73 @@ func (r *repository) ListPublicDestinations(ctx context.Context, q, countryCode,
 	argIdx := 1
 
 	if strings.TrimSpace(q) != "" {
-		whereClauses = append(whereClauses, fmt.Sprintf("(t.name ILIKE $%d OR c.name ILIKE $%d)", argIdx, argIdx))
+		whereClauses = append(whereClauses, fmt.Sprintf("(pr.name ILIKE $%d OR pr.country_name ILIKE $%d)", argIdx, argIdx))
 		args = append(args, "%"+strings.TrimSpace(q)+"%")
 		argIdx++
 	}
 
 	if strings.TrimSpace(countryCode) != "" {
-		whereClauses = append(whereClauses, fmt.Sprintf("c.code = $%d", argIdx))
+		whereClauses = append(whereClauses, fmt.Sprintf("pr.country_code = $%d", argIdx))
 		args = append(args, strings.ToUpper(strings.TrimSpace(countryCode)))
 		argIdx++
 	}
 
-	whereSQL := strings.Join(whereClauses, " AND ")
-
 	if minTips < 1 {
 		minTips = 1
 	}
+	whereClauses = append(whereClauses, fmt.Sprintf("pr.total_tips_count >= %d", minTips))
 
-	// 1. Ultra-fast Count Query using CTE on indexed destination_recommendations
-	countQuery := fmt.Sprintf(`
-		WITH public_tips AS (
-			SELECT dr.town_id
+	whereSQL := strings.Join(whereClauses, " AND ")
+
+	// 1. Unified CTE for both Town and Country level public destinations
+	baseCTE := `
+		WITH public_recs AS (
+			-- Town-level destinations
+			SELECT t.id::text AS id,
+			       COALESCE(t.slug, LOWER(REGEXP_REPLACE(t.name, '[^a-zA-Z0-9]+', '-', 'g'))) AS slug,
+			       t.name AS name,
+			       reg.name AS region_name,
+			       c.name AS country_name,
+			       c.code AS country_code,
+			       COUNT(dr.id) AS total_tips_count,
+			       COUNT(DISTINCT dr.user_id) AS rec_felagis_count,
+			       MAX(dr.created_at) AS last_tip_at,
+			       'town' AS dest_type,
+			       t.id AS town_id
 			FROM destination_recommendations dr
+			JOIN towns t ON dr.town_id = t.id
+			JOIN regions reg ON t.region_id = reg.id
+			JOIN countries c ON reg.country_id = c.id
 			WHERE dr.is_public = true AND dr.town_id IS NOT NULL
-			GROUP BY dr.town_id
-			HAVING COUNT(dr.id) >= %d
+			GROUP BY t.id, t.slug, t.name, reg.name, c.name, c.code
+
+			UNION ALL
+
+			-- Country-level destinations
+			SELECT c.code AS id,
+			       COALESCE(c.slug, LOWER(REGEXP_REPLACE(c.name, '[^a-zA-Z0-9]+', '-', 'g'))) AS slug,
+			       c.name AS name,
+			       NULL::text AS region_name,
+			       c.name AS country_name,
+			       c.code AS country_code,
+			       COUNT(dr.id) AS total_tips_count,
+			       COUNT(DISTINCT dr.user_id) AS rec_felagis_count,
+			       MAX(dr.created_at) AS last_tip_at,
+			       'country' AS dest_type,
+			       NULL::uuid AS town_id
+			FROM destination_recommendations dr
+			JOIN countries c ON dr.country_code = c.code
+			WHERE dr.is_public = true AND dr.town_id IS NULL
+			GROUP BY c.code, c.slug, c.name
 		)
+	`
+
+	countQuery := fmt.Sprintf(`
+		%s
 		SELECT COUNT(*)
-		FROM public_tips pt
-		JOIN towns t ON pt.town_id = t.id
-		JOIN regions reg ON t.region_id = reg.id
-		JOIN countries c ON reg.country_id = c.id
+		FROM public_recs pr
 		WHERE %s
-	`, minTips, whereSQL)
+	`, baseCTE, whereSQL)
 
 	var totalItems int
 	if err := r.db.QueryRowContext(ctx, countQuery, args...).Scan(&totalItems); err != nil {
@@ -89,66 +123,55 @@ func (r *repository) ListPublicDestinations(ctx context.Context, q, countryCode,
 		}, nil
 	}
 
-	orderBy := "total_felagis_count DESC, total_tips_count DESC, ft.town_name ASC"
+	orderBy := "total_felagis_count DESC, total_tips_count DESC, fd.name ASC"
 	switch sort {
 	case "tips_count":
-		orderBy = "total_tips_count DESC, total_felagis_count DESC, ft.town_name ASC"
+		orderBy = "total_tips_count DESC, total_felagis_count DESC, fd.name ASC"
 	case "name":
-		orderBy = "ft.town_name ASC"
+		orderBy = "fd.name ASC"
 	}
 
-	// 2. Ultra-fast Data Query with CTE:
-	// - public_tips: finds only the towns with public recommendations in < 0.5ms
-	// - filtered_towns: applies town/country filters
-	// - trip_felagis: aggregates trip stages ONLY for the filtered town IDs using index
 	query := fmt.Sprintf(`
-		WITH public_tips AS (
-			SELECT dr.town_id,
-			       COUNT(dr.id) AS tips_count,
-			       COUNT(DISTINCT dr.user_id) AS rec_felagis_count,
-			       MAX(dr.created_at) AS last_tip_at
-			FROM destination_recommendations dr
-			WHERE dr.is_public = true AND dr.town_id IS NOT NULL
-			GROUP BY dr.town_id
-			HAVING COUNT(dr.id) >= %d
-		),
-		filtered_towns AS (
-			SELECT pt.town_id,
-			       pt.tips_count,
-			       pt.rec_felagis_count,
-			       pt.last_tip_at,
-			       t.name AS town_name,
-			       t.slug AS town_slug,
-			       reg.name AS region_name,
-			       c.name AS country_name,
-			       c.code AS country_code
-			FROM public_tips pt
-			JOIN towns t ON pt.town_id = t.id
-			JOIN regions reg ON t.region_id = reg.id
-			JOIN countries c ON reg.country_id = c.id
+		%s,
+		filtered_destinations AS (
+			SELECT pr.*
+			FROM public_recs pr
 			WHERE %s
 		),
-		trip_felagis AS (
+		trip_town_felagis AS (
 			SELECT ts.town_id, COUNT(DISTINCT tr.user_id) AS trip_users_count
 			FROM trip_stages ts
 			JOIN trips tr ON ts.trip_id = tr.id
-			WHERE ts.town_id IN (SELECT town_id FROM filtered_towns)
+			WHERE ts.town_id IN (SELECT town_id FROM filtered_destinations WHERE town_id IS NOT NULL)
 			GROUP BY ts.town_id
+		),
+		trip_country_felagis AS (
+			SELECT ts.country_code, COUNT(DISTINCT tr.user_id) AS trip_users_count
+			FROM trip_stages ts
+			JOIN trips tr ON ts.trip_id = tr.id
+			WHERE ts.country_code IN (SELECT country_code FROM filtered_destinations WHERE dest_type = 'country')
+			GROUP BY ts.country_code
 		)
-		SELECT ft.town_id,
-		       COALESCE(ft.town_slug, LOWER(REGEXP_REPLACE(ft.town_name, '[^a-zA-Z0-9]+', '-', 'g'))) AS slug,
-		       ft.town_name,
-		       ft.region_name,
-		       ft.country_name,
-		       ft.country_code,
-		       ft.tips_count AS total_tips_count,
-		       COALESCE(tf.trip_users_count, 0) + ft.rec_felagis_count AS total_felagis_count,
-		       COALESCE(TO_CHAR(ft.last_tip_at, 'YYYY-MM'), TO_CHAR(CURRENT_DATE, 'YYYY-MM')) AS updated_at_period
-		FROM filtered_towns ft
-		LEFT JOIN trip_felagis tf ON tf.town_id = ft.town_id
+		SELECT fd.id,
+		       fd.slug,
+		       fd.name,
+		       fd.region_name,
+		       fd.country_name,
+		       fd.country_code,
+		       fd.total_tips_count,
+		       COALESCE(
+		           CASE 
+		               WHEN fd.dest_type = 'town' THEN ttf.trip_users_count
+		               ELSE tcf.trip_users_count
+		           END, 0
+		       ) + fd.rec_felagis_count AS total_felagis_count,
+		       COALESCE(TO_CHAR(fd.last_tip_at, 'YYYY-MM'), TO_CHAR(CURRENT_DATE, 'YYYY-MM')) AS updated_at_period
+		FROM filtered_destinations fd
+		LEFT JOIN trip_town_felagis ttf ON ttf.town_id = fd.town_id
+		LEFT JOIN trip_country_felagis tcf ON tcf.country_code = fd.country_code AND fd.dest_type = 'country'
 		ORDER BY %s
 		LIMIT $%d OFFSET $%d
-	`, minTips, whereSQL, orderBy, argIdx, argIdx+1)
+	`, baseCTE, whereSQL, orderBy, argIdx, argIdx+1)
 
 	args = append(args, limit, offset)
 
@@ -280,7 +303,7 @@ func (r *repository) GetPublicDestinationBySlugOrID(ctx context.Context, slugOrI
 		return &item, true, item.ID, item.CountryCode, nil
 	}
 
-	// 2. Try matching country
+	// 2. Try matching country (by slug, code, name, or localized alias)
 	countryQuery := `
 		SELECT c.id::text,
 		       COALESCE(c.slug, LOWER(REGEXP_REPLACE(c.name, '[^a-zA-Z0-9]+', '-', 'g'))) AS slug,
@@ -288,7 +311,17 @@ func (r *repository) GetPublicDestinationBySlugOrID(ctx context.Context, slugOrI
 		       c.name AS country_name,
 		       c.code AS country_code
 		FROM countries c
-		WHERE c.slug = $1 OR LOWER(c.slug) = LOWER($1) OR c.code = $1 OR LOWER(c.code) = LOWER($1) OR LOWER(c.name) = LOWER($1)
+		WHERE c.slug = $1 
+		   OR LOWER(c.slug) = LOWER($1) 
+		   OR c.code = $1 
+		   OR UPPER(c.code) = UPPER($1) 
+		   OR LOWER(c.name) = LOWER($1)
+		   OR ($1 ILIKE 'marroc%' AND c.code = 'MA')
+		   OR ($1 ILIKE 'espany%' AND c.code = 'ES')
+		   OR ($1 ILIKE 'jap%' AND c.code = 'JP')
+		   OR ($1 ILIKE 'fran%' AND c.code = 'FR')
+		   OR ($1 ILIKE 'ital%' AND c.code = 'IT')
+		   OR ($1 ILIKE 'island%' AND c.code = 'IS')
 		LIMIT 1
 	`
 
@@ -308,7 +341,9 @@ func (r *repository) GetPublicDestinationBySlugOrID(ctx context.Context, slugOrI
 		_ = r.db.QueryRowContext(ctx, `
 			SELECT COUNT(id), COUNT(DISTINCT user_id), TO_CHAR(MAX(created_at), 'YYYY-MM')
 			FROM destination_recommendations
-			WHERE country_code = $1 AND is_public = true
+			WHERE (country_code = $1 OR town_id IN (
+				SELECT t.id FROM towns t JOIN regions r ON t.region_id = r.id JOIN countries c ON r.country_id = c.id WHERE c.code = $1
+			)) AND is_public = true
 		`, item.CountryCode).Scan(&tipsCount, &recFelagis, &maxCreatedAt)
 
 		var tripFelagis int
@@ -316,8 +351,8 @@ func (r *repository) GetPublicDestinationBySlugOrID(ctx context.Context, slugOrI
 			SELECT COUNT(DISTINCT tr.user_id)
 			FROM trip_stages ts
 			JOIN trips tr ON ts.trip_id = tr.id
-			WHERE ts.country_code = $1
-		`, item.CountryCode).Scan(&tripFelagis)
+			WHERE ts.country_code = $1 OR ts.destination_name ILIKE $2
+		`, item.CountryCode, "%"+item.Name+"%").Scan(&tripFelagis)
 
 		item.TotalTipsCount = tipsCount
 		item.TotalFelagisCount = tripFelagis + recFelagis
@@ -358,7 +393,9 @@ func (r *repository) GetPublicRecommendationsForDestination(ctx context.Context,
 			       COALESCE(dr.useful_votes_count, 0) + 1 AS endorsements_count,
 			       TO_CHAR(dr.created_at, 'YYYY-MM') AS period
 			FROM destination_recommendations dr
-			WHERE dr.country_code = $1 AND dr.is_public = true
+			WHERE (dr.country_code = $1 OR dr.town_id IN (
+				SELECT t.id FROM towns t JOIN regions r ON t.region_id = r.id JOIN countries c ON r.country_id = c.id WHERE c.code = $1
+			)) AND dr.is_public = true
 			ORDER BY dr.useful_votes_count DESC, dr.created_at DESC
 		`
 		args = []interface{}{countryCode}
@@ -500,13 +537,29 @@ func (r *repository) GetRelatedDestinations(ctx context.Context, countryCode, cu
 
 func (r *repository) GetPublicSitemapEntries(ctx context.Context) ([]SitemapEntry, error) {
 	query := `
-		SELECT COALESCE(t.slug, LOWER(REGEXP_REPLACE(t.name, '[^a-zA-Z0-9]+', '-', 'g'))) AS slug,
-		       COALESCE(TO_CHAR(MAX(dr.created_at), 'YYYY-MM'), TO_CHAR(CURRENT_DATE, 'YYYY-MM')) AS lastmod_period,
-		       COUNT(dr.id) AS tips_count
-		FROM destination_recommendations dr
-		JOIN towns t ON dr.town_id = t.id
-		WHERE dr.is_public = true AND dr.town_id IS NOT NULL
-		GROUP BY t.id, t.name, t.slug
+		WITH all_slugs AS (
+			-- Towns
+			SELECT COALESCE(t.slug, LOWER(REGEXP_REPLACE(t.name, '[^a-zA-Z0-9]+', '-', 'g'))) AS slug,
+			       COALESCE(TO_CHAR(MAX(dr.created_at), 'YYYY-MM'), TO_CHAR(CURRENT_DATE, 'YYYY-MM')) AS lastmod_period,
+			       COUNT(dr.id) AS tips_count
+			FROM destination_recommendations dr
+			JOIN towns t ON dr.town_id = t.id
+			WHERE dr.is_public = true AND dr.town_id IS NOT NULL
+			GROUP BY t.id, t.name, t.slug
+
+			UNION ALL
+
+			-- Countries
+			SELECT COALESCE(c.slug, LOWER(REGEXP_REPLACE(c.name, '[^a-zA-Z0-9]+', '-', 'g'))) AS slug,
+			       COALESCE(TO_CHAR(MAX(dr.created_at), 'YYYY-MM'), TO_CHAR(CURRENT_DATE, 'YYYY-MM')) AS lastmod_period,
+			       COUNT(dr.id) AS tips_count
+			FROM destination_recommendations dr
+			JOIN countries c ON dr.country_code = c.code
+			WHERE dr.is_public = true AND dr.town_id IS NULL
+			GROUP BY c.code, c.name, c.slug
+		)
+		SELECT slug, lastmod_period, tips_count
+		FROM all_slugs
 		ORDER BY tips_count DESC
 	`
 

@@ -679,9 +679,14 @@ func (r *repository) CreateRecommendation(destID string, info *DestinationInfo, 
 		locParam = *req.LocationName
 	}
 
+	isPublicVal := true
+	if req.IsPublic != nil {
+		isPublicVal = *req.IsPublic
+	}
+
 	insertQuery := `
-		INSERT INTO destination_recommendations (town_id, country_code, user_id, category, title, description, image_url, location_name)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO destination_recommendations (town_id, country_code, user_id, category, title, description, image_url, location_name, is_public)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id, useful_votes_count, created_at
 	`
 
@@ -692,6 +697,7 @@ func (r *repository) CreateRecommendation(destID string, info *DestinationInfo, 
 	rec.Description = req.Description
 	rec.ImageURL = req.ImageURL
 	rec.LocationName = req.LocationName
+	rec.IsPublic = isPublicVal
 	rec.CommentsCount = 0
 	rec.UserHasVoted = false
 
@@ -705,6 +711,7 @@ func (r *repository) CreateRecommendation(destID string, info *DestinationInfo, 
 		req.Description,
 		imgParam,
 		locParam,
+		isPublicVal,
 	).Scan(&rec.ID, &rec.UsefulVotesCount, &rec.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("error inserting recommendation: %w", err)
