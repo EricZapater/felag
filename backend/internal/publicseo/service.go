@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
+	"time"
 )
 
 type Service interface {
@@ -12,16 +14,38 @@ type Service interface {
 	GetPublicSitemap(ctx context.Context) (*PublicSitemapResponse, error)
 }
 
+type cacheEntry[T any] struct {
+	data      T
+	expiresAt time.Time
+}
+
 type service struct {
-	repo Repository
+	repo         Repository
+	mu           sync.RWMutex
+	listCache    map[string]cacheEntry[*PublicDestinationsResponse]
+	guideCache   map[string]cacheEntry[*PublicDestinationGuide]
+	sitemapCache *cacheEntry[*PublicSitemapResponse]
 }
 
 func NewService(repo Repository) Service {
-	return &service{repo: repo}
+	return &service{
+		repo:       repo,
+		listCache:  make(map[string]cacheEntry[*PublicDestinationsResponse]),
+		guideCache: make(map[string]cacheEntry[*PublicDestinationGuide]),
+	}
 }
 
 func (s *service) ListPublicDestinations(ctx context.Context, q, countryCode, sort string, page, limit int, lang string) (*PublicDestinationsResponse, error) {
 	lang = normalizeLang(lang)
+	cacheKey := fmt.Sprintf("list:%s:%s:%s:%d:%d:%s", strings.TrimSpace(q), strings.TrimSpace(countryCode), sort, page, limit, lang)
+
+	s.mu.RLock()
+	if entry, ok := s.listCache[cacheKey]; ok && time.Now().Before(entry.expiresAt) {
+		s.mu.RUnlock()
+		return entry.data, nil
+	}
+	s.mu.RUnlock()
+
 	res, err := s.repo.ListPublicDestinations(ctx, q, countryCode, sort, page, limit, 1) // Only destinations with >= 1 tip for public index
 	if err != nil {
 		return nil, err
@@ -32,11 +56,26 @@ func (s *service) ListPublicDestinations(ctx context.Context, q, countryCode, so
 		res.Data[i].EndorsementSummary = formatEndorsementLabel(count, lang)
 	}
 
+	s.mu.Lock()
+	s.listCache[cacheKey] = cacheEntry[*PublicDestinationsResponse]{
+		data:      res,
+		expiresAt: time.Now().Add(2 * time.Minute),
+	}
+	s.mu.Unlock()
+
 	return res, nil
 }
 
 func (s *service) GetPublicDestinationGuide(ctx context.Context, slugOrID string, lang string) (*PublicDestinationGuide, error) {
 	lang = normalizeLang(lang)
+	cacheKey := fmt.Sprintf("guide:%s:%s", strings.TrimSpace(slugOrID), lang)
+
+	s.mu.RLock()
+	if entry, ok := s.guideCache[cacheKey]; ok && time.Now().Before(entry.expiresAt) {
+		s.mu.RUnlock()
+		return entry.data, nil
+	}
+	s.mu.RUnlock()
 
 	item, isTown, townID, countryCode, err := s.repo.GetPublicDestinationBySlugOrID(ctx, slugOrID)
 	if err != nil {
@@ -101,7 +140,7 @@ func (s *service) GetPublicDestinationGuide(ctx context.Context, slugOrID string
 
 	item.EndorsementSummary = formatEndorsementLabel(item.TotalFelagisCount, lang)
 
-	return &PublicDestinationGuide{
+	guide := &PublicDestinationGuide{
 		Destination: *item,
 		Stats:       stats,
 		Categories: CategorizedTips{
@@ -114,18 +153,44 @@ func (s *service) GetPublicDestinationGuide(ctx context.Context, slugOrID string
 		Faqs:                faqs,
 		RelatedDestinations: nonNilItems(related),
 		Seo:                 seo,
-	}, nil
+	}
+
+	s.mu.Lock()
+	s.guideCache[cacheKey] = cacheEntry[*PublicDestinationGuide]{
+		data:      guide,
+		expiresAt: time.Now().Add(5 * time.Minute),
+	}
+	s.mu.Unlock()
+
+	return guide, nil
 }
 
 func (s *service) GetPublicSitemap(ctx context.Context) (*PublicSitemapResponse, error) {
+	s.mu.RLock()
+	if s.sitemapCache != nil && time.Now().Before(s.sitemapCache.expiresAt) {
+		data := s.sitemapCache.data
+		s.mu.RUnlock()
+		return data, nil
+	}
+	s.mu.RUnlock()
+
 	entries, err := s.repo.GetPublicSitemapEntries(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return &PublicSitemapResponse{
+	res := &PublicSitemapResponse{
 		Total:   len(entries),
 		Entries: entries,
-	}, nil
+	}
+
+	s.mu.Lock()
+	s.sitemapCache = &cacheEntry[*PublicSitemapResponse]{
+		data:      res,
+		expiresAt: time.Now().Add(10 * time.Minute),
+	}
+	s.mu.Unlock()
+
+	return res, nil
 }
 
 func normalizeLang(lang string) string {

@@ -3,15 +3,18 @@ package publicseo
 import (
 	"context"
 	"database/sql"
+	"sync/atomic"
 	"testing"
 )
 
 type mockRepo struct {
-	items []PublicDestinationItem
-	tips  []PublicAnonymousTip
+	items          []PublicDestinationItem
+	tips           []PublicAnonymousTip
+	listCallsCount int32
 }
 
 func (m *mockRepo) ListPublicDestinations(ctx context.Context, q, countryCode, sort string, page, limit int, minTips int) (*PublicDestinationsResponse, error) {
+	atomic.AddInt32(&m.listCallsCount, 1)
 	return &PublicDestinationsResponse{
 		Data: m.items,
 		Pagination: PaginationMeta{
@@ -64,6 +67,7 @@ func TestPublicSeoService_ListDestinations(t *testing.T) {
 	}
 	svc := NewService(mock)
 
+	// First call -> hits repo
 	res, err := svc.ListPublicDestinations(context.Background(), "", "", "popular", 1, 20, "ca")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -73,6 +77,18 @@ func TestPublicSeoService_ListDestinations(t *testing.T) {
 	}
 	if res.Data[0].EndorsementSummary != "5 felagis ho avalen" {
 		t.Errorf("expected endorsement label '5 felagis ho avalen', got '%s'", res.Data[0].EndorsementSummary)
+	}
+
+	// Second call -> hits in-memory cache instantly
+	res2, err := svc.ListPublicDestinations(context.Background(), "", "", "popular", 1, 20, "ca")
+	if err != nil {
+		t.Fatalf("unexpected error on cached call: %v", err)
+	}
+	if len(res2.Data) != 1 {
+		t.Fatalf("expected 1 item, got %d", len(res2.Data))
+	}
+	if mock.listCallsCount != 1 {
+		t.Errorf("expected 1 repo call due to caching, got %d", mock.listCallsCount)
 	}
 }
 
