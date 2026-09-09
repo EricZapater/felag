@@ -52,64 +52,71 @@ func (r *repository) SearchDestinations(q string, limit int) ([]DestinationSumma
 		townQuery = `
 			WITH matched_towns AS (
 				SELECT t.id, t.name, r.name AS region_name, c.name AS country_name, c.code AS country_code,
-				       ROW_NUMBER() OVER (
-				           PARTITION BY LOWER(t.name), r.name, c.code 
-				           ORDER BY 
-				               CASE 
-				                   WHEN LOWER(t.name) = LOWER($2) THEN 1
-				                   WHEN LOWER(t.name) LIKE LOWER($2) || '%' THEN 2
-				                   WHEN LOWER(r.name) = LOWER($2) THEN 3
-				                   ELSE 4
-				               END, t.id
-				       ) as rn,
 				       CASE 
 				           WHEN LOWER(t.name) = LOWER($2) THEN 1
 				           WHEN LOWER(t.name) LIKE LOWER($2) || '%' THEN 2
-				           WHEN LOWER(r.name) = LOWER($2) THEN 3
-				           ELSE 4
+				           ELSE 3
 				       END as rank_score
 				FROM towns t
 				JOIN regions r ON t.region_id = r.id
 				JOIN countries c ON r.country_id = c.id
-				WHERE t.name ILIKE $1 OR r.name ILIKE $1 OR c.name ILIKE $1
-				LIMIT 100
+				WHERE t.name ILIKE $1 OR c.name ILIKE $1 OR c.code ILIKE $1
+				LIMIT 30
 			),
-			deduped AS (
-				SELECT id, name, region_name, country_name, country_code, rank_score
-				FROM matched_towns
-				WHERE rn = 1
-				ORDER BY rank_score ASC, name ASC
-				LIMIT $3
+			rec_towns AS (
+				SELECT dr.town_id, COUNT(dr.id) AS rec_count
+				FROM destination_recommendations dr
+				WHERE dr.town_id IN (SELECT id FROM matched_towns)
+				GROUP BY dr.town_id
+			),
+			active_trip_towns AS (
+				SELECT ts.town_id, COUNT(DISTINCT tr.user_id) AS active_felagis_count
+				FROM trip_stages ts
+				JOIN trips tr ON ts.trip_id = tr.id
+				WHERE ts.town_id IN (SELECT id FROM matched_towns)
+				  AND CURRENT_DATE BETWEEN tr.start_date AND tr.end_date
+				GROUP BY ts.town_id
 			)
-			SELECT d.id, d.name, d.region_name, d.country_name, d.country_code,
-			       COALESCE((SELECT COUNT(*) FROM destination_recommendations dr WHERE dr.town_id = d.id), 0) AS recommendations_count,
-			       COALESCE((
-			           SELECT COUNT(DISTINCT tr.user_id)
-			           FROM trips tr
-			           JOIN trip_stages ts ON ts.trip_id = tr.id
-			           WHERE CURRENT_DATE BETWEEN tr.start_date AND tr.end_date
-			             AND (ts.town_id = d.id OR ts.destination_name = d.name)
-			       ), 0) AS active_felagis_count
-			FROM deduped d
-			ORDER BY recommendations_count DESC, active_felagis_count DESC, d.rank_score ASC, d.name ASC
+			SELECT mt.id, mt.name, mt.region_name, mt.country_name, mt.country_code,
+			       COALESCE(rt.rec_count, 0) AS recommendations_count,
+			       COALESCE(att.active_felagis_count, 0) AS active_felagis_count
+			FROM matched_towns mt
+			LEFT JOIN rec_towns rt ON rt.town_id = mt.id
+			LEFT JOIN active_trip_towns att ON att.town_id = mt.id
+			ORDER BY mt.rank_score ASC, recommendations_count DESC, active_felagis_count DESC, mt.name ASC
+			LIMIT $3
 		`
 		rows, err = r.db.Query(townQuery, queryPattern, trimmedQuery, limit)
 	} else {
 		townQuery = `
-			SELECT t.id, t.name, r.name AS region_name, c.name AS country_name, c.code AS country_code,
-			       COALESCE((SELECT COUNT(*) FROM destination_recommendations dr WHERE dr.town_id = t.id), 0) AS recommendations_count,
-			       COALESCE((
-			           SELECT COUNT(DISTINCT tr.user_id)
-			           FROM trips tr
-			           JOIN trip_stages ts ON ts.trip_id = tr.id
-			           WHERE CURRENT_DATE BETWEEN tr.start_date AND tr.end_date
-			             AND (ts.town_id = t.id OR ts.destination_name = t.name)
-			       ), 0) AS active_felagis_count
-			FROM towns t
-			JOIN regions r ON t.region_id = r.id
-			JOIN countries c ON r.country_id = c.id
-			WHERE (SELECT COUNT(*) FROM destination_recommendations dr WHERE dr.town_id = t.id) > 0
-			   OR (SELECT COUNT(DISTINCT tr.user_id) FROM trips tr JOIN trip_stages ts ON ts.trip_id = tr.id WHERE CURRENT_DATE BETWEEN tr.start_date AND tr.end_date AND (ts.town_id = t.id OR ts.destination_name = t.name)) > 0
+			WITH active_trip_towns AS (
+				SELECT ts.town_id, COUNT(DISTINCT tr.user_id) AS active_felagis_count
+				FROM trip_stages ts
+				JOIN trips tr ON ts.trip_id = tr.id
+				WHERE ts.town_id IS NOT NULL
+				  AND CURRENT_DATE BETWEEN tr.start_date AND tr.end_date
+				GROUP BY ts.town_id
+			),
+			rec_towns AS (
+				SELECT dr.town_id, COUNT(dr.id) AS rec_count
+				FROM destination_recommendations dr
+				WHERE dr.town_id IS NOT NULL
+				GROUP BY dr.town_id
+			),
+			existing_town_ids AS (
+				SELECT town_id FROM active_trip_towns
+				UNION
+				SELECT town_id FROM rec_towns
+			)
+			SELECT t.id, t.name, reg.name AS region_name, c.name AS country_name, c.code AS country_code,
+			       COALESCE(rt.rec_count, 0) AS recommendations_count,
+			       COALESCE(att.active_felagis_count, 0) AS active_felagis_count
+			FROM existing_town_ids eti
+			JOIN towns t ON eti.town_id = t.id
+			JOIN regions reg ON t.region_id = reg.id
+			JOIN countries c ON reg.country_id = c.id
+			LEFT JOIN rec_towns rt ON rt.town_id = t.id
+			LEFT JOIN active_trip_towns att ON att.town_id = t.id
 			ORDER BY recommendations_count DESC, active_felagis_count DESC, t.name ASC
 			LIMIT $1
 		`
@@ -160,7 +167,7 @@ func (r *repository) SearchDestinations(q string, limit int) ([]DestinationSumma
 	if trimmedQuery != "" {
 		countryQuery = `
 			WITH matched_countries AS (
-				SELECT c.id, c.name, c.code,
+				SELECT c.code AS id, c.name, NULL::text AS region_name, c.name AS country_name, c.code AS country_code,
 				       CASE 
 				           WHEN LOWER(c.code) = LOWER($2) THEN 1
 				           WHEN LOWER(c.name) = LOWER($2) THEN 2
@@ -169,50 +176,60 @@ func (r *repository) SearchDestinations(q string, limit int) ([]DestinationSumma
 				       END as rank_score
 				FROM countries c
 				WHERE c.name ILIKE $1 OR c.code ILIKE $1
-				ORDER BY rank_score ASC, c.name ASC
-				LIMIT $3
+				LIMIT 20
+			),
+			rec_countries AS (
+				SELECT dr.country_code, COUNT(dr.id) AS rec_count
+				FROM destination_recommendations dr
+				WHERE dr.country_code IN (SELECT country_code FROM matched_countries)
+				GROUP BY dr.country_code
+			),
+			active_trip_countries AS (
+				SELECT ts.country_code, COUNT(DISTINCT tr.user_id) AS active_felagis_count
+				FROM trip_stages ts
+				JOIN trips tr ON ts.trip_id = tr.id
+				WHERE ts.country_code IN (SELECT country_code FROM matched_countries)
+				  AND CURRENT_DATE BETWEEN tr.start_date AND tr.end_date
+				GROUP BY ts.country_code
 			)
-			SELECT mc.code, mc.name, mc.code,
-			       COALESCE((
-			           SELECT COUNT(*)
-			           FROM destination_recommendations dr
-			           LEFT JOIN towns t ON dr.town_id = t.id
-			           LEFT JOIN regions r ON t.region_id = r.id
-			           LEFT JOIN countries dc ON r.country_id = dc.id
-			           WHERE dr.country_code = mc.code OR dc.code = mc.code
-			       ), 0) AS recommendations_count,
-			       COALESCE((
-			           SELECT COUNT(DISTINCT tr.user_id)
-			           FROM trips tr
-			           JOIN trip_stages ts ON ts.trip_id = tr.id
-			           WHERE CURRENT_DATE BETWEEN tr.start_date AND tr.end_date
-			             AND (ts.country_code = mc.code OR ts.destination_name = mc.name)
-			       ), 0) AS active_felagis_count
+			SELECT mc.id, mc.name, mc.region_name, mc.country_name, mc.country_code,
+			       COALESCE(rc.rec_count, 0) AS recommendations_count,
+			       COALESCE(atc.active_felagis_count, 0) AS active_felagis_count
 			FROM matched_countries mc
-			ORDER BY recommendations_count DESC, active_felagis_count DESC, mc.rank_score ASC, mc.name ASC
+			LEFT JOIN rec_countries rc ON rc.country_code = mc.country_code
+			LEFT JOIN active_trip_countries atc ON atc.country_code = mc.country_code
+			ORDER BY mc.rank_score ASC, recommendations_count DESC, active_felagis_count DESC, mc.name ASC
+			LIMIT $3
 		`
 		cRows, err = r.db.Query(countryQuery, queryPattern, trimmedQuery, limit)
 	} else {
 		countryQuery = `
-			SELECT c.code, c.name, c.code,
-			       COALESCE((
-			           SELECT COUNT(*)
-			           FROM destination_recommendations dr
-			           LEFT JOIN towns t ON dr.town_id = t.id
-			           LEFT JOIN regions r ON t.region_id = r.id
-			           LEFT JOIN countries dc ON r.country_id = dc.id
-			           WHERE dr.country_code = c.code OR dc.code = c.code
-			       ), 0) AS recommendations_count,
-			       COALESCE((
-			           SELECT COUNT(DISTINCT tr.user_id)
-			           FROM trips tr
-			           JOIN trip_stages ts ON ts.trip_id = tr.id
-			           WHERE CURRENT_DATE BETWEEN tr.start_date AND tr.end_date
-			             AND (ts.country_code = c.code OR ts.destination_name = c.name)
-			       ), 0) AS active_felagis_count
-			FROM countries c
-			WHERE (SELECT COUNT(*) FROM destination_recommendations dr WHERE dr.country_code = c.code) > 0
-			   OR (SELECT COUNT(DISTINCT tr.user_id) FROM trips tr JOIN trip_stages ts ON ts.trip_id = tr.id WHERE CURRENT_DATE BETWEEN tr.start_date AND tr.end_date AND ts.country_code = c.code) > 0
+			WITH active_trip_countries AS (
+				SELECT ts.country_code, COUNT(DISTINCT tr.user_id) AS active_felagis_count
+				FROM trip_stages ts
+				JOIN trips tr ON ts.trip_id = tr.id
+				WHERE ts.country_code IS NOT NULL
+				  AND CURRENT_DATE BETWEEN tr.start_date AND tr.end_date
+				GROUP BY ts.country_code
+			),
+			rec_countries AS (
+				SELECT dr.country_code, COUNT(dr.id) AS rec_count
+				FROM destination_recommendations dr
+				WHERE dr.country_code IS NOT NULL
+				GROUP BY dr.country_code
+			),
+			existing_country_codes AS (
+				SELECT country_code FROM active_trip_countries
+				UNION
+				SELECT country_code FROM rec_countries
+			)
+			SELECT c.code AS id, c.name, NULL::text AS region_name, c.name AS country_name, c.code AS country_code,
+			       COALESCE(rc.rec_count, 0) AS recommendations_count,
+			       COALESCE(atc.active_felagis_count, 0) AS active_felagis_count
+			FROM existing_country_codes ecc
+			JOIN countries c ON ecc.country_code = c.code
+			LEFT JOIN rec_countries rc ON rc.country_code = c.code
+			LEFT JOIN active_trip_countries atc ON atc.country_code = c.code
 			ORDER BY recommendations_count DESC, active_felagis_count DESC, c.name ASC
 			LIMIT $1
 		`
@@ -667,7 +684,11 @@ func (r *repository) CreateRecommendation(destID string, info *DestinationInfo, 
 		townIDParam = info.TownID
 		countryCodeParam = info.CountryCode
 	} else {
-		townIDParam = nil
+		if req.TownID != nil && strings.TrimSpace(*req.TownID) != "" {
+			townIDParam = strings.TrimSpace(*req.TownID)
+		} else {
+			townIDParam = nil
+		}
 		countryCodeParam = info.CountryCode
 	}
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -15,9 +15,12 @@ import {
   Typography,
   FormControlLabel,
   Checkbox,
+  Autocomplete,
+  CircularProgress,
 } from '@mui/material';
 import { useCommunityStore } from '../store';
-import { RecommendationCategory } from '../types';
+import { communityApi } from '../api';
+import { RecommendationCategory, TownSearchResult } from '../types';
 
 interface CreateRecommendationDialogProps {
   open: boolean;
@@ -42,8 +45,36 @@ export default function CreateRecommendationDialog({
   const [locationName, setLocationName] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [isPublic, setIsPublic] = useState(true);
+  const [selectedTown, setSelectedTown] = useState<TownSearchResult | null>(null);
+  const [townSearchQuery, setTownSearchQuery] = useState('');
+  const [townOptions, setTownOptions] = useState<TownSearchResult[]>([]);
+  const [isSearchingTowns, setIsSearchingTowns] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!townSearchQuery || townSearchQuery.trim().length < 2) {
+      setTownOptions([]);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setIsSearchingTowns(true);
+      communityApi
+        .searchTowns(townSearchQuery.trim())
+        .then((towns) => {
+          setTownOptions(towns);
+        })
+        .catch(() => {
+          setTownOptions([]);
+        })
+        .finally(() => {
+          setIsSearchingTowns(false);
+        });
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [townSearchQuery]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,6 +97,7 @@ export default function CreateRecommendationDialog({
         description: description.trim(),
         location_name: locationName.trim() || undefined,
         image_url: imageUrl.trim() || undefined,
+        town_id: selectedTown ? selectedTown.id : undefined,
         is_public: isPublic,
       });
       // Reset form
@@ -73,6 +105,7 @@ export default function CreateRecommendationDialog({
       setDescription('');
       setLocationName('');
       setImageUrl('');
+      setSelectedTown(null);
       setIsPublic(true);
       onCreated();
       onClose();
@@ -156,11 +189,43 @@ export default function CreateRecommendationDialog({
             helperText={`${description.length}/2000 caràcters`}
           />
 
+          <Autocomplete
+            size="small"
+            options={townOptions}
+            getOptionLabel={(option) => `${option.name}${option.region_name ? ` (${option.region_name})` : ''}${option.country_name ? `, ${option.country_name}` : ''}`}
+            isOptionEqualToValue={(option, value) => option.id === value.id}
+            value={selectedTown}
+            onChange={(_, newValue) => {
+              setSelectedTown(newValue);
+            }}
+            onInputChange={(_, newInputValue) => {
+              setTownSearchQuery(newInputValue);
+            }}
+            loading={isSearchingTowns}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Poble o Ciutat específica (opcional)"
+                placeholder="Cerca el poble o ciutat (ex: Marrakech, Girona...)"
+                helperText="Vincula el consell a un poble concret per aparèixer a la seva guia"
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {isSearchingTowns ? <CircularProgress color="inherit" size={18} /> : null}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
+              />
+            )}
+          />
+
           <TextField
             fullWidth
             size="small"
-            label="Ubicació o adreça (opcional)"
-            placeholder="Ex: Shinjuku 2-chome 12-4, Tòquio"
+            label="Lloc concret, local o adreça (opcional)"
+            placeholder="Ex: Jemaa el-Fnaa, Restaurant Saegreifinn, etc."
             value={locationName}
             onChange={(e) => setLocationName(e.target.value)}
           />

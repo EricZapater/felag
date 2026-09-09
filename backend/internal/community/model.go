@@ -60,6 +60,7 @@ type CreateRecommendationRequest struct {
 	Description  string  `json:"description" binding:"required,max=2000"`
 	ImageURL     *string `json:"image_url,omitempty"`
 	LocationName *string `json:"location_name,omitempty"`
+	TownID       *string `json:"town_id,omitempty"`
 	IsPublic     *bool   `json:"is_public,omitempty"`
 }
 

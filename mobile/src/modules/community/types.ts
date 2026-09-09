@@ -72,6 +72,7 @@ export interface CreateRecommendationRequest {
   description: string;
   image_url?: string;
   location_name?: string;
+  town_id?: string;
   is_public?: boolean;
 }
 

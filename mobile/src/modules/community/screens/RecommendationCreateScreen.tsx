@@ -18,7 +18,8 @@ import {
   TextInput,
 } from 'react-native-paper';
 import { useCommunityStore } from '../store';
-import { RecommendationCategory } from '../types';
+import { communityApi } from '../api';
+import { DestinationSummary, RecommendationCategory } from '../types';
 
 interface Props {
   navigation: {
@@ -53,7 +54,24 @@ export default function RecommendationCreateScreen({ navigation, route }: Props)
   const [locationName, setLocationName] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [isPublic, setIsPublic] = useState(true);
+  const [selectedTown, setSelectedTown] = useState<{ id: string; name: string } | null>(null);
+  const [townSearchQuery, setTownSearchQuery] = useState('');
+  const [townSearchResults, setTownSearchResults] = useState<Array<{ id: string; name: string; country_name?: string }>>([]);
   const [formError, setFormError] = useState('');
+
+  const handleSearchTowns = async (text: string) => {
+    setTownSearchQuery(text);
+    if (text.trim().length < 2) {
+      setTownSearchResults([]);
+      return;
+    }
+    try {
+      const results = await communityApi.searchDestinations(text.trim(), 10);
+      setTownSearchResults(results.map((r: DestinationSummary) => ({ id: r.id, name: r.name, country_name: r.country_name })));
+    } catch {
+      setTownSearchResults([]);
+    }
+  };
 
   const handleSubmit = async () => {
     setFormError('');
@@ -77,6 +95,7 @@ export default function RecommendationCreateScreen({ navigation, route }: Props)
         description: description.trim(),
         location_name: locationName.trim() ? locationName.trim() : undefined,
         image_url: imageUrl.trim() ? imageUrl.trim() : undefined,
+        town_id: selectedTown ? selectedTown.id : undefined,
         is_public: isPublic,
       });
 
@@ -166,6 +185,48 @@ export default function RecommendationCreateScreen({ navigation, route }: Props)
               activeOutlineColor="#C85A32"
               mode="outlined"
             />
+
+            <TextInput
+              label="Poble o Ciutat específica (opcional)"
+              placeholder="Cerca poble o ciutat..."
+              value={selectedTown ? selectedTown.name : townSearchQuery}
+              onChangeText={(txt) => {
+                if (selectedTown) setSelectedTown(null);
+                handleSearchTowns(txt);
+              }}
+              style={styles.input}
+              activeOutlineColor="#C85A32"
+              mode="outlined"
+            />
+            {townSearchResults.length > 0 && !selectedTown ? (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+                {townSearchResults.slice(0, 5).map((t) => (
+                  <Chip
+                    key={t.id}
+                    onPress={() => {
+                      setSelectedTown({ id: t.id, name: t.name });
+                      setTownSearchResults([]);
+                      setTownSearchQuery('');
+                    }}
+                    style={{ backgroundColor: '#FDEEE9' }}
+                    textStyle={{ color: '#C85A32', fontSize: 12, fontWeight: '700' }}
+                  >
+                    📍 {t.name}
+                  </Chip>
+                ))}
+              </View>
+            ) : null}
+            {selectedTown ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                <Chip
+                  onClose={() => setSelectedTown(null)}
+                  style={{ backgroundColor: '#C85A32' }}
+                  textStyle={{ color: '#FFFFFF', fontWeight: 'bold' }}
+                >
+                  📍 {selectedTown.name}
+                </Chip>
+              </View>
+            ) : null}
 
             <TextInput
               label="Ubicació / Adreça (opcional)"

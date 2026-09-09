@@ -86,67 +86,68 @@ func (r *repository) GetExploreDestinations(origin *UserOriginInfo, limit int) (
 	}
 
 	query := `
-		WITH dest_stats AS (
-			SELECT 
-				t.id AS town_id,
-				t.name AS town_name,
-				r.name AS region_name,
-				c.name AS country_name,
-				c.code AS country_code,
-				COALESCE(rec_count.total, 0) AS total_recs,
-				COALESCE(active_count.total, 0) AS active_felagis,
-				COALESCE(same_region_recs.total, 0) AS region_recs,
-				COALESCE(same_town_recs.total, 0) AS town_recs,
-				banner.image_url AS banner_url
-			FROM towns t
-			JOIN regions r ON t.region_id = r.id
-			JOIN countries c ON r.country_id = c.id
-			LEFT JOIN LATERAL (
-				SELECT COUNT(*) AS total
+		WITH existing_towns AS (
+			SELECT ts.town_id
+			FROM trip_stages ts
+			WHERE ts.town_id IS NOT NULL
+			UNION
+			SELECT dr.town_id
+			FROM destination_recommendations dr
+			WHERE dr.town_id IS NOT NULL
+		),
+		town_recs AS (
+			SELECT dr.town_id,
+			       COUNT(dr.id) AS total_recs,
+			       COUNT(CASE WHEN $1::uuid IS NOT NULL AND ut.region_id = $1::uuid THEN 1 END) AS region_recs,
+			       COUNT(CASE WHEN $2::uuid IS NOT NULL AND u.town_id = $2::uuid THEN 1 END) AS town_recs
+			FROM destination_recommendations dr
+			JOIN users u ON dr.user_id = u.id
+			LEFT JOIN towns ut ON u.town_id = ut.id
+			WHERE dr.town_id IN (SELECT town_id FROM existing_towns)
+			GROUP BY dr.town_id
+		),
+		active_trips AS (
+			SELECT ts.town_id, COUNT(DISTINCT tr.user_id) AS active_felagis
+			FROM trip_stages ts
+			JOIN trips tr ON ts.trip_id = tr.id
+			WHERE ts.town_id IN (SELECT town_id FROM existing_towns)
+			  AND CURRENT_DATE BETWEEN tr.start_date AND tr.end_date
+			GROUP BY ts.town_id
+		),
+		latest_banner AS (
+			SELECT DISTINCT ON (img.town_id) img.town_id, img.image_url
+			FROM (
+				SELECT dr.town_id, dr.image_url, dr.created_at
 				FROM destination_recommendations dr
-				WHERE dr.town_id = t.id
-			) rec_count ON true
-			LEFT JOIN LATERAL (
-				SELECT COUNT(DISTINCT tr.user_id) AS total
-				FROM trips tr
-				JOIN trip_stages ts ON (ts.town_id = t.id OR LOWER(ts.destination_name) = LOWER(t.name))
-				WHERE CURRENT_DATE BETWEEN tr.start_date AND tr.end_date
-			) active_count ON true
-			LEFT JOIN LATERAL (
-				SELECT COUNT(*) AS total
-				FROM destination_recommendations dr
-				JOIN users u ON dr.user_id = u.id
-				JOIN towns ut ON u.town_id = ut.id
-				WHERE dr.town_id = t.id AND $1::uuid IS NOT NULL AND ut.region_id = $1::uuid
-			) same_region_recs ON true
-			LEFT JOIN LATERAL (
-				SELECT COUNT(*) AS total
-				FROM destination_recommendations dr
-				JOIN users u ON dr.user_id = u.id
-				WHERE dr.town_id = t.id AND $2::uuid IS NOT NULL AND u.town_id = $2::uuid
-			) same_town_recs ON true
-			LEFT JOIN LATERAL (
-				SELECT image_url
-				FROM (
-					SELECT dr.image_url, dr.created_at
-					FROM destination_recommendations dr
-					WHERE dr.town_id = t.id AND dr.image_url IS NOT NULL AND dr.image_url != ''
-					UNION ALL
-					SELECT dlm.image_url, dlm.created_at
-					FROM destination_live_moments dlm
-					WHERE dlm.town_id = t.id AND dlm.image_url IS NOT NULL AND dlm.image_url != ''
-				) img_union
-				ORDER BY created_at DESC
-				LIMIT 1
-			) banner ON true
+				WHERE dr.town_id IN (SELECT town_id FROM existing_towns) AND dr.image_url IS NOT NULL AND dr.image_url != ''
+				UNION ALL
+				SELECT dlm.town_id, dlm.image_url, dlm.created_at
+				FROM destination_live_moments dlm
+				WHERE dlm.town_id IN (SELECT town_id FROM existing_towns) AND dlm.image_url IS NOT NULL AND dlm.image_url != ''
+			) img
+			ORDER BY img.town_id, img.created_at DESC
 		)
 		SELECT 
-			town_id, town_name, region_name, country_name, country_code,
-			total_recs, active_felagis, region_recs, town_recs, banner_url
-		FROM dest_stats
+			t.id AS town_id,
+			t.name AS town_name,
+			r.name AS region_name,
+			c.name AS country_name,
+			c.code AS country_code,
+			COALESCE(tr.total_recs, 0) AS total_recs,
+			COALESCE(at.active_felagis, 0) AS active_felagis,
+			COALESCE(tr.region_recs, 0) AS region_recs,
+			COALESCE(tr.town_recs, 0) AS town_recs,
+			lb.image_url AS banner_url
+		FROM existing_towns et
+		JOIN towns t ON et.town_id = t.id
+		JOIN regions r ON t.region_id = r.id
+		JOIN countries c ON r.country_id = c.id
+		LEFT JOIN town_recs tr ON tr.town_id = t.id
+		LEFT JOIN active_trips at ON at.town_id = t.id
+		LEFT JOIN latest_banner lb ON lb.town_id = t.id
 		ORDER BY 
-			(town_recs * 5 + region_recs * 3 + active_felagis * 2 + total_recs) DESC,
-			town_name ASC
+			(COALESCE(tr.town_recs, 0) * 5 + COALESCE(tr.region_recs, 0) * 3 + COALESCE(at.active_felagis, 0) * 2 + COALESCE(tr.total_recs, 0)) DESC,
+			t.name ASC
 		LIMIT $3;
 	`
 
