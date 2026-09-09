@@ -194,12 +194,15 @@ export default function CreateRecommendationDialog({
             options={townOptions}
             getOptionLabel={(option) => `${option.name}${option.region_name ? ` (${option.region_name})` : ''}${option.country_name ? `, ${option.country_name}` : ''}`}
             isOptionEqualToValue={(option, value) => option.id === value.id}
+            filterOptions={(x) => x}
             value={selectedTown}
             onChange={(_, newValue) => {
               setSelectedTown(newValue);
             }}
-            onInputChange={(_, newInputValue) => {
-              setTownSearchQuery(newInputValue);
+            onInputChange={(_, newInputValue, reason) => {
+              if (reason === 'input') {
+                setTownSearchQuery(newInputValue);
+              }
             }}
             loading={isSearchingTowns}
             renderInput={(params) => (

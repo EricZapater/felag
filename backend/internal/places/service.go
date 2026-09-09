@@ -54,7 +54,31 @@ func (s *service) Autocomplete(ctx context.Context, input, language, countryCode
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("failed autocomplete from google places: %w", err)
+		// Fallback to local cached places in PostgreSQL
+		localPlaces, localErr := s.repo.SearchLocalPlaces(ctx, input, 10)
+		if localErr == nil && len(localPlaces) > 0 {
+			var fallbackPreds []AutocompletePrediction
+			for _, lp := range localPlaces {
+				secText := lp.AdministrativeArea
+				if lp.CountryName != "" {
+					if secText != "" {
+						secText += ", " + lp.CountryName
+					} else {
+						secText = lp.CountryName
+					}
+				}
+				fallbackPreds = append(fallbackPreds, AutocompletePrediction{
+					GooglePlaceID: lp.GooglePlaceID,
+					MainText:      lp.Name,
+					SecondaryText: secText,
+					FullText:      lp.FormattedAddress,
+					Types:         lp.PlaceTypes,
+				})
+			}
+			return fallbackPreds, nil
+		}
+		// If both Google Places and local fail, return empty list gracefully instead of 500 error
+		return []AutocompletePrediction{}, nil
 	}
 
 	return preds, nil

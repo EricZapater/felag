@@ -266,29 +266,20 @@ func (r *repository) SearchTowns(q string, limit int) ([]TownSearchResult, error
 	pattern := "%" + trimmed + "%"
 
 	query := `
-		WITH raw_matches AS (
-			SELECT t.id, t.name, r.name AS region_name, c.name AS country_name, c.code AS country_code
-			FROM towns t
-			JOIN regions r ON t.region_id = r.id
-			JOIN countries c ON r.country_id = c.id
-			WHERE t.name ILIKE $1 OR r.name ILIKE $1 OR c.name ILIKE $1
-			LIMIT 100
-		),
-		ranked AS (
-			SELECT rm.id, rm.name, rm.region_name, rm.country_name, rm.country_code,
-			       CASE 
-			           WHEN LOWER(rm.name) = LOWER($2) THEN 1
-			           WHEN LOWER(rm.name) LIKE LOWER($2) || '%' THEN 2
-			           WHEN LOWER(rm.region_name) = LOWER($2) THEN 3
-			           ELSE 4
-			       END AS rank_score,
-			       ROW_NUMBER() OVER(PARTITION BY LOWER(rm.name), rm.region_name, rm.country_code ORDER BY rm.id) as rn
-			FROM raw_matches rm
-		)
-		SELECT id, name, region_name, country_name, country_code
-		FROM ranked
-		WHERE rn = 1
-		ORDER BY rank_score ASC, name ASC
+		SELECT t.id, t.name, r.name AS region_name, c.name AS country_name, c.code AS country_code
+		FROM towns t
+		JOIN regions r ON t.region_id = r.id
+		JOIN countries c ON r.country_id = c.id
+		WHERE t.name ILIKE $1 OR r.name ILIKE $1
+		ORDER BY 
+			CASE 
+				WHEN LOWER(t.name) = LOWER($2) THEN 1
+				WHEN LOWER(t.name) LIKE LOWER($2) || '%' THEN 2
+				WHEN LOWER(r.name) = LOWER($2) THEN 3
+				WHEN LOWER(t.name) LIKE '%' || LOWER($2) || '%' THEN 4
+				ELSE 5
+			END ASC,
+			t.name ASC
 		LIMIT $3
 	`
 

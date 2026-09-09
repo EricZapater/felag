@@ -89,8 +89,13 @@ export const CompanionSelector: React.FC<Props> = ({
         loading={loading}
         value={selectedCompanions}
         disabled={disabled}
+        filterOptions={(x) => x}
         onChange={(_, newValue) => onChange(newValue)}
-        onInputChange={(_, newInputValue) => setInputValue(newInputValue)}
+        onInputChange={(_, newInputValue, reason) => {
+          if (reason === 'input' || reason === 'clear') {
+            setInputValue(newInputValue);
+          }
+        }}
         renderInput={(params) => (
           <TextField
             {...params}
