@@ -81,9 +81,15 @@ func (s *service) GetSummary(ctx context.Context) (*AdminMetricsSummaryResponse,
 		ActiveWebsockets:   activeWebsockets,
 	}
 
+	googlePlacesKPIs, err := s.repo.GetGooglePlacesKPIs(ctx)
+	if err != nil {
+		googlePlacesKPIs = &GooglePlacesKPIs{}
+	}
+
 	return &AdminMetricsSummaryResponse{
-		Community: *communityKPIs,
-		System:    systemHealth,
+		Community:    *communityKPIs,
+		System:       systemHealth,
+		GooglePlaces: *googlePlacesKPIs,
 	}, nil
 }
 

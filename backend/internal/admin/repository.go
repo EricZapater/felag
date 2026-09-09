@@ -15,6 +15,7 @@ var (
 
 type Repository interface {
 	GetCommunityKPIs(ctx context.Context) (*CommunityKPIs, error)
+	GetGooglePlacesKPIs(ctx context.Context) (*GooglePlacesKPIs, error)
 	GetApiLatencyMetrics(ctx context.Context) (*ApiLatencyMetricsResponse, error)
 	GetAuditLogs(ctx context.Context, page, pageSize int, search, module string, statusCode *int) (*AuditLogsPaginatedResponse, error)
 	ExportAuditLogs(ctx context.Context, search, module string, statusCode *int) ([]AuditLogItem, error)
@@ -534,3 +535,37 @@ func (r *repository) SaveAuditLog(ctx context.Context, item *AuditLogItem) error
 	}
 	return nil
 }
+
+func (r *repository) GetGooglePlacesKPIs(ctx context.Context) (*GooglePlacesKPIs, error) {
+	kpi := &GooglePlacesKPIs{}
+
+	query := `
+		SELECT 
+			COUNT(*) as total_calls,
+			COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) as today_calls,
+			COUNT(*) FILTER (WHERE created_at >= date_trunc('month', CURRENT_DATE)) as month_calls,
+			COUNT(*) FILTER (WHERE endpoint = 'autocomplete') as autocomplete_calls,
+			COUNT(*) FILTER (WHERE endpoint = 'details') as details_calls,
+			COUNT(*) FILTER (WHERE endpoint = 'search_text') as search_calls,
+			COUNT(*) FILTER (WHERE cached = true) as cache_hits
+		FROM public.external_api_logs
+		WHERE provider = 'google_places';
+	`
+	err := r.db.QueryRowContext(ctx, query).Scan(
+		&kpi.TotalCallsCount,
+		&kpi.TodayCallsCount,
+		&kpi.ThisMonthCallsCount,
+		&kpi.AutocompleteCount,
+		&kpi.DetailsCount,
+		&kpi.SearchCount,
+		&kpi.CacheHitsCount,
+	)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, fmt.Errorf("error querying external api logs: %w", err)
+	}
+
+	_ = r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM public.places;").Scan(&kpi.TotalPlacesCached)
+
+	return kpi, nil
+}
+

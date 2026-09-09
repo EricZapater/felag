@@ -10,12 +10,20 @@ import (
 
 type mockRepository struct {
 	getCommunityKPIsFunc     func(ctx context.Context) (*CommunityKPIs, error)
+	getGooglePlacesKPIsFunc  func(ctx context.Context) (*GooglePlacesKPIs, error)
 	getApiLatencyMetricsFunc func(ctx context.Context) (*ApiLatencyMetricsResponse, error)
 	getAuditLogsFunc         func(ctx context.Context, page, pageSize int, search, module string, statusCode *int) (*AuditLogsPaginatedResponse, error)
 	exportAuditLogsFunc      func(ctx context.Context, search, module string, statusCode *int) ([]AuditLogItem, error)
 	getModerationReportsFunc func(ctx context.Context) ([]ModerationReportItem, error)
 	resolveReportFunc        func(ctx context.Context, reportID string, req ResolveReportRequest) error
 	saveAuditLogFunc         func(ctx context.Context, item *AuditLogItem) error
+}
+
+func (m *mockRepository) GetGooglePlacesKPIs(ctx context.Context) (*GooglePlacesKPIs, error) {
+	if m.getGooglePlacesKPIsFunc != nil {
+		return m.getGooglePlacesKPIsFunc(ctx)
+	}
+	return &GooglePlacesKPIs{}, nil
 }
 
 func (m *mockRepository) GetCommunityKPIs(ctx context.Context) (*CommunityKPIs, error) {

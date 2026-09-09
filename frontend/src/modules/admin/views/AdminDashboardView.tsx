@@ -680,6 +680,83 @@ export default function AdminDashboardView() {
                   </Grid>
                 </Grid>
 
+                {/* Google Places API Usage & Cost Monitoring */}
+                <Card sx={{ borderRadius: 3, border: '1px solid #E8E2D9', bgcolor: '#FFFFFF', p: 3, mb: 3 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 800, color: '#2C221E', fontSize: '1.15rem' }}>
+                        🗺️ Google Places API (New) & Destins
+                      </Typography>
+                      <Chip
+                        label="CANÒNIC & CACHEAT"
+                        size="small"
+                        sx={{ bgcolor: '#E8F5E9', color: '#2E7D32', fontWeight: 800, fontSize: '0.65rem' }}
+                      />
+                    </Box>
+                    <Typography sx={{ fontSize: '0.85rem', color: '#786C65', fontWeight: 600 }}>
+                      Control de consum i estalvi per caché local
+                    </Typography>
+                  </Box>
+
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Box sx={{ p: 2, bgcolor: '#FAF7F2', borderRadius: 2, border: '1px solid #EFEAE1' }}>
+                        <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#6B5E57', textTransform: 'uppercase' }}>
+                          Crides Totals API
+                        </Typography>
+                        <Typography sx={{ fontSize: '1.6rem', fontWeight: 800, color: '#2C221E', my: 0.5 }}>
+                          {summary?.google_places?.total_calls_count ?? 0}
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.75rem', color: '#2E7D32', fontWeight: 600 }}>
+                          {summary?.google_places?.today_calls_count ?? 0} avui • {summary?.google_places?.this_month_calls_count ?? 0} aquest mes
+                        </Typography>
+                      </Box>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Box sx={{ p: 2, bgcolor: '#FAF7F2', borderRadius: 2, border: '1px solid #EFEAE1' }}>
+                        <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#6B5E57', textTransform: 'uppercase' }}>
+                          Estalvi per Caché Local
+                        </Typography>
+                        <Typography sx={{ fontSize: '1.6rem', fontWeight: 800, color: '#2E7D32', my: 0.5 }}>
+                          {summary?.google_places?.cache_hits_count ?? 0} hits
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.75rem', color: '#2E7D32', fontWeight: 600 }}>
+                          0 € cost per reutilització
+                        </Typography>
+                      </Box>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Box sx={{ p: 2, bgcolor: '#FAF7F2', borderRadius: 2, border: '1px solid #EFEAE1' }}>
+                        <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#6B5E57', textTransform: 'uppercase' }}>
+                          Destins en BBDD (Places)
+                        </Typography>
+                        <Typography sx={{ fontSize: '1.6rem', fontWeight: 800, color: '#C85A32', my: 0.5 }}>
+                          {summary?.google_places?.total_places_cached ?? 0}
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.75rem', color: '#786C65', fontWeight: 600 }}>
+                          Llocs resolts amb GPS canònic
+                        </Typography>
+                      </Box>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Box sx={{ p: 2, bgcolor: '#FAF7F2', borderRadius: 2, border: '1px solid #EFEAE1' }}>
+                        <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#6B5E57', textTransform: 'uppercase' }}>
+                          Desglossament Operacions
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: '#2C221E', mt: 1 }}>
+                          🔍 Autocomplete: {summary?.google_places?.autocomplete_count ?? 0}
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: '#2C221E' }}>
+                          📍 Details: {summary?.google_places?.details_count ?? 0}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  </Grid>
+                </Card>
+
                 {/* Endpoints Latency Table */}
                 <Card sx={{ borderRadius: 3, border: '1px solid #E8E2D9', bgcolor: '#FFFFFF', p: 3 }}>
                   <Typography variant="h6" sx={{ fontWeight: 800, color: '#2C221E', fontSize: '1.15rem', mb: 2 }}>

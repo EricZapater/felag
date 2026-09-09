@@ -16,6 +16,7 @@ import (
 	"felag/backend/internal/matching"
 	"felag/backend/internal/moderation"
 	"felag/backend/internal/notification"
+	"felag/backend/internal/places"
 	"felag/backend/internal/posttrip"
 	"felag/backend/internal/profile"
 	"felag/backend/internal/publicseo"
@@ -146,11 +147,19 @@ func main() {
 	publicseoService := publicseo.NewService(publicseoRepo)
 	publicseoHandler := publicseo.NewHandler(publicseoService)
 
+	placesRepo := places.NewRepository(database)
+	placesClient := places.NewGooglePlacesClient()
+	placesService := places.NewService(placesRepo, placesClient)
+	placesHandler := places.NewHandler(placesService)
+
 	// API Routes (matching OpenAPI specs)
 	v1 := r.Group("/api/v1")
 	{
 		// Public SEO & Destination Guides (no auth required)
 		publicseoHandler.RegisterRoutes(v1)
+
+		// Places API (Google Places New & Local Cache)
+		placesHandler.RegisterRoutes(v1)
 
 		// Auth public routes
 		authGroup := v1.Group("/auth")

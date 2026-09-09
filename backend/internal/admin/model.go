@@ -30,9 +30,21 @@ type SystemHealth struct {
 	ActiveWebsockets   int     `json:"active_websockets"`
 }
 
+type GooglePlacesKPIs struct {
+	TotalCallsCount     int `json:"total_calls_count"`
+	TodayCallsCount     int `json:"today_calls_count"`
+	ThisMonthCallsCount int `json:"this_month_calls_count"`
+	AutocompleteCount   int `json:"autocomplete_count"`
+	DetailsCount        int `json:"details_count"`
+	SearchCount         int `json:"search_count"`
+	CacheHitsCount      int `json:"cache_hits_count"`
+	TotalPlacesCached   int `json:"total_places_cached"`
+}
+
 type AdminMetricsSummaryResponse struct {
-	Community CommunityKPIs `json:"community"`
-	System    SystemHealth  `json:"system"`
+	Community    CommunityKPIs    `json:"community"`
+	System       SystemHealth     `json:"system"`
+	GooglePlaces GooglePlacesKPIs `json:"google_places"`
 }
 
 type EndpointLatencyKPI struct {

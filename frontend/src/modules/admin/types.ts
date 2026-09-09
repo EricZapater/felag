@@ -26,9 +26,21 @@ export interface SystemHealth {
   active_websockets: number;
 }
 
+export interface GooglePlacesKPIs {
+  total_calls_count: number;
+  today_calls_count: number;
+  this_month_calls_count: number;
+  autocomplete_count: number;
+  details_count: number;
+  search_count: number;
+  cache_hits_count: number;
+  total_places_cached: number;
+}
+
 export interface AdminMetricsSummaryResponse {
   community: CommunityKPIs;
   system: SystemHealth;
+  google_places?: GooglePlacesKPIs;
 }
 
 export interface EndpointLatencyKPI {
