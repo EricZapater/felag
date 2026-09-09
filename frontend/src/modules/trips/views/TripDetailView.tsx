@@ -29,11 +29,13 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import CollectionsIcon from '@mui/icons-material/Collections';
+import EditIcon from '@mui/icons-material/Edit';
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader';
 import { useTripStore } from '../store';
 import { tripsApi } from '../api';
 import { CompanionSelector } from '../components/CompanionSelector';
+import EditTripDialog from '../components/EditTripDialog';
 import { FelagiUserSummary } from '../types';
 import ActiveTripHubCard from '@/modules/posttrip/components/ActiveTripHubCard';
 import { usePostTripStore } from '@/modules/posttrip/store';
@@ -92,6 +94,7 @@ export default function TripDetailView() {
 
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [openEditDialog, setOpenEditDialog] = useState(false);
 
   // Travel companions state
   const [openAddCompanionDialog, setOpenAddCompanionDialog] = useState(false);
@@ -290,9 +293,26 @@ export default function TripDetailView() {
             )}
 
             {/* Timeline Section */}
-            <Typography variant="h6" sx={{ fontWeight: 700, color: '#3E2723', mt: 4, mb: 3 }}>
-              Itinerari detallat
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 4, mb: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, color: '#3E2723' }}>
+                Itinerari detallat
+              </Typography>
+              {currentTrip.is_owner !== false && currentTrip.status !== 'completed' && (
+                <Button
+                  startIcon={<EditIcon />}
+                  size="small"
+                  onClick={() => setOpenEditDialog(true)}
+                  sx={{
+                    color: '#C85A32',
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    '&:hover': { bgcolor: '#F4ECE1' },
+                  }}
+                >
+                  Editar etapes
+                </Button>
+              )}
+            </Box>
 
             {sortedStages.length === 0 ? (
               <Typography variant="body2" sx={{ color: '#786C65' }}>
@@ -577,20 +597,40 @@ export default function TripDetailView() {
           </Box>
 
           {currentTrip.is_owner !== false ? (
-            <Button
-              variant="outlined"
-              color="error"
-              startIcon={<DeleteOutlineIcon />}
-              onClick={() => setOpenDeleteDialog(true)}
-              sx={{
-                textTransform: 'none',
-                fontWeight: 600,
-                borderRadius: 2,
-                px: 3,
-              }}
-            >
-              Eliminar viatge
-            </Button>
+            <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+              {currentTrip.status !== 'completed' && (
+                <Button
+                  variant="contained"
+                  startIcon={<EditIcon />}
+                  onClick={() => setOpenEditDialog(true)}
+                  sx={{
+                    bgcolor: '#C85A32',
+                    color: '#FFFFFF',
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    borderRadius: 2,
+                    px: 3,
+                    '&:hover': { bgcolor: '#A0471D' },
+                  }}
+                >
+                  Editar viatge
+                </Button>
+              )}
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<DeleteOutlineIcon />}
+                onClick={() => setOpenDeleteDialog(true)}
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  px: 3,
+                }}
+              >
+                Eliminar viatge
+              </Button>
+            </Box>
           ) : (
             <Button
               variant="outlined"
@@ -609,6 +649,16 @@ export default function TripDetailView() {
           )}
         </Box>
       </Container>
+
+      {/* Edit Trip & Stages Dialog */}
+      <EditTripDialog
+        open={openEditDialog}
+        onClose={() => setOpenEditDialog(false)}
+        trip={currentTrip}
+        onTripUpdated={() => {
+          if (id) fetchTripById(id);
+        }}
+      />
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={openDeleteDialog} onClose={() => !isDeleting && setOpenDeleteDialog(false)}>

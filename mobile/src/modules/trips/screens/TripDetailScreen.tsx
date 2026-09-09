@@ -436,15 +436,17 @@ export default function TripDetailScreen({ navigation, route }: Props) {
               <View style={styles.actions}>
                 {trip.is_owner !== false ? (
                   <>
-                    <Button
-                      mode="contained"
-                      buttonColor="#C85A32"
-                      onPress={() => navigation.navigate('TripCreate', { tripId: trip.id })}
-                      style={styles.btnEdit}
-                      contentStyle={{ paddingVertical: 6 }}
-                    >
-                      Editar viatge
-                    </Button>
+                    {trip.status !== 'completed' && (
+                      <Button
+                        mode="contained"
+                        buttonColor="#C85A32"
+                        onPress={() => navigation.navigate('TripCreate', { tripId: trip.id })}
+                        style={styles.btnEdit}
+                        contentStyle={{ paddingVertical: 6 }}
+                      >
+                        Editar viatge
+                      </Button>
+                    )}
 
                     <Button
                       mode="text"

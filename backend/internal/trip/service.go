@@ -228,6 +228,10 @@ func (s *service) UpdateTrip(tripID string, userID string, req UpdateTripRequest
 		return nil, ErrTripNotFound
 	}
 
+	if existing.Status == "completed" {
+		return nil, fmt.Errorf("no es pot modificar un viatge que ja ha finalitzat")
+	}
+
 	effectiveStartStr := existing.StartDate
 	effectiveEndStr := existing.EndDate
 
@@ -265,9 +269,6 @@ func (s *service) UpdateTrip(tripID string, userID string, req UpdateTripRequest
 
 	startDate, _ := parseDate(effectiveStartStr)
 	endDate, _ := parseDate(effectiveEndStr)
-	if startDate.After(endDate) {
-		return nil, fmt.Errorf("la data d'inici ha de ser anterior a la data de fi")
-	}
 
 	if req.Visibility != nil {
 		vis := strings.TrimSpace(*req.Visibility)
@@ -287,7 +288,13 @@ func (s *service) UpdateTrip(tripID string, userID string, req UpdateTripRequest
 
 	var stagesSlice *[]TripStage
 	if req.Stages != nil {
+		if len(*req.Stages) == 0 {
+			return nil, fmt.Errorf("el viatge ha de tenir com a mínim una etapa")
+		}
+
 		stgs := make([]TripStage, 0, len(*req.Stages))
+		var minStageStart, maxStageEnd time.Time
+
 		for i, st := range *req.Stages {
 			if strings.TrimSpace(st.DestinationName) == "" {
 				return nil, fmt.Errorf("el nom de la destinació de l'etapa és obligatori")
@@ -307,8 +314,11 @@ func (s *service) UpdateTrip(tripID string, userID string, req UpdateTripRequest
 				return nil, fmt.Errorf("la data d'inici de l'etapa '%s' ha de ser anterior o igual a la data de fi", st.DestinationName)
 			}
 
-			if sStart.Before(startDate) || sEnd.After(endDate) {
-				return nil, fmt.Errorf("les dates de l'etapa '%s' han d'estar compreses dins de les dates globals del viatge", st.DestinationName)
+			if i == 0 || sStart.Before(minStageStart) {
+				minStageStart = sStart
+			}
+			if i == 0 || sEnd.After(maxStageEnd) {
+				maxStageEnd = sEnd
 			}
 
 			order := st.StageOrder
@@ -328,6 +338,20 @@ func (s *service) UpdateTrip(tripID string, userID string, req UpdateTripRequest
 			})
 		}
 		stagesSlice = &stgs
+
+		// Automatically adapt trip boundaries to enclose stages
+		if req.StartDate == nil || minStageStart.Before(startDate) {
+			startDate = minStageStart
+			updateTrip.StartDate = startDate.Format("2006-01-02")
+		}
+		if req.EndDate == nil || maxStageEnd.After(endDate) {
+			endDate = maxStageEnd
+			updateTrip.EndDate = endDate.Format("2006-01-02")
+		}
+	}
+
+	if startDate.After(endDate) {
+		return nil, fmt.Errorf("la data d'inici ha de ser anterior a la data de fi")
 	}
 
 	updated, err := s.repo.Update(tripID, userID, &updateTrip, stagesSlice, req.CompanionUserIDs)
