@@ -63,6 +63,8 @@ func main() {
 	byCountriesAlias := flag.Bool("by-countries", false, "Alias de -bycountries")
 	jsonFlag := flag.Bool("json", false, "Emetre el resultat en format JSON")
 	csvFlag := flag.Bool("csv", false, "Emetre el resultat en format CSV")
+	outFlag := flag.String("out", "", "Ruta del fitxer de sortida (ex: resultats.csv o resultats.json)")
+	outAlias := flag.String("output", "", "Alias de -out")
 	sqlFlag := flag.Bool("sql", false, "Generar instruccions SQL per unificar a la base de dades")
 	dbURLFlag := flag.String("db", "", "Cadena de connexió DATABASE_URL (opcional)")
 	verboseFlag := flag.Bool("v", false, "Mode detallat (mostra informació de diagnòstic)")
@@ -70,6 +72,10 @@ func main() {
 	flag.Parse()
 
 	isByCountries := *byCountriesFlag || *byCountriesAlias
+	outputPath := *outFlag
+	if outputPath == "" {
+		outputPath = *outAlias
+	}
 
 	loadEnv()
 
@@ -122,16 +128,38 @@ func main() {
 		summaries := buildCountrySummaries(pairs, entries, countryNames)
 
 		if *jsonFlag {
-			enc := json.NewEncoder(os.Stdout)
+			var outWriter = os.Stdout
+			if outputPath != "" {
+				f, err := os.Create(outputPath)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error creant fitxer %s: %v\n", outputPath, err)
+					os.Exit(1)
+				}
+				defer f.Close()
+				outWriter = f
+			}
+			enc := json.NewEncoder(outWriter)
 			enc.SetIndent("", "  ")
 			if err := enc.Encode(summaries); err != nil {
 				fmt.Fprintf(os.Stderr, "Error serialitzant JSON: %v\n", err)
+			} else if outputPath != "" {
+				fmt.Printf("💾 Resum per països (JSON) desat correctament a %s\n", outputPath)
 			}
 			return
 		}
 
 		if *csvFlag {
-			w := csv.NewWriter(os.Stdout)
+			var outWriter = os.Stdout
+			if outputPath != "" {
+				f, err := os.Create(outputPath)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error creant fitxer %s: %v\n", outputPath, err)
+					os.Exit(1)
+				}
+				defer f.Close()
+				outWriter = f
+			}
+			w := csv.NewWriter(outWriter)
 			defer w.Flush()
 			w.Write([]string{"Pais", "Codi_ISO", "Possibles_Duplicats", "Municipis_BBDD", "Usat_Viatges_Recs", "Exemples"})
 			for _, s := range summaries {
@@ -143,6 +171,10 @@ func main() {
 					fmt.Sprintf("%d", s.ActiveUsages),
 					strings.Join(s.TopExamples, "; "),
 				})
+			}
+			if outputPath != "" {
+				w.Flush()
+				fmt.Printf("💾 Resum per països (CSV) desat correctament a %s\n", outputPath)
 			}
 			return
 		}
@@ -195,16 +227,38 @@ func main() {
 	}
 
 	if *jsonFlag {
-		enc := json.NewEncoder(os.Stdout)
+		var outWriter = os.Stdout
+		if outputPath != "" {
+			f, err := os.Create(outputPath)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error creant fitxer %s: %v\n", outputPath, err)
+				os.Exit(1)
+			}
+			defer f.Close()
+			outWriter = f
+		}
+		enc := json.NewEncoder(outWriter)
 		enc.SetIndent("", "  ")
 		if err := enc.Encode(pairs); err != nil {
 			fmt.Fprintf(os.Stderr, "Error serialitzant JSON: %v\n", err)
+		} else if outputPath != "" {
+			fmt.Printf("💾 Llistat de duplicats (JSON) desat correctament a %s\n", outputPath)
 		}
 		return
 	}
 
 	if *csvFlag {
-		w := csv.NewWriter(os.Stdout)
+		var outWriter = os.Stdout
+		if outputPath != "" {
+			f, err := os.Create(outputPath)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error creant fitxer %s: %v\n", outputPath, err)
+				os.Exit(1)
+			}
+			defer f.Close()
+			outWriter = f
+		}
+		w := csv.NewWriter(outWriter)
 		defer w.Flush()
 		w.Write([]string{"Similitud (%)", "Destinacio_1", "Origen_1", "Usos_1", "ID_1", "Destinacio_2", "Origen_2", "Usos_2", "ID_2", "Pais", "Explicacio", "SQL_Sugg"})
 		for _, p := range pairs {
@@ -222,6 +276,10 @@ func main() {
 				p.Explanation,
 				p.SuggestedSQL,
 			})
+		}
+		if outputPath != "" {
+			w.Flush()
+			fmt.Printf("💾 Llistat de duplicats (CSV) desat correctament a %s\n", outputPath)
 		}
 		return
 	}
