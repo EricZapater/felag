@@ -10,7 +10,8 @@
     "build:mobile:ios": "pnpm --filter mobile bundle:check:ios",
     "lint": "pnpm --filter frontend lint && pnpm --filter mobile lint",
     "typecheck": "pnpm --filter frontend typecheck && pnpm --filter mobile typecheck",
-    "doctor": "cd mobile && npx --registry=https://registry.npmjs.org/ --yes expo-doctor"
+    "doctor": "cd mobile && npx --registry=https://registry.npmjs.org/ --yes expo-doctor",
+    "destinations:similar": "cd backend && go run ./cmd/find_similar_destinations"
   },
   "devDependencies": {
     "typescript": "^5.4.0"
