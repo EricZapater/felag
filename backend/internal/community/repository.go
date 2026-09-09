@@ -182,6 +182,7 @@ func (r *repository) SearchDestinations(q string, limit int) ([]DestinationSumma
 				SELECT dr.country_code, COUNT(dr.id) AS rec_count
 				FROM destination_recommendations dr
 				WHERE dr.country_code IN (SELECT country_code FROM matched_countries)
+				  AND dr.town_id IS NULL
 				GROUP BY dr.country_code
 			),
 			active_trip_countries AS (
@@ -189,6 +190,7 @@ func (r *repository) SearchDestinations(q string, limit int) ([]DestinationSumma
 				FROM trip_stages ts
 				JOIN trips tr ON ts.trip_id = tr.id
 				WHERE ts.country_code IN (SELECT country_code FROM matched_countries)
+				  AND ts.town_id IS NULL
 				  AND CURRENT_DATE BETWEEN tr.start_date AND tr.end_date
 				GROUP BY ts.country_code
 			)
@@ -209,6 +211,7 @@ func (r *repository) SearchDestinations(q string, limit int) ([]DestinationSumma
 				FROM trip_stages ts
 				JOIN trips tr ON ts.trip_id = tr.id
 				WHERE ts.country_code IS NOT NULL
+				  AND ts.town_id IS NULL
 				  AND CURRENT_DATE BETWEEN tr.start_date AND tr.end_date
 				GROUP BY ts.country_code
 			),
@@ -216,6 +219,7 @@ func (r *repository) SearchDestinations(q string, limit int) ([]DestinationSumma
 				SELECT dr.country_code, COUNT(dr.id) AS rec_count
 				FROM destination_recommendations dr
 				WHERE dr.country_code IS NOT NULL
+				  AND dr.town_id IS NULL
 				GROUP BY dr.country_code
 			),
 			existing_country_codes AS (
@@ -275,6 +279,44 @@ func (r *repository) SearchDestinations(q string, limit int) ([]DestinationSumma
 	if err := cRows.Err(); err != nil {
 		return nil, err
 	}
+
+	// Rule: "Unitat més petita: si hi ha ciutat i país, agafem la ciutat; si només hi ha país (sense ciutat), el país"
+	var filteredResults []DestinationSummary
+	townCountryCodes := make(map[string]bool)
+	seenDestinations := make(map[string]bool)
+
+	for _, res := range results {
+		if res.Type == "town" {
+			key := fmt.Sprintf("town:%s", res.ID)
+			if !seenDestinations[key] {
+				seenDestinations[key] = true
+				filteredResults = append(filteredResults, res)
+				if res.CountryCode != nil && *res.CountryCode != "" {
+					townCountryCodes[strings.ToUpper(*res.CountryCode)] = true
+				}
+			}
+		}
+	}
+
+	for _, res := range results {
+		if res.Type == "country" {
+			cc := ""
+			if res.CountryCode != nil {
+				cc = strings.ToUpper(*res.CountryCode)
+			}
+			// Only include the country if there are no specific towns from this country in the results
+			if cc != "" && townCountryCodes[cc] {
+				continue
+			}
+			key := fmt.Sprintf("country:%s", res.ID)
+			if !seenDestinations[key] {
+				seenDestinations[key] = true
+				filteredResults = append(filteredResults, res)
+			}
+		}
+	}
+
+	results = filteredResults
 
 	if len(results) > limit {
 		results = results[:limit]
