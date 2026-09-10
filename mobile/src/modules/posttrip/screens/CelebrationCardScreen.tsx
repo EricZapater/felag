@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { Button, Card, HelperText, Text, TextInput } from 'react-native-paper';
+import * as ImagePicker from 'expo-image-picker';
 import { usePostTripStore } from '../store';
 import { CelebrationCard } from '../types';
 
@@ -27,19 +28,6 @@ interface Props {
     };
   };
 }
-
-const DEFAULT_SELFIE_PRESETS = [
-  {
-    url: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&auto=format&fit=crop&q=80',
-    title: 'Selfie a Shibuya',
-    location: 'Shibuya Crossing',
-  },
-  {
-    url: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=600&auto=format&fit=crop&q=80',
-    title: 'Sopar de ramen junts',
-    location: 'Shinjuku Omoide Yokocho',
-  },
-];
 
 export default function CelebrationCardScreen({ navigation, route }: Props) {
   const tripId = route?.params?.tripId || '';
@@ -60,9 +48,12 @@ export default function CelebrationCardScreen({ navigation, route }: Props) {
   const [companionId, setCompanionId] = useState('user-felagi-friend-1');
   const [companionName, setCompanionName] = useState('Marc');
   const [companionTown, setCompanionTown] = useState('Sabadell');
-  const [imageUrl, setImageUrl] = useState(DEFAULT_SELFIE_PRESETS[0].url);
+  const [imageUrl, setImageUrl] = useState('');
+  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
+  const [selectedImageBase64, setSelectedImageBase64] = useState<string | null>(null);
+  const [isPickingImage, setIsPickingImage] = useState(false);
   const [locationName, setLocationName] = useState('Shibuya Crossing');
-  const [caption, setCaption] = useState('Ens hem trobat de casualitat a Tòquio!');
+  const [caption, setCaption] = useState('Ens hem trobat de casualitat!');
 
   useEffect(() => {
     if (tripId) {
@@ -76,20 +67,95 @@ export default function CelebrationCardScreen({ navigation, route }: Props) {
     }
   };
 
+  const handlePickFromGallery = async () => {
+    try {
+      setIsPickingImage(true);
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert(
+          'Permís necessari',
+          'Cal concedir permís per accedir a la galeria de fotos del dispositiu.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.7,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const base64Str = asset.base64
+          ? `data:image/jpeg;base64,${asset.base64}`
+          : asset.uri;
+        setSelectedImageUri(asset.uri);
+        setSelectedImageBase64(base64Str);
+        setImageUrl('');
+      }
+    } catch {
+      Alert.alert('Error', 'No s\'ha pogut carregar la imatge de la galeria.');
+    } finally {
+      setIsPickingImage(false);
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      setIsPickingImage(true);
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert(
+          'Permís necessari',
+          'Cal concedir permís per accedir a la càmera del dispositiu.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.7,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const base64Str = asset.base64
+          ? `data:image/jpeg;base64,${asset.base64}`
+          : asset.uri;
+        setSelectedImageUri(asset.uri);
+        setSelectedImageBase64(base64Str);
+        setImageUrl('');
+      }
+    } catch {
+      Alert.alert('Error', 'No s\'ha pogut fer la foto.');
+    } finally {
+      setIsPickingImage(false);
+    }
+  };
+
   const handleCreateCard = async () => {
-    if (!imageUrl.trim() || !locationName.trim()) {
-      Alert.alert('Camps obligatoris', 'Cal indicar la foto i la ubicació de la trobada.');
+    const finalImage = selectedImageBase64 || imageUrl.trim();
+    if (!finalImage || !locationName.trim()) {
+      Alert.alert('Camps obligatoris', 'Cal fer/triar una foto i indicar la ubicació de la trobada.');
       return;
     }
     clearError();
     try {
       await createCelebrationCard(tripId, {
         user_2_id: companionId,
-        image_url: imageUrl.trim(),
+        image_url: finalImage,
         location_name: locationName.trim(),
         caption: caption.trim() || undefined,
       });
       setShowCreateForm(false);
+      setSelectedImageUri(null);
+      setSelectedImageBase64(null);
+      setImageUrl('');
       Alert.alert('🎉 Targeta creada!', 'La teva Celebration Card s’ha generat amb èxit.');
     } catch {
       // Error handled by store
@@ -185,41 +251,67 @@ export default function CelebrationCardScreen({ navigation, route }: Props) {
                   Celebra la trobada amb un altre FELAGI durant la teva aventura.
                 </Text>
 
-                <Text style={styles.fieldLabel}>Tria una imatge / selfie de mostra:</Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={styles.presetsScroll}
-                >
-                  {DEFAULT_SELFIE_PRESETS.map((p, idx) => (
-                    <TouchableOpacity
-                      key={idx}
-                      style={[
-                        styles.presetCard,
-                        imageUrl === p.url && styles.presetCardActive,
-                      ]}
-                      onPress={() => {
-                        setImageUrl(p.url);
-                        setLocationName(p.location);
-                      }}
-                    >
-                      <Image source={{ uri: p.url }} style={styles.presetImage} />
-                      <Text style={styles.presetText} numberOfLines={1}>
-                        {p.title}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+                {selectedImageUri ? (
+                  <View style={styles.selectedImageContainer}>
+                    <Image source={{ uri: selectedImageUri }} style={styles.selectedImagePreview} resizeMode="cover" />
+                    <View style={styles.imageActionRow}>
+                      <Text style={styles.imageBadge}>✓ Selfie / Foto a punt</Text>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setSelectedImageUri(null);
+                          setSelectedImageBase64(null);
+                        }}
+                        style={styles.removeImageBtn}
+                      >
+                        <Text style={styles.removeImageText}>✕ Canviar foto</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={{ marginBottom: 12 }}>
+                    <View style={styles.imageBtnRow}>
+                      <Button
+                        mode="outlined"
+                        icon="camera"
+                        onPress={handleTakePhoto}
+                        disabled={isPickingImage}
+                        textColor="#C85A32"
+                        style={styles.imagePickerBtn}
+                      >
+                        Fer selfie / foto
+                      </Button>
+                      <Button
+                        mode="outlined"
+                        icon="image"
+                        onPress={handlePickFromGallery}
+                        disabled={isPickingImage}
+                        textColor="#C85A32"
+                        style={styles.imagePickerBtn}
+                      >
+                        Galeria
+                      </Button>
+                    </View>
+                    {isPickingImage ? (
+                      <ActivityIndicator size="small" color="#C85A32" style={{ marginVertical: 8 }} />
+                    ) : null}
 
-                <TextInput
-                  label="URL del Selfie / Foto"
-                  value={imageUrl}
-                  onChangeText={setImageUrl}
-                  mode="outlined"
-                  outlineColor="#E8E2D9"
-                  activeOutlineColor="#C85A32"
-                  style={styles.input}
-                />
+                    <TextInput
+                      label="O introdueix URL del Selfie"
+                      value={imageUrl}
+                      onChangeText={(txt) => {
+                        setImageUrl(txt);
+                        if (txt) {
+                          setSelectedImageUri(null);
+                          setSelectedImageBase64(null);
+                        }
+                      }}
+                      mode="outlined"
+                      outlineColor="#E8E2D9"
+                      activeOutlineColor="#C85A32"
+                      style={[styles.input, { marginTop: 8 }]}
+                    />
+                  </View>
+                )}
 
                 <TextInput
                   label="Nom del company FELAGI"
@@ -532,6 +624,53 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     marginBottom: 10,
     fontSize: 13,
+  },
+  imageBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 4,
+  },
+  imagePickerBtn: {
+    flex: 1,
+    borderColor: '#C85A32',
+    borderRadius: 10,
+  },
+  selectedImageContainer: {
+    marginBottom: 12,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#FAF7F2',
+    borderWidth: 1,
+    borderColor: '#E8E2D9',
+    padding: 8,
+  },
+  selectedImagePreview: {
+    width: '100%',
+    height: 180,
+    borderRadius: 8,
+  },
+  imageActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
+  imageBadge: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#2E7D32',
+  },
+  removeImageBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    backgroundColor: '#FDEEE9',
+  },
+  removeImageText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#C85A32',
   },
   btnSubmit: {
     marginTop: 10,

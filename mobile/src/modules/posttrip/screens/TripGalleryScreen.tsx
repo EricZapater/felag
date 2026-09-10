@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { Button, Card, Checkbox, HelperText, IconButton, Text, TextInput } from 'react-native-paper';
+import * as ImagePicker from 'expo-image-picker';
 import { usePostTripStore } from '../store';
 import { TripPhoto } from '../types';
 
@@ -27,29 +28,6 @@ interface Props {
     };
   };
 }
-
-const SAMPLE_PHOTO_PRESETS = [
-  {
-    url: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=600&auto=format&fit=crop&q=80',
-    caption: 'Shibuya Crossing',
-    location: 'Shibuya, Tòquio',
-  },
-  {
-    url: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=600&auto=format&fit=crop&q=80',
-    caption: 'Temple Sensō-ji',
-    location: 'Asakusa, Tòquio',
-  },
-  {
-    url: 'https://images.unsplash.com/photo-1557872943-16a5ac26437e?w=600&auto=format&fit=crop&q=80',
-    caption: 'Ramen a Shinjuku',
-    location: 'Shinjuku, Tòquio',
-  },
-  {
-    url: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&auto=format&fit=crop&q=80',
-    caption: 'Trobada amb altres FELAGIS',
-    location: 'Kyoto Central',
-  },
-];
 
 export default function TripGalleryScreen({ navigation, route }: Props) {
   const tripId = route?.params?.tripId || '';
@@ -69,6 +47,9 @@ export default function TripGalleryScreen({ navigation, route }: Props) {
 
   const [modalVisible, setModalVisible] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
+  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
+  const [selectedImageBase64, setSelectedImageBase64] = useState<string | null>(null);
+  const [isPickingImage, setIsPickingImage] = useState(false);
   const [caption, setCaption] = useState('');
   const [locationName, setLocationName] = useState('');
   const [isFeatured, setIsFeatured] = useState(false);
@@ -85,37 +66,110 @@ export default function TripGalleryScreen({ navigation, route }: Props) {
     }
   };
 
-  const handleOpenAddModal = (presetIndex?: number) => {
-    clearError();
-    if (typeof presetIndex === 'number') {
-      const preset = SAMPLE_PHOTO_PRESETS[presetIndex];
-      setImageUrl(preset.url);
-      setCaption(preset.caption);
-      setLocationName(preset.location);
-      setIsFeatured(true);
-    } else {
-      setImageUrl(SAMPLE_PHOTO_PRESETS[0].url);
-      setCaption('');
-      setLocationName('');
-      setIsFeatured(false);
+  const handlePickFromGallery = async () => {
+    try {
+      setIsPickingImage(true);
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert(
+          'Permís necessari',
+          'Cal concedir permís per accedir a la galeria de fotos del dispositiu.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.7,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const base64Str = asset.base64
+          ? `data:image/jpeg;base64,${asset.base64}`
+          : asset.uri;
+        setSelectedImageUri(asset.uri);
+        setSelectedImageBase64(base64Str);
+        setImageUrl('');
+      }
+    } catch {
+      Alert.alert('Error', 'No s\'ha pogut carregar la imatge de la galeria.');
+    } finally {
+      setIsPickingImage(false);
     }
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      setIsPickingImage(true);
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert(
+          'Permís necessari',
+          'Cal concedir permís per accedir a la càmera del dispositiu.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.7,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const base64Str = asset.base64
+          ? `data:image/jpeg;base64,${asset.base64}`
+          : asset.uri;
+        setSelectedImageUri(asset.uri);
+        setSelectedImageBase64(base64Str);
+        setImageUrl('');
+      }
+    } catch {
+      Alert.alert('Error', 'No s\'ha pogut fer la foto.');
+    } finally {
+      setIsPickingImage(false);
+    }
+  };
+
+  const handleRemoveSelectedImage = () => {
+    setSelectedImageUri(null);
+    setSelectedImageBase64(null);
+  };
+
+  const handleOpenAddModal = () => {
+    clearError();
+    setImageUrl('');
+    setSelectedImageUri(null);
+    setSelectedImageBase64(null);
+    setCaption('');
+    setLocationName('');
+    setIsFeatured(false);
     setModalVisible(true);
   };
 
   const handleSavePhoto = async () => {
-    if (!imageUrl.trim()) {
-      Alert.alert('Camp obligatori', 'Indica un URL d’imatge o fes servir una foto de mostra.');
+    const finalImage = selectedImageBase64 || imageUrl.trim();
+    if (!finalImage) {
+      Alert.alert('Camp obligatori', 'Fes una foto amb la càmera, tria-la de la galeria o indica un URL.');
       return;
     }
     try {
       await addPhoto(tripId, {
-        image_url: imageUrl.trim(),
+        image_url: finalImage,
         caption: caption.trim() || undefined,
         location_name: locationName.trim() || undefined,
         is_featured: isFeatured,
       });
       setModalVisible(false);
       setImageUrl('');
+      setSelectedImageUri(null);
+      setSelectedImageBase64(null);
       setCaption('');
       setLocationName('');
       setIsFeatured(false);
@@ -211,7 +265,7 @@ export default function TripGalleryScreen({ navigation, route }: Props) {
                 <Button
                   mode="contained"
                   buttonColor="#C85A32"
-                  onPress={() => handleOpenAddModal(0)}
+                  onPress={() => handleOpenAddModal()}
                   style={{ marginTop: 16 }}
                 >
                   Afegir primera foto
@@ -282,41 +336,72 @@ export default function TripGalleryScreen({ navigation, route }: Props) {
       </TouchableOpacity>
 
       {/* Add Photo Modal */}
-      <Modal visible={modalVisible} animationType="slide" transparent>
+      <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <Text variant="titleMedium" style={styles.modalTitle}>
               📸 Afegir foto a l'àlbum
             </Text>
 
-            <Text style={styles.modalLabel}>Selecciona una mostra ràpida:</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetsRow}>
-              {SAMPLE_PHOTO_PRESETS.map((preset, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.presetThumb}
-                  onPress={() => handleOpenAddModal(index)}
-                >
-                  <Image source={{ uri: preset.url }} style={styles.presetImg} />
-                  <Text style={styles.presetLabel} numberOfLines={1}>
-                    {preset.caption}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+            {selectedImageUri ? (
+              <View style={styles.selectedImageContainer}>
+                <Image source={{ uri: selectedImageUri }} style={styles.selectedImagePreview} resizeMode="cover" />
+                <View style={styles.imageActionRow}>
+                  <Text style={styles.imageBadge}>✓ Imatge seleccionada</Text>
+                  <TouchableOpacity onPress={handleRemoveSelectedImage} style={styles.removeImageBtn}>
+                    <Text style={styles.removeImageText}>✕ Canviar foto</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <View style={{ marginBottom: 12 }}>
+                <View style={styles.imageBtnRow}>
+                  <Button
+                    mode="outlined"
+                    icon="camera"
+                    onPress={handleTakePhoto}
+                    disabled={isPickingImage}
+                    textColor="#C85A32"
+                    style={styles.imagePickerBtn}
+                  >
+                    Fer foto
+                  </Button>
+                  <Button
+                    mode="outlined"
+                    icon="image"
+                    onPress={handlePickFromGallery}
+                    disabled={isPickingImage}
+                    textColor="#C85A32"
+                    style={styles.imagePickerBtn}
+                  >
+                    Galeria
+                  </Button>
+                </View>
+                {isPickingImage ? (
+                  <ActivityIndicator size="small" color="#C85A32" style={{ marginVertical: 8 }} />
+                ) : null}
 
-            <TextInput
-              label="URL de la imatge"
-              value={imageUrl}
-              onChangeText={setImageUrl}
-              mode="outlined"
-              outlineColor="#E8E2D9"
-              activeOutlineColor="#C85A32"
-              style={styles.input}
-            />
+                <TextInput
+                  label="O introdueix URL d'imatge"
+                  value={imageUrl}
+                  onChangeText={(txt) => {
+                    setImageUrl(txt);
+                    if (txt) {
+                      setSelectedImageUri(null);
+                      setSelectedImageBase64(null);
+                    }
+                  }}
+                  mode="outlined"
+                  outlineColor="#E8E2D9"
+                  activeOutlineColor="#C85A32"
+                  style={[styles.input, { marginTop: 8 }]}
+                />
+              </View>
+            )}
 
             <TextInput
               label="Peu de foto (caption)"
+              placeholder="Ex: Trobada al barri de Yanaka"
               value={caption}
               onChangeText={setCaption}
               mode="outlined"
@@ -326,7 +411,8 @@ export default function TripGalleryScreen({ navigation, route }: Props) {
             />
 
             <TextInput
-              label="Ubicació (ex: Shibuya Crossing)"
+              label="Ubicació (ex: Shibuya Crossing, Kyoto...)"
+              placeholder="Ex: Tòquio / Shibuya"
               value={locationName}
               onChangeText={setLocationName}
               mode="outlined"
@@ -368,7 +454,7 @@ export default function TripGalleryScreen({ navigation, route }: Props) {
                 disabled={isUploadingPhoto}
                 onPress={handleSavePhoto}
               >
-                Desar foto
+                Pujar foto 🚀
               </Button>
             </View>
           </View>
@@ -621,6 +707,53 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     marginBottom: 10,
     fontSize: 13,
+  },
+  imageBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 4,
+  },
+  imagePickerBtn: {
+    flex: 1,
+    borderColor: '#C85A32',
+    borderRadius: 10,
+  },
+  selectedImageContainer: {
+    marginBottom: 12,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#FAF7F2',
+    borderWidth: 1,
+    borderColor: '#E8E2D9',
+    padding: 8,
+  },
+  selectedImagePreview: {
+    width: '100%',
+    height: 180,
+    borderRadius: 8,
+  },
+  imageActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
+  imageBadge: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#2E7D32',
+  },
+  removeImageBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    backgroundColor: '#FDEEE9',
+  },
+  removeImageText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#C85A32',
   },
   checkboxRow: {
     flexDirection: 'row',
