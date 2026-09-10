@@ -4,6 +4,9 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+	"time"
+
+	"github.com/lib/pq"
 )
 
 type Repository interface {
@@ -20,6 +23,7 @@ type Repository interface {
 	ListLiveMoments(info *DestinationInfo, currentUserID string) (*LiveFeedResponse, error)
 	CreateLiveMoment(townID, userID, tripID, imageURL string, caption *string) (*LiveMoment, error)
 	CreateReport(reporterID, targetType, targetID, reason string, details *string) error
+	ListPublicTripsByDestination(info *DestinationInfo, limit, offset int) ([]PublicTripSummary, error)
 }
 
 type repository struct {
@@ -76,17 +80,37 @@ func (r *repository) SearchDestinations(q string, limit int) ([]DestinationSumma
 				WHERE ts.town_id IN (SELECT id FROM matched_towns)
 				  AND CURRENT_DATE BETWEEN tr.start_date AND tr.end_date
 				GROUP BY ts.town_id
+			),
+			public_trip_towns AS (
+				SELECT ts.town_id, COUNT(DISTINCT tr.id) AS public_trips_count
+				FROM trip_stages ts
+				JOIN trips tr ON ts.trip_id = tr.id
+				WHERE ts.town_id IN (SELECT id FROM matched_towns)
+				  AND tr.visibility = 'public' AND (tr.status = 'completed' OR tr.end_date < CURRENT_DATE)
+				GROUP BY ts.town_id
+			),
+			traveler_towns AS (
+				SELECT ts.town_id, COUNT(DISTINCT tr.user_id) AS total_travelers_count
+				FROM trip_stages ts
+				JOIN trips tr ON ts.trip_id = tr.id
+				WHERE ts.town_id IN (SELECT id FROM matched_towns)
+				GROUP BY ts.town_id
 			)
 			SELECT mt.id, mt.name, mt.region_name, mt.country_name, mt.country_code,
 			       COALESCE(rt.rec_count, 0) AS recommendations_count,
 			       COALESCE(att.active_felagis_count, 0) AS active_felagis_count,
+			       COALESCE(ptt.public_trips_count, 0) AS public_trips_count,
+			       COALESCE(tt.total_travelers_count, 0) AS total_travelers_count,
 			       COALESCE(
+			           (SELECT tp.image_url FROM trip_photos tp JOIN trips tr ON tp.trip_id = tr.id JOIN trip_stages ts ON ts.trip_id = tr.id WHERE ts.town_id = mt.id AND tr.visibility = 'public' AND tp.image_url IS NOT NULL AND tp.image_url != '' ORDER BY tp.is_featured DESC, tp.created_at DESC LIMIT 1),
 			           (SELECT dr.image_url FROM destination_recommendations dr WHERE dr.town_id = mt.id AND dr.image_url IS NOT NULL AND dr.image_url != '' ORDER BY dr.useful_votes_count DESC, dr.created_at DESC LIMIT 1),
 			           (SELECT lm.image_url FROM destination_live_moments lm WHERE lm.town_id = mt.id AND lm.image_url IS NOT NULL AND lm.image_url != '' ORDER BY lm.created_at DESC LIMIT 1)
 			       ) AS banner_url
 			FROM matched_towns mt
 			LEFT JOIN rec_towns rt ON rt.town_id = mt.id
 			LEFT JOIN active_trip_towns att ON att.town_id = mt.id
+			LEFT JOIN public_trip_towns ptt ON ptt.town_id = mt.id
+			LEFT JOIN traveler_towns tt ON tt.town_id = mt.id
 			ORDER BY mt.rank_score ASC, recommendations_count DESC, active_felagis_count DESC, mt.name ASC
 			LIMIT $3
 		`
@@ -107,15 +131,35 @@ func (r *repository) SearchDestinations(q string, limit int) ([]DestinationSumma
 				WHERE dr.town_id IS NOT NULL
 				GROUP BY dr.town_id
 			),
+			public_trip_towns AS (
+				SELECT ts.town_id, COUNT(DISTINCT tr.id) AS public_trips_count
+				FROM trip_stages ts
+				JOIN trips tr ON ts.trip_id = tr.id
+				WHERE ts.town_id IS NOT NULL
+				  AND tr.visibility = 'public' AND (tr.status = 'completed' OR tr.end_date < CURRENT_DATE)
+				GROUP BY ts.town_id
+			),
+			traveler_towns AS (
+				SELECT ts.town_id, COUNT(DISTINCT tr.user_id) AS total_travelers_count
+				FROM trip_stages ts
+				JOIN trips tr ON ts.trip_id = tr.id
+				WHERE ts.town_id IS NOT NULL
+				GROUP BY ts.town_id
+			),
 			existing_town_ids AS (
 				SELECT town_id FROM active_trip_towns
 				UNION
 				SELECT town_id FROM rec_towns
+				UNION
+				SELECT town_id FROM public_trip_towns
 			)
 			SELECT t.id, t.name, reg.name AS region_name, c.name AS country_name, c.code AS country_code,
 			       COALESCE(rt.rec_count, 0) AS recommendations_count,
 			       COALESCE(att.active_felagis_count, 0) AS active_felagis_count,
+			       COALESCE(ptt.public_trips_count, 0) AS public_trips_count,
+			       COALESCE(tt.total_travelers_count, 0) AS total_travelers_count,
 			       COALESCE(
+			           (SELECT tp.image_url FROM trip_photos tp JOIN trips tr ON tp.trip_id = tr.id JOIN trip_stages ts ON ts.trip_id = tr.id WHERE ts.town_id = t.id AND tr.visibility = 'public' AND tp.image_url IS NOT NULL AND tp.image_url != '' ORDER BY tp.is_featured DESC, tp.created_at DESC LIMIT 1),
 			           (SELECT dr.image_url FROM destination_recommendations dr WHERE dr.town_id = t.id AND dr.image_url IS NOT NULL AND dr.image_url != '' ORDER BY dr.useful_votes_count DESC, dr.created_at DESC LIMIT 1),
 			           (SELECT lm.image_url FROM destination_live_moments lm WHERE lm.town_id = t.id AND lm.image_url IS NOT NULL AND lm.image_url != '' ORDER BY lm.created_at DESC LIMIT 1)
 			       ) AS banner_url
@@ -125,6 +169,8 @@ func (r *repository) SearchDestinations(q string, limit int) ([]DestinationSumma
 			JOIN countries c ON reg.country_id = c.id
 			LEFT JOIN rec_towns rt ON rt.town_id = t.id
 			LEFT JOIN active_trip_towns att ON att.town_id = t.id
+			LEFT JOIN public_trip_towns ptt ON ptt.town_id = t.id
+			LEFT JOIN traveler_towns tt ON tt.town_id = t.id
 			ORDER BY recommendations_count DESC, active_felagis_count DESC, t.name ASC
 			LIMIT $1
 		`
@@ -148,6 +194,8 @@ func (r *repository) SearchDestinations(q string, limit int) ([]DestinationSumma
 			&countryCode,
 			&s.RecommendationsCount,
 			&s.ActiveFelagisCount,
+			&s.PublicTripsCount,
+			&s.TotalTravelersCount,
 			&bannerURL,
 		); err != nil {
 			return nil, fmt.Errorf("error scanning town search row: %w", err)
@@ -209,14 +257,38 @@ func (r *repository) SearchDestinations(q string, limit int) ([]DestinationSumma
 				  AND ts.town_id IS NULL
 				  AND CURRENT_DATE BETWEEN tr.start_date AND tr.end_date
 				GROUP BY ts.country_code
+			),
+			public_trip_countries AS (
+				SELECT ts.country_code, COUNT(DISTINCT tr.id) AS public_trips_count
+				FROM trip_stages ts
+				JOIN trips tr ON ts.trip_id = tr.id
+				WHERE ts.country_code IN (SELECT country_code FROM matched_countries)
+				  AND ts.town_id IS NULL
+				  AND tr.visibility = 'public' AND (tr.status = 'completed' OR tr.end_date < CURRENT_DATE)
+				GROUP BY ts.country_code
+			),
+			traveler_countries AS (
+				SELECT ts.country_code, COUNT(DISTINCT tr.user_id) AS total_travelers_count
+				FROM trip_stages ts
+				JOIN trips tr ON ts.trip_id = tr.id
+				WHERE ts.country_code IN (SELECT country_code FROM matched_countries)
+				  AND ts.town_id IS NULL
+				GROUP BY ts.country_code
 			)
 			SELECT mc.id, mc.name, mc.region_name, mc.country_name, mc.country_code,
 			       COALESCE(rc.rec_count, 0) AS recommendations_count,
 			       COALESCE(atc.active_felagis_count, 0) AS active_felagis_count,
-			       (SELECT dr.image_url FROM destination_recommendations dr WHERE dr.country_code = mc.country_code AND dr.image_url IS NOT NULL AND dr.image_url != '' ORDER BY dr.useful_votes_count DESC, dr.created_at DESC LIMIT 1) AS banner_url
+			       COALESCE(ptc.public_trips_count, 0) AS public_trips_count,
+			       COALESCE(tc.total_travelers_count, 0) AS total_travelers_count,
+			       COALESCE(
+			           (SELECT tp.image_url FROM trip_photos tp JOIN trips tr ON tp.trip_id = tr.id JOIN trip_stages ts ON ts.trip_id = tr.id WHERE ts.country_code = mc.country_code AND tr.visibility = 'public' AND tp.image_url IS NOT NULL AND tp.image_url != '' ORDER BY tp.is_featured DESC, tp.created_at DESC LIMIT 1),
+			           (SELECT dr.image_url FROM destination_recommendations dr WHERE dr.country_code = mc.country_code AND dr.image_url IS NOT NULL AND dr.image_url != '' ORDER BY dr.useful_votes_count DESC, dr.created_at DESC LIMIT 1)
+			       ) AS banner_url
 			FROM matched_countries mc
 			LEFT JOIN rec_countries rc ON rc.country_code = mc.country_code
 			LEFT JOIN active_trip_countries atc ON atc.country_code = mc.country_code
+			LEFT JOIN public_trip_countries ptc ON ptc.country_code = mc.country_code
+			LEFT JOIN traveler_countries tc ON tc.country_code = mc.country_code
 			ORDER BY mc.rank_score ASC, recommendations_count DESC, active_felagis_count DESC, mc.name ASC
 			LIMIT $3
 		`
@@ -239,19 +311,45 @@ func (r *repository) SearchDestinations(q string, limit int) ([]DestinationSumma
 				  AND dr.town_id IS NULL
 				GROUP BY dr.country_code
 			),
+			public_trip_countries AS (
+				SELECT ts.country_code, COUNT(DISTINCT tr.id) AS public_trips_count
+				FROM trip_stages ts
+				JOIN trips tr ON ts.trip_id = tr.id
+				WHERE ts.country_code IS NOT NULL
+				  AND ts.town_id IS NULL
+				  AND tr.visibility = 'public' AND (tr.status = 'completed' OR tr.end_date < CURRENT_DATE)
+				GROUP BY ts.country_code
+			),
+			traveler_countries AS (
+				SELECT ts.country_code, COUNT(DISTINCT tr.user_id) AS total_travelers_count
+				FROM trip_stages ts
+				JOIN trips tr ON ts.trip_id = tr.id
+				WHERE ts.country_code IS NOT NULL
+				  AND ts.town_id IS NULL
+				GROUP BY ts.country_code
+			),
 			existing_country_codes AS (
 				SELECT country_code FROM active_trip_countries
 				UNION
 				SELECT country_code FROM rec_countries
+				UNION
+				SELECT country_code FROM public_trip_countries
 			)
 			SELECT c.code AS id, c.name, NULL::text AS region_name, c.name AS country_name, c.code AS country_code,
 			       COALESCE(rc.rec_count, 0) AS recommendations_count,
 			       COALESCE(atc.active_felagis_count, 0) AS active_felagis_count,
-			       (SELECT dr.image_url FROM destination_recommendations dr WHERE dr.country_code = c.code AND dr.image_url IS NOT NULL AND dr.image_url != '' ORDER BY dr.useful_votes_count DESC, dr.created_at DESC LIMIT 1) AS banner_url
+			       COALESCE(ptc.public_trips_count, 0) AS public_trips_count,
+			       COALESCE(tc.total_travelers_count, 0) AS total_travelers_count,
+			       COALESCE(
+			           (SELECT tp.image_url FROM trip_photos tp JOIN trips tr ON tp.trip_id = tr.id JOIN trip_stages ts ON ts.trip_id = tr.id WHERE ts.country_code = c.code AND tr.visibility = 'public' AND tp.image_url IS NOT NULL AND tp.image_url != '' ORDER BY tp.is_featured DESC, tp.created_at DESC LIMIT 1),
+			           (SELECT dr.image_url FROM destination_recommendations dr WHERE dr.country_code = c.code AND dr.image_url IS NOT NULL AND dr.image_url != '' ORDER BY dr.useful_votes_count DESC, dr.created_at DESC LIMIT 1)
+			       ) AS banner_url
 			FROM existing_country_codes ecc
 			JOIN countries c ON ecc.country_code = c.code
 			LEFT JOIN rec_countries rc ON rc.country_code = c.code
 			LEFT JOIN active_trip_countries atc ON atc.country_code = c.code
+			LEFT JOIN public_trip_countries ptc ON ptc.country_code = c.code
+			LEFT JOIN traveler_countries tc ON tc.country_code = c.code
 			ORDER BY recommendations_count DESC, active_felagis_count DESC, c.name ASC
 			LIMIT $1
 		`
@@ -275,6 +373,8 @@ func (r *repository) SearchDestinations(q string, limit int) ([]DestinationSumma
 			&countryCode,
 			&s.RecommendationsCount,
 			&s.ActiveFelagisCount,
+			&s.PublicTripsCount,
+			&s.TotalTravelersCount,
 			&bannerURL,
 		); err != nil {
 			return nil, fmt.Errorf("error scanning country search row: %w", err)
@@ -461,7 +561,7 @@ func (r *repository) GetDestinationStats(info *DestinationInfo, currentUserID st
 		`
 		_ = r.db.QueryRow(activeQuery, info.TownID, info.TownName).Scan(&detail.ActiveFelagisCount)
 
-		// Total visitors count
+		// Total visitors / travelers count
 		totalVisQuery := `
 			SELECT COUNT(DISTINCT tr.user_id)
 			FROM trips tr
@@ -469,6 +569,17 @@ func (r *repository) GetDestinationStats(info *DestinationInfo, currentUserID st
 			WHERE (ts.town_id::text = $1 OR ts.destination_name = $2)
 		`
 		_ = r.db.QueryRow(totalVisQuery, info.TownID, info.TownName).Scan(&detail.TotalVisitorsCount)
+		detail.TotalTravelersCount = detail.TotalVisitorsCount
+
+		// Public completed trips count
+		publicTripsQuery := `
+			SELECT COUNT(DISTINCT tr.id)
+			FROM trips tr
+			JOIN trip_stages ts ON ts.trip_id = tr.id
+			WHERE tr.visibility = 'public' AND (tr.status = 'completed' OR tr.end_date < CURRENT_DATE)
+			  AND (ts.town_id::text = $1 OR ts.destination_name = $2)
+		`
+		_ = r.db.QueryRow(publicTripsQuery, info.TownID, info.TownName).Scan(&detail.PublicTripsCount)
 
 		// Check if current user is travelling now
 		if currentUserID != "" {
@@ -489,25 +600,39 @@ func (r *repository) GetDestinationStats(info *DestinationInfo, currentUserID st
 			}
 		}
 
-		// Dynamic Community Banner: 1) top-voted recommendation photo, 2) latest live moment
+		// Dynamic Community Banner: 1) trip photos, 2) top-voted recommendation photo, 3) latest live moment
 		var townBanner sql.NullString
-		bannerQuery := `
-			SELECT image_url FROM destination_recommendations
-			WHERE town_id = $1 AND image_url IS NOT NULL AND image_url != ''
-			ORDER BY useful_votes_count DESC, created_at DESC
+		tripBannerQuery := `
+			SELECT tp.image_url
+			FROM trip_photos tp
+			JOIN trips tr ON tp.trip_id = tr.id
+			JOIN trip_stages ts ON ts.trip_id = tr.id
+			WHERE (ts.town_id::text = $1 OR ts.destination_name = $2)
+			  AND tr.visibility = 'public' AND tp.image_url IS NOT NULL AND tp.image_url != ''
+			ORDER BY tp.is_featured DESC, tp.created_at DESC
 			LIMIT 1
 		`
-		if err := r.db.QueryRow(bannerQuery, info.TownID).Scan(&townBanner); err == nil && townBanner.Valid && townBanner.String != "" {
+		if err := r.db.QueryRow(tripBannerQuery, info.TownID, info.TownName).Scan(&townBanner); err == nil && townBanner.Valid && townBanner.String != "" {
 			detail.BannerURL = &townBanner.String
 		} else {
-			momentBannerQuery := `
-				SELECT image_url FROM destination_live_moments
+			bannerQuery := `
+				SELECT image_url FROM destination_recommendations
 				WHERE town_id = $1 AND image_url IS NOT NULL AND image_url != ''
-				ORDER BY created_at DESC
+				ORDER BY useful_votes_count DESC, created_at DESC
 				LIMIT 1
 			`
-			if err := r.db.QueryRow(momentBannerQuery, info.TownID).Scan(&townBanner); err == nil && townBanner.Valid && townBanner.String != "" {
+			if err := r.db.QueryRow(bannerQuery, info.TownID).Scan(&townBanner); err == nil && townBanner.Valid && townBanner.String != "" {
 				detail.BannerURL = &townBanner.String
+			} else {
+				momentBannerQuery := `
+					SELECT image_url FROM destination_live_moments
+					WHERE town_id = $1 AND image_url IS NOT NULL AND image_url != ''
+					ORDER BY created_at DESC
+					LIMIT 1
+				`
+				if err := r.db.QueryRow(momentBannerQuery, info.TownID).Scan(&townBanner); err == nil && townBanner.Valid && townBanner.String != "" {
+					detail.BannerURL = &townBanner.String
+				}
 			}
 		}
 	} else {
@@ -535,14 +660,31 @@ func (r *repository) GetDestinationStats(info *DestinationInfo, currentUserID st
 		`
 		_ = r.db.QueryRow(activeQuery, info.CountryCode, info.CountryName).Scan(&detail.ActiveFelagisCount)
 
-		// Total visitors count
+		// Total visitors / travelers count
 		totalVisQuery := `
 			SELECT COUNT(DISTINCT tr.user_id)
 			FROM trips tr
 			JOIN trip_stages ts ON ts.trip_id = tr.id
-			WHERE (ts.country_code = $1 OR ts.destination_name = $2)
+			LEFT JOIN towns t ON ts.town_id = t.id
+			LEFT JOIN regions r ON t.region_id = r.id
+			LEFT JOIN countries dc ON r.country_id = dc.id
+			WHERE (ts.country_code = $1 OR dc.code = $1 OR ts.destination_name = $2)
 		`
 		_ = r.db.QueryRow(totalVisQuery, info.CountryCode, info.CountryName).Scan(&detail.TotalVisitorsCount)
+		detail.TotalTravelersCount = detail.TotalVisitorsCount
+
+		// Public completed trips count
+		cPublicTripsQuery := `
+			SELECT COUNT(DISTINCT tr.id)
+			FROM trips tr
+			JOIN trip_stages ts ON ts.trip_id = tr.id
+			LEFT JOIN towns t ON ts.town_id = t.id
+			LEFT JOIN regions r ON t.region_id = r.id
+			LEFT JOIN countries dc ON r.country_id = dc.id
+			WHERE tr.visibility = 'public' AND (tr.status = 'completed' OR tr.end_date < CURRENT_DATE)
+			  AND (ts.country_code = $1 OR dc.code = $1 OR ts.destination_name = $2)
+		`
+		_ = r.db.QueryRow(cPublicTripsQuery, info.CountryCode, info.CountryName).Scan(&detail.PublicTripsCount)
 
 		// Check if current user is travelling now
 		if currentUserID != "" {
@@ -563,21 +705,38 @@ func (r *repository) GetDestinationStats(info *DestinationInfo, currentUserID st
 			}
 		}
 
-		// Dynamic Country Banner: top-voted recommendation photo
+		// Dynamic Country Banner: 1) trip photos, 2) top-voted recommendation photo
 		var countryBanner sql.NullString
-		cBannerQuery := `
-			SELECT dr.image_url
-			FROM destination_recommendations dr
-			LEFT JOIN towns t ON dr.town_id = t.id
+		cTripBannerQuery := `
+			SELECT tp.image_url
+			FROM trip_photos tp
+			JOIN trips tr ON tp.trip_id = tr.id
+			JOIN trip_stages ts ON ts.trip_id = tr.id
+			LEFT JOIN towns t ON ts.town_id = t.id
 			LEFT JOIN regions r ON t.region_id = r.id
 			LEFT JOIN countries dc ON r.country_id = dc.id
-			WHERE (dr.country_code = $1 OR dc.code = $1)
-			  AND dr.image_url IS NOT NULL AND dr.image_url != ''
-			ORDER BY dr.useful_votes_count DESC, dr.created_at DESC
+			WHERE (ts.country_code = $1 OR dc.code = $1 OR ts.destination_name = $2)
+			  AND tr.visibility = 'public' AND tp.image_url IS NOT NULL AND tp.image_url != ''
+			ORDER BY tp.is_featured DESC, tp.created_at DESC
 			LIMIT 1
 		`
-		if err := r.db.QueryRow(cBannerQuery, info.CountryCode).Scan(&countryBanner); err == nil && countryBanner.Valid && countryBanner.String != "" {
+		if err := r.db.QueryRow(cTripBannerQuery, info.CountryCode, info.CountryName).Scan(&countryBanner); err == nil && countryBanner.Valid && countryBanner.String != "" {
 			detail.BannerURL = &countryBanner.String
+		} else {
+			cBannerQuery := `
+				SELECT dr.image_url
+				FROM destination_recommendations dr
+				LEFT JOIN towns t ON dr.town_id = t.id
+				LEFT JOIN regions r ON t.region_id = r.id
+				LEFT JOIN countries dc ON r.country_id = dc.id
+				WHERE (dr.country_code = $1 OR dc.code = $1)
+				  AND dr.image_url IS NOT NULL AND dr.image_url != ''
+				ORDER BY dr.useful_votes_count DESC, dr.created_at DESC
+				LIMIT 1
+			`
+			if err := r.db.QueryRow(cBannerQuery, info.CountryCode).Scan(&countryBanner); err == nil && countryBanner.Valid && countryBanner.String != "" {
+				detail.BannerURL = &countryBanner.String
+			}
 		}
 	}
 
@@ -1394,4 +1553,254 @@ func (r *repository) CreateReport(reporterID, targetType, targetID, reason strin
 		return fmt.Errorf("error inserting community report: %w", err)
 	}
 	return nil
+}
+
+var catalanMonths = map[time.Month]string{
+	time.January:   "Gener",
+	time.February:  "Febrer",
+	time.March:     "Març",
+	time.April:     "Abril",
+	time.May:       "Maig",
+	time.June:      "Juny",
+	time.July:      "Juliol",
+	time.August:     "Agost",
+	time.September: "Setembre",
+	time.October:   "Octubre",
+	time.November:  "Novembre",
+	time.December:  "Desembre",
+}
+
+func calculateTripPeriodAndDays(startDateStr, endDateStr string) (int, string) {
+	sDate, err1 := time.Parse("2006-01-02", startDateStr)
+	eDate, err2 := time.Parse("2006-01-02", endDateStr)
+	if err1 != nil || err2 != nil {
+		return 1, ""
+	}
+
+	days := int(eDate.Sub(sDate).Hours()/24) + 1
+	if days <= 0 {
+		days = 1
+	}
+
+	monthName, ok := catalanMonths[sDate.Month()]
+	if !ok {
+		monthName = sDate.Month().String()
+	}
+
+	daysText := "dies"
+	if days == 1 {
+		daysText = "dia"
+	}
+
+	formattedPeriod := fmt.Sprintf("%s %d • %d %s", monthName, sDate.Year(), days, daysText)
+	return days, formattedPeriod
+}
+
+func (r *repository) ListPublicTripsByDestination(info *DestinationInfo, limit, offset int) ([]PublicTripSummary, error) {
+	if r.db == nil {
+		return nil, fmt.Errorf("database connection is nil")
+	}
+
+	if limit <= 0 {
+		limit = 20
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	var tripQuery string
+	var args []interface{}
+
+	if info.IsTown {
+		tripQuery = `
+			SELECT DISTINCT tr.id, tr.title, tr.description, tr.start_date, tr.end_date,
+			       u.id AS author_id, ut.name AS author_town, ur.name AS author_region, uc.name AS author_country,
+			       COALESCE((SELECT COUNT(*) FROM trip_companions tc WHERE tc.trip_id = tr.id AND tc.role = 'companion' AND tc.status = 'accepted'), 0) AS companions_count
+			FROM trips tr
+			JOIN trip_stages ts ON ts.trip_id = tr.id
+			JOIN users u ON tr.user_id = u.id
+			LEFT JOIN towns ut ON u.town_id = ut.id
+			LEFT JOIN regions ur ON ut.region_id = ur.id
+			LEFT JOIN countries uc ON ur.country_id = uc.id
+			WHERE tr.visibility = 'public'
+			  AND (tr.status = 'completed' OR tr.end_date < CURRENT_DATE)
+			  AND (ts.town_id::text = $1 OR LOWER(ts.destination_name) = LOWER($2))
+			ORDER BY tr.end_date DESC, tr.id DESC
+			LIMIT $3 OFFSET $4
+		`
+		args = []interface{}{info.TownID, info.TownName, limit, offset}
+	} else {
+		tripQuery = `
+			SELECT DISTINCT tr.id, tr.title, tr.description, tr.start_date, tr.end_date,
+			       u.id AS author_id, ut.name AS author_town, ur.name AS author_region, uc.name AS author_country,
+			       COALESCE((SELECT COUNT(*) FROM trip_companions tc WHERE tc.trip_id = tr.id AND tc.role = 'companion' AND tc.status = 'accepted'), 0) AS companions_count
+			FROM trips tr
+			JOIN trip_stages ts ON ts.trip_id = tr.id
+			JOIN users u ON tr.user_id = u.id
+			LEFT JOIN towns ut ON u.town_id = ut.id
+			LEFT JOIN regions ur ON ut.region_id = ur.id
+			LEFT JOIN countries uc ON ur.country_id = uc.id
+			LEFT JOIN towns t ON ts.town_id = t.id
+			LEFT JOIN regions r ON t.region_id = r.id
+			LEFT JOIN countries dc ON r.country_id = dc.id
+			WHERE tr.visibility = 'public'
+			  AND (tr.status = 'completed' OR tr.end_date < CURRENT_DATE)
+			  AND (ts.country_code = $1 OR dc.code = $1 OR LOWER(ts.destination_name) = LOWER($2))
+			ORDER BY tr.end_date DESC, tr.id DESC
+			LIMIT $3 OFFSET $4
+		`
+		args = []interface{}{info.CountryCode, info.CountryName, limit, offset}
+	}
+
+	rows, err := r.db.Query(tripQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("error querying public trips: %w", err)
+	}
+	defer rows.Close()
+
+	var results []PublicTripSummary
+	var tripIDs []string
+
+	for rows.Next() {
+		var pts PublicTripSummary
+		var desc sql.NullString
+		var sDate, eDate time.Time
+		var authorID string
+		var authorTown, authorRegion, authorCountry sql.NullString
+
+		if err := rows.Scan(
+			&pts.ID,
+			&pts.Title,
+			&desc,
+			&sDate,
+			&eDate,
+			&authorID,
+			&authorTown,
+			&authorRegion,
+			&authorCountry,
+			&pts.CompanionsCount,
+		); err != nil {
+			return nil, fmt.Errorf("error scanning public trip row: %w", err)
+		}
+
+		if desc.Valid {
+			pts.Description = &desc.String
+		}
+		pts.StartDate = sDate.Format("2006-01-02")
+		pts.EndDate = eDate.Format("2006-01-02")
+
+		pts.TotalDays, pts.FormattedPeriod = calculateTripPeriodAndDays(pts.StartDate, pts.EndDate)
+
+		// Author Anonymization
+		pts.Author.ID = authorID
+		if authorTown.Valid && authorTown.String != "" {
+			pts.Author.TownName = &authorTown.String
+			pts.Author.AnonymousTitle = fmt.Sprintf("Un felagi de %s", authorTown.String)
+		} else if authorRegion.Valid && authorRegion.String != "" {
+			pts.Author.RegionName = &authorRegion.String
+			pts.Author.AnonymousTitle = fmt.Sprintf("Un felagi de %s", authorRegion.String)
+		} else {
+			pts.Author.AnonymousTitle = "Un felagi de la teva terra"
+		}
+		if authorCountry.Valid && authorCountry.String != "" {
+			pts.Author.CountryName = &authorCountry.String
+		}
+
+		pts.Stages = []PublicTripStage{}
+		pts.Photos = []PublicTripPhoto{}
+
+		results = append(results, pts)
+		tripIDs = append(tripIDs, pts.ID)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(results) == 0 {
+		return []PublicTripSummary{}, nil
+	}
+
+	// Fetch stages for each trip
+	stageQuery := `
+		SELECT id, trip_id, stage_order, destination_name, country_code, town_id, start_date, end_date
+		FROM trip_stages
+		WHERE trip_id = ANY($1)
+		ORDER BY trip_id, stage_order ASC
+	`
+	sRows, err := r.db.Query(stageQuery, pq.Array(tripIDs))
+	if err == nil {
+		defer sRows.Close()
+		stagesByTrip := make(map[string][]PublicTripStage)
+		for sRows.Next() {
+			var st PublicTripStage
+			var tID string
+			var sOrder int
+			var cc, townID sql.NullString
+			var stStart, stEnd time.Time
+
+			if err := sRows.Scan(
+				&st.ID,
+				&tID,
+				&sOrder,
+				&st.DestinationName,
+				&cc,
+				&townID,
+				&stStart,
+				&stEnd,
+			); err == nil {
+				if cc.Valid {
+					st.CountryCode = &cc.String
+				}
+				if townID.Valid {
+					st.TownID = &townID.String
+				}
+				st.StartDate = stStart.Format("2006-01-02")
+				st.EndDate = stEnd.Format("2006-01-02")
+				stagesByTrip[tID] = append(stagesByTrip[tID], st)
+			}
+		}
+		for i := range results {
+			if stList, exists := stagesByTrip[results[i].ID]; exists {
+				results[i].Stages = stList
+			}
+		}
+	}
+
+	// Fetch photos for each trip
+	photoQuery := `
+		SELECT id, trip_id, image_url, caption, is_featured
+		FROM trip_photos
+		WHERE trip_id = ANY($1)
+		ORDER BY trip_id, is_featured DESC, created_at DESC
+	`
+	pRows, err := r.db.Query(photoQuery, pq.Array(tripIDs))
+	if err == nil {
+		defer pRows.Close()
+		photosByTrip := make(map[string][]PublicTripPhoto)
+		for pRows.Next() {
+			var ph PublicTripPhoto
+			var tID string
+			var cap sql.NullString
+
+			if err := pRows.Scan(
+				&ph.ID,
+				&tID,
+				&ph.ImageURL,
+				&cap,
+				&ph.IsFeatured,
+			); err == nil {
+				if cap.Valid {
+					ph.Caption = &cap.String
+				}
+				photosByTrip[tID] = append(photosByTrip[tID], ph)
+			}
+		}
+		for i := range results {
+			if phList, exists := photosByTrip[results[i].ID]; exists {
+				results[i].Photos = phList
+			}
+		}
+	}
+
+	return results, nil
 }

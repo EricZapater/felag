@@ -46,6 +46,7 @@ type Service interface {
 	GetLiveFeed(destID string, userID string) (*LiveFeedResponse, error)
 	CreateLiveMoment(destID string, userID string, req CreateLiveMomentRequest) (*LiveMoment, error)
 	CreateReport(reporterID string, req CommunityReportRequest) error
+	ListPublicTrips(destID string, limit, offset int) ([]PublicTripSummary, error)
 	SetStorageService(storage storage.StorageService)
 	GetStorageService() storage.StorageService
 }
@@ -306,3 +307,23 @@ func (s *service) CreateReport(reporterID string, req CommunityReportRequest) er
 
 	return s.repo.CreateReport(reporterID, targetType, targetID, reason, details)
 }
+
+func (s *service) ListPublicTrips(destID string, limit, offset int) ([]PublicTripSummary, error) {
+	info, err := s.repo.ResolveDestination(destID)
+	if err != nil {
+		return nil, err
+	}
+	if info == nil {
+		return nil, ErrDestinationNotFound
+	}
+
+	if limit <= 0 {
+		limit = 20
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	return s.repo.ListPublicTripsByDestination(info, limit, offset)
+}
+

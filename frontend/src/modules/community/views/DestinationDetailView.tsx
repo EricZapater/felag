@@ -16,6 +16,8 @@ import {
   TextField,
   Collapse,
   Divider,
+  Avatar,
+  Dialog,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
@@ -25,14 +27,21 @@ import FlagOutlinedIcon from '@mui/icons-material/FlagOutlined';
 import SendIcon from '@mui/icons-material/Send';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import SecurityIcon from '@mui/icons-material/Security';
-import { useParams, Link as RouterLink } from 'react-router-dom';
+import ExploreIcon from '@mui/icons-material/Explore';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import CloseIcon from '@mui/icons-material/Close';
+import { useParams, Link as RouterLink, useNavigate } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader';
 import { useCommunityStore } from '../store';
+import { useAuthStore } from '@/modules/auth/store';
+import { useChatStore } from '@/modules/chat/store';
 import {
   OriginFilter,
   RecommendationCategoryFilter,
   SortOrder,
   PhotoSharingMode,
+  PublicAuthorSummary,
 } from '../types';
 import CreateRecommendationDialog from '../components/CreateRecommendationDialog';
 import ReportDialog from '../components/ReportDialog';
@@ -64,18 +73,70 @@ function getCategoryTag(cat: string): { label: string; icon: string } {
   }
 }
 
+function formatAnonymousAuthor(author?: PublicAuthorSummary): string {
+  if (!author) return 'Un felagi de la terra';
+  const location = author.town_name || author.region_name;
+  if (!location) return 'Un felagi de la terra';
+
+  const trimmed = location.trim();
+  const firstLetter = trimmed.charAt(0).toLowerCase();
+  const startsWithVowelOrH = ['a', 'e', 'i', 'o', 'u', 'h', 'à', 'è', 'é', 'í', 'ò', 'ó', 'ú'].includes(firstLetter);
+  const prefix = startsWithVowelOrH ? "Un felagi d'" : "Un felagi de ";
+  return `${prefix}${trimmed}`;
+}
+
+function formatTripDatesAndDuration(startDateStr: string, endDateStr: string): string {
+  if (!startDateStr || !endDateStr) return '';
+  const start = new Date(startDateStr);
+  const end = new Date(endDateStr);
+
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return '';
+
+  const monthNames = [
+    'Gener', 'Febrer', 'Març', 'Abril', 'Maig', 'Juny',
+    'Juliol', 'Agost', 'Setembre', 'Octubre', 'Novembre', 'Desembre',
+  ];
+
+  const startMonth = monthNames[start.getMonth()];
+  const startYear = start.getFullYear();
+  const endMonth = monthNames[end.getMonth()];
+  const endYear = end.getFullYear();
+
+  let dateLabel = `${startMonth} ${startYear}`;
+  if (startYear !== endYear || startMonth !== endMonth) {
+    if (startYear === endYear) {
+      dateLabel = `${startMonth} - ${endMonth} ${startYear}`;
+    } else {
+      dateLabel = `${startMonth} ${startYear} - ${endMonth} ${endYear}`;
+    }
+  }
+
+  const diffTime = Math.abs(end.getTime() - start.getTime());
+  const diffDays = Math.max(1, Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1);
+  const daysLabel = `${diffDays} ${diffDays === 1 ? 'dia' : 'dies'}`;
+
+  return `${dateLabel} • ${daysLabel}`;
+}
+
 export default function DestinationDetailView() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const { createOrGetConversation } = useChatStore();
+
   const {
     currentDestination,
+    publicTrips,
     recommendations,
     commentsByRecId,
     selectedCategory,
     selectedOriginFilter,
     selectedSort,
     isLoading,
+    isLoadingTrips,
     error,
     fetchDestinationDetail,
+    fetchPublicTrips,
     fetchRecommendations,
     toggleVote,
     fetchComments,
@@ -85,6 +146,10 @@ export default function DestinationDetailView() {
     setOriginFilter,
     setSort,
   } = useCommunityStore();
+
+  const [activeTab, setActiveTab] = useState<'trips' | 'recommendations'>('trips');
+  const [connectingAuthorId, setConnectingAuthorId] = useState<string | null>(null);
+  const [selectedPhotoPreview, setSelectedPhotoPreview] = useState<string | null>(null);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
@@ -102,9 +167,10 @@ export default function DestinationDetailView() {
   useEffect(() => {
     if (id) {
       fetchDestinationDetail(id);
+      fetchPublicTrips(id);
       fetchRecommendations(id);
     }
-  }, [id]);
+  }, [id, fetchDestinationDetail, fetchPublicTrips, fetchRecommendations]);
 
   const handleCategoryClick = (cat: RecommendationCategoryFilter) => {
     setCategory(cat);
@@ -166,6 +232,23 @@ export default function DestinationDetailView() {
     }
   };
 
+  const handleContactAuthor = async (authorId: string) => {
+    if (!authorId || connectingAuthorId) return;
+    setConnectingAuthorId(authorId);
+    try {
+      const conv = await createOrGetConversation(authorId);
+      if (conv && conv.id) {
+        navigate(`/chats/${conv.id}`);
+      } else {
+        navigate('/chats');
+      }
+    } catch {
+      navigate('/chats');
+    } finally {
+      setConnectingAuthorId(null);
+    }
+  };
+
   if (isLoading && !currentDestination) {
     return (
       <Box sx={{ minHeight: '100vh', bgcolor: '#F9F6F0', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -196,6 +279,10 @@ export default function DestinationDetailView() {
   const destRegion = [currentDestination?.region_name, currentDestination?.country_name]
     .filter(Boolean)
     .join(' • ');
+
+  const totalCompletedTrips = currentDestination?.public_trips_count ?? publicTrips.length;
+  const totalTravelers = currentDestination?.total_travelers_count ?? currentDestination?.total_visitors_count ?? 0;
+  const activeFelagis = currentDestination?.active_felagis_count ?? 0;
 
   // Count recommendations per category
   const categoryCounts = recommendations.reduce<Record<string, number>>((acc, r) => {
@@ -266,10 +353,9 @@ export default function DestinationDetailView() {
                 {destName}
               </Typography>
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', opacity: 0.9, fontSize: '0.95rem' }}>
-                <span>✨ {currentDestination?.total_recommendations ?? recommendations.length} recomanacions de FELAGIS</span>
-                {currentDestination?.total_visitors_count !== undefined && (
-                  <span>📍 {currentDestination.total_visitors_count} viatgers registrats</span>
-                )}
+                <span>🧭 {totalCompletedTrips} {totalCompletedTrips === 1 ? 'viatge completat' : 'viatges completats'}</span>
+                <span>✨ {currentDestination?.total_recommendations ?? recommendations.length} recomanacions</span>
+                <span>📍 {totalTravelers} felagis han viatjat</span>
               </Box>
             </Box>
 
@@ -286,10 +372,10 @@ export default function DestinationDetailView() {
                 }}
               >
                 <Typography variant="h5" sx={{ fontWeight: 800, color: '#FFE082' }}>
-                  {currentDestination?.active_felagis_count ?? 0}
+                  {totalCompletedTrips}
                 </Typography>
                 <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  FELAGIS Ara
+                  Viatges
                 </Typography>
               </Box>
 
@@ -305,10 +391,29 @@ export default function DestinationDetailView() {
                 }}
               >
                 <Typography variant="h5" sx={{ fontWeight: 800, color: '#FFE082' }}>
-                  {currentDestination?.total_visitors_count ?? recommendations.length * 2 + 5}
+                  {activeFelagis}
                 </Typography>
                 <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  Han Viatjat
+                  Felagis Ara
+                </Typography>
+              </Box>
+
+              <Box
+                sx={{
+                  bgcolor: 'rgba(255, 255, 255, 0.15)',
+                  backdropFilter: 'blur(8px)',
+                  p: 1.5,
+                  px: 2.5,
+                  borderRadius: 3,
+                  textAlign: 'center',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                }}
+              >
+                <Typography variant="h5" sx={{ fontWeight: 800, color: '#FFE082' }}>
+                  {totalTravelers}
+                </Typography>
+                <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  Felagis
                 </Typography>
               </Box>
             </Box>
@@ -394,6 +499,292 @@ export default function DestinationDetailView() {
             </Box>
           </Box>
         )}
+
+        {/* Section Navigation Tabs */}
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 1.5,
+            mb: 3.5,
+            borderBottom: '2px solid #E8E2D9',
+            pb: 1,
+          }}
+        >
+          <Button
+            onClick={() => setActiveTab('trips')}
+            startIcon={<ExploreIcon />}
+            sx={{
+              textTransform: 'none',
+              fontWeight: 800,
+              fontSize: '1rem',
+              color: activeTab === 'trips' ? '#C85A32' : '#786C65',
+              borderBottom: activeTab === 'trips' ? '3px solid #C85A32' : '3px solid transparent',
+              borderRadius: 0,
+              pb: 1,
+              mb: -1.15,
+              '&:hover': { bgcolor: 'transparent', color: '#C85A32' },
+            }}
+          >
+            Viatges de la Comunitat ({publicTrips.length})
+          </Button>
+
+          <Button
+            onClick={() => setActiveTab('recommendations')}
+            startIcon={<AutoAwesomeIcon />}
+            sx={{
+              textTransform: 'none',
+              fontWeight: 800,
+              fontSize: '1rem',
+              color: activeTab === 'recommendations' ? '#C85A32' : '#786C65',
+              borderBottom: activeTab === 'recommendations' ? '3px solid #C85A32' : '3px solid transparent',
+              borderRadius: 0,
+              pb: 1,
+              mb: -1.15,
+              '&:hover': { bgcolor: 'transparent', color: '#C85A32' },
+            }}
+          >
+            Recomanacions & Racons ({recommendations.length})
+          </Button>
+        </Box>
+
+        {/* TAB 1: PUBLIC TRIPS LIST */}
+        {activeTab === 'trips' && (
+          <Box>
+            {isLoadingTrips ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+                <CircularProgress sx={{ color: '#C85A32' }} />
+              </Box>
+            ) : publicTrips.length === 0 ? (
+              <Box
+                sx={{
+                  textAlign: 'center',
+                  py: 8,
+                  bgcolor: '#FFFFFF',
+                  borderRadius: 3,
+                  border: '1px solid #E8E2D9',
+                  p: 4,
+                  boxShadow: '0 2px 8px rgba(74, 46, 43, 0.04)',
+                }}
+              >
+                <ExploreIcon sx={{ fontSize: 52, color: '#D4A373', mb: 1.5 }} />
+                <Typography variant="h6" sx={{ color: '#2C221E', fontWeight: 800, mb: 1 }}>
+                  Encara no hi ha viatges completats en aquest destí
+                </Typography>
+                <Typography variant="body1" sx={{ color: '#786C65', maxWidth: 520, mx: 'auto', mb: 3, lineHeight: 1.6 }}>
+                  Sigues el primer felagi a inspirar la comunitat compartint el teu itinerari i fotos un cop hagis finalitzat el teu viatge a {destName}!
+                </Typography>
+                <Button
+                  component={RouterLink}
+                  to="/trips/new"
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  sx={{
+                    bgcolor: '#C85A32',
+                    color: '#FFFFFF',
+                    textTransform: 'none',
+                    fontWeight: 700,
+                    borderRadius: 2,
+                    px: 3,
+                    py: 1,
+                    '&:hover': { bgcolor: '#A0471D' },
+                  }}
+                >
+                  Planificar un viatge a {destName}
+                </Button>
+              </Box>
+            ) : (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                {publicTrips.map((trip) => {
+                  const anonymousAuthor = formatAnonymousAuthor(trip.author);
+                  const dateDuration = formatTripDatesAndDuration(trip.start_date, trip.end_date);
+                  const isOwnTrip = user?.id && trip.author?.id ? user.id === trip.author.id : false;
+                  const isConnecting = connectingAuthorId === trip.author?.id;
+
+                  return (
+                    <Card
+                      key={trip.id}
+                      sx={{
+                        borderRadius: 3,
+                        bgcolor: '#FFFFFF',
+                        border: '1px solid #E8E2D9',
+                        boxShadow: '0 2px 8px rgba(74, 46, 43, 0.04)',
+                        overflow: 'hidden',
+                        transition: 'all 0.2s ease-in-out',
+                        '&:hover': {
+                          boxShadow: '0 6px 18px rgba(74, 46, 43, 0.08)',
+                          borderColor: '#D4A373',
+                        },
+                      }}
+                    >
+                      <CardContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
+                        {/* Trip Header: Anonymous Author + Aggregate Dates */}
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: { xs: 'flex-start', sm: 'center' },
+                            flexDirection: { xs: 'column', sm: 'row' },
+                            gap: 1.5,
+                            mb: 2,
+                            pb: 2,
+                            borderBottom: '1px solid #FAF7F2',
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <Avatar
+                              src={trip.author?.avatar_url || undefined}
+                              sx={{
+                                width: 44,
+                                height: 44,
+                                bgcolor: '#FDEEE9',
+                                color: '#C85A32',
+                                border: '2px solid #C85A32',
+                                fontWeight: 700,
+                                fontSize: '0.95rem',
+                              }}
+                            >
+                              🧭
+                            </Avatar>
+                            <Box>
+                              <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#2C221E', lineHeight: 1.2 }}>
+                                {anonymousAuthor}
+                              </Typography>
+                              {(trip.author?.town_name || trip.author?.region_name) && (
+                                <Typography variant="caption" sx={{ color: '#703817', fontWeight: 600 }}>
+                                  📍 {[trip.author.town_name, trip.author.region_name].filter(Boolean).join(', ')}
+                                </Typography>
+                              )}
+                            </Box>
+                          </Box>
+
+                          {dateDuration && (
+                            <Chip
+                              label={`🗓️ ${dateDuration}`}
+                              size="small"
+                              sx={{
+                                bgcolor: '#FAF7F2',
+                                color: '#703817',
+                                border: '1px solid #E8E2D9',
+                                fontWeight: 700,
+                                fontSize: '0.8rem',
+                              }}
+                            />
+                          )}
+                        </Box>
+
+                        {/* Trip Title & Description */}
+                        <Typography variant="h5" sx={{ fontWeight: 800, color: '#2C221E', mb: 1 }}>
+                          {trip.title}
+                        </Typography>
+
+                        {trip.description && (
+                          <Typography variant="body1" sx={{ color: '#5A4E47', lineHeight: 1.65, mb: 2.5 }}>
+                            {trip.description}
+                          </Typography>
+                        )}
+
+                        {/* Route Timeline / Stages */}
+                        {trip.stages && trip.stages.length > 0 && (
+                          <Box sx={{ mb: 2.5, bgcolor: '#FAF7F2', p: 2, borderRadius: 2.5, border: '1px solid #E8E2D9' }}>
+                            <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 800, color: '#703817', letterSpacing: 0.5, display: 'block', mb: 1.5 }}>
+                              🗺️ Itinerari del viatge:
+                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+                              {trip.stages.map((stage, idx) => (
+                                <Box key={stage.id || idx} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <Chip
+                                    label={`${idx + 1}. ${stage.destination_name || stage.town_name || 'Etapa'} ${stage.flag_emoji || ''}`}
+                                    size="small"
+                                    sx={{
+                                      bgcolor: '#FFFFFF',
+                                      color: '#2C221E',
+                                      border: '1px solid #DDCFBF',
+                                      fontWeight: 700,
+                                      fontSize: '0.8rem',
+                                    }}
+                                  />
+                                  {idx < (trip.stages?.length ?? 0) - 1 && (
+                                    <ArrowForwardIcon sx={{ fontSize: 16, color: '#C85A32' }} />
+                                  )}
+                                </Box>
+                              ))}
+                            </Box>
+                          </Box>
+                        )}
+
+                        {/* Trip Photos Gallery */}
+                        {trip.photos && trip.photos.length > 0 && (
+                          <Box sx={{ mb: 2.5 }}>
+                            <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 800, color: '#786C65', letterSpacing: 0.5, display: 'block', mb: 1 }}>
+                              📸 Fotos del viatge ({trip.photos.length})
+                            </Typography>
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                gap: 1.5,
+                                overflowX: 'auto',
+                                py: 0.5,
+                                '&::-webkit-scrollbar': { height: 6 },
+                              }}
+                            >
+                              {trip.photos.map((photo) => (
+                                <Box
+                                  key={photo.id}
+                                  component="img"
+                                  src={photo.photo_url}
+                                  alt={photo.caption || 'Foto del viatge'}
+                                  onClick={() => setSelectedPhotoPreview(photo.photo_url)}
+                                  sx={{
+                                    width: { xs: 120, sm: 150 },
+                                    height: { xs: 90, sm: 110 },
+                                    borderRadius: 2,
+                                    objectFit: 'cover',
+                                    cursor: 'pointer',
+                                    border: '1px solid #E8E2D9',
+                                    transition: 'transform 0.2s',
+                                    '&:hover': { transform: 'scale(1.03)', borderColor: '#C85A32' },
+                                  }}
+                                />
+                              ))}
+                            </Box>
+                          </Box>
+                        )}
+
+                        {/* Action Footer */}
+                        {!isOwnTrip && trip.author?.id && (
+                          <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 1.5, borderTop: '1px solid #FAF7F2' }}>
+                            <Button
+                              variant="contained"
+                              disabled={isConnecting}
+                              startIcon={isConnecting ? <CircularProgress size={16} sx={{ color: '#FFFFFF' }} /> : <ChatBubbleOutlineIcon />}
+                              onClick={() => handleContactAuthor(trip.author.id)}
+                              sx={{
+                                bgcolor: '#C85A32',
+                                color: '#FFFFFF',
+                                textTransform: 'none',
+                                fontWeight: 700,
+                                borderRadius: 2,
+                                px: 2.5,
+                                py: 0.8,
+                                '&:hover': { bgcolor: '#A0471D' },
+                              }}
+                            >
+                              {isConnecting ? 'Connectant...' : "Demanar més informació a l'autor 💬"}
+                            </Button>
+                          </Box>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </Box>
+            )}
+          </Box>
+        )}
+
+        {/* TAB 2: RECOMMENDATIONS LIST */}
+        {activeTab === 'recommendations' && (
+          <Box>
 
         {/* Controls Bar (Categories, Filters, Sort & Action) */}
         <Box
@@ -778,10 +1169,43 @@ export default function DestinationDetailView() {
                   </CardContent>
                 </Card>
               );
-            })}
+                })}
+              </Box>
+            )}
           </Box>
         )}
       </Container>
+
+      {/* Photo Preview Lightbox Dialog */}
+      <Dialog
+        open={Boolean(selectedPhotoPreview)}
+        onClose={() => setSelectedPhotoPreview(null)}
+        maxWidth="md"
+      >
+        <Box sx={{ position: 'relative', bgcolor: '#000000', p: 0, overflow: 'hidden' }}>
+          <IconButton
+            onClick={() => setSelectedPhotoPreview(null)}
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              color: '#FFFFFF',
+              bgcolor: 'rgba(0,0,0,0.5)',
+              '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' },
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+          {selectedPhotoPreview && (
+            <Box
+              component="img"
+              src={selectedPhotoPreview}
+              alt="Previsualització ampliada"
+              sx={{ width: '100%', maxHeight: '80vh', objectFit: 'contain', display: 'block' }}
+            />
+          )}
+        </Box>
+      </Dialog>
 
       {/* Dialogs */}
       {id && (

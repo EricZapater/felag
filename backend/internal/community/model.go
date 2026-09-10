@@ -11,6 +11,8 @@ type DestinationSummary struct {
 	Type                 string  `json:"type"` // "town" | "country"
 	RecommendationsCount int     `json:"recommendations_count"`
 	ActiveFelagisCount   int     `json:"active_felagis_count"`
+	PublicTripsCount     int     `json:"public_trips_count"`
+	TotalTravelersCount  int     `json:"total_travelers_count"`
 	BannerURL            *string `json:"banner_url,omitempty"`
 	FlagEmoji            *string `json:"flag_emoji,omitempty"`
 }
@@ -26,6 +28,8 @@ type DestinationDetail struct {
 	TotalRecommendations int     `json:"total_recommendations"`
 	ActiveFelagisCount   int     `json:"active_felagis_count"`
 	TotalVisitorsCount   int     `json:"total_visitors_count"`
+	PublicTripsCount     int     `json:"public_trips_count"`
+	TotalTravelersCount  int     `json:"total_travelers_count"`
 	UserIsTravellingNow  bool    `json:"user_is_travelling_now"`
 	UserPhotoSharingMode string  `json:"user_photo_sharing_mode,omitempty"`
 }
@@ -37,6 +41,44 @@ type AuthorSummary struct {
 	TownName    *string `json:"town_name,omitempty"`
 	RegionName  *string `json:"region_name,omitempty"`
 	CountryName *string `json:"country_name,omitempty"`
+}
+
+type PublicAuthorSummary struct {
+	ID             string  `json:"id"`
+	AnonymousTitle string  `json:"anonymous_title"`
+	TownName       *string `json:"town_name,omitempty"`
+	RegionName     *string `json:"region_name,omitempty"`
+	CountryName    *string `json:"country_name,omitempty"`
+}
+
+type PublicTripStage struct {
+	ID              string  `json:"id"`
+	DestinationName string  `json:"destination_name"`
+	CountryCode     *string `json:"country_code,omitempty"`
+	TownID          *string `json:"town_id,omitempty"`
+	StartDate       string  `json:"start_date"`
+	EndDate         string  `json:"end_date"`
+}
+
+type PublicTripPhoto struct {
+	ID         string  `json:"id"`
+	ImageURL   string  `json:"image_url"`
+	Caption    *string `json:"caption,omitempty"`
+	IsFeatured bool    `json:"is_featured"`
+}
+
+type PublicTripSummary struct {
+	ID              string              `json:"id"`
+	Title           string              `json:"title"`
+	Description     *string             `json:"description,omitempty"`
+	StartDate       string              `json:"start_date"`
+	EndDate         string              `json:"end_date"`
+	TotalDays       int                 `json:"total_days"`
+	FormattedPeriod string              `json:"formatted_period"`
+	Author          PublicAuthorSummary `json:"author"`
+	CompanionsCount int                 `json:"companions_count"`
+	Stages          []PublicTripStage   `json:"stages"`
+	Photos          []PublicTripPhoto   `json:"photos"`
 }
 
 type Recommendation struct {

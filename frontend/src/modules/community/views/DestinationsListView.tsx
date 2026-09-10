@@ -48,10 +48,10 @@ export default function DestinationsListView() {
             variant="h4"
             sx={{ fontWeight: 800, color: '#2C221E', mb: 1, letterSpacing: -0.5 }}
           >
-            Guies de Destinacions 🗺️
+            Viatges de la Comunitat 🗺️
           </Typography>
           <Typography variant="body1" sx={{ color: '#6B5E57', maxWidth: 650, mx: 'auto', mb: 3 }}>
-            Descobreix consells, racons secrets i recomanacions de viatgers de la teva terra arreu del món.
+            Explora els itineraris i rutes reals completades pels felagis arreu del món
           </Typography>
 
           {/* Search Bar */}
@@ -113,88 +113,107 @@ export default function DestinationsListView() {
           </Box>
         ) : (
           <Grid container spacing={3}>
-            {destinations.map((dest) => (
-              <Grid item xs={12} sm={6} md={4} key={dest.id}>
-                <Card
-                  sx={{
-                    borderRadius: 3,
-                    bgcolor: '#FFFFFF',
-                    border: '1px solid #E8E2D9',
-                    boxShadow: '0 2px 8px rgba(74, 46, 43, 0.04)',
-                    overflow: 'hidden',
-                    transition: 'all 0.2s ease-in-out',
-                    '&:hover': {
-                      transform: 'translateY(-3px)',
-                      boxShadow: '0 8px 24px rgba(74, 46, 43, 0.12)',
-                      borderColor: '#C85A32',
-                    },
-                  }}
-                >
-                  <CardActionArea
-                    onClick={() => navigate(`/destinations/${dest.id}`)}
+            {destinations.map((dest) => {
+              const tripCount = dest.public_trips_count ?? 0;
+              const tripLabel = `${tripCount} ${tripCount === 1 ? 'viatge completat' : 'viatges completats'}`;
+
+              return (
+                <Grid item xs={12} sm={6} md={4} key={dest.id}>
+                  <Card
+                    sx={{
+                      borderRadius: 3,
+                      bgcolor: '#FFFFFF',
+                      border: '1px solid #E8E2D9',
+                      boxShadow: '0 2px 8px rgba(74, 46, 43, 0.04)',
+                      overflow: 'hidden',
+                      transition: 'all 0.2s ease-in-out',
+                      '&:hover': {
+                        transform: 'translateY(-3px)',
+                        boxShadow: '0 8px 24px rgba(74, 46, 43, 0.12)',
+                        borderColor: '#C85A32',
+                      },
+                    }}
                   >
-                    {dest.banner_url ? (
-                      <CardMedia
-                        component="img"
-                        height="160"
-                        image={dest.banner_url}
-                        alt={dest.name}
-                        sx={{ objectFit: 'cover' }}
-                      />
-                    ) : (
-                      <Box
-                        sx={{
-                          height: 120,
-                          bgcolor: '#FAF7F2',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: 48,
-                          borderBottom: '1px solid #E8E2D9',
-                        }}
-                      >
-                        {dest.flag_emoji || '🌍'}
-                      </Box>
-                    )}
-
-                    <CardContent sx={{ p: 2.5 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                        <Typography variant="h6" sx={{ fontWeight: 800, color: '#2C221E' }}>
-                          {dest.name} {dest.flag_emoji ? `${dest.flag_emoji}` : ''}
-                        </Typography>
-                        <Chip
-                          label={dest.type === 'town' ? 'Ciutat' : 'País'}
-                          size="small"
-                          sx={{
-                            bgcolor: dest.type === 'town' ? '#FDEEE9' : '#FFF8E1',
-                            color: dest.type === 'town' ? '#C85A32' : '#E65100',
-                            fontWeight: 700,
-                            fontSize: '0.75rem',
-                          }}
+                    <CardActionArea
+                      onClick={() => navigate(`/destinations/${dest.id}`)}
+                    >
+                      {dest.banner_url ? (
+                        <CardMedia
+                          component="img"
+                          height="160"
+                          image={dest.banner_url}
+                          alt={dest.name}
+                          sx={{ objectFit: 'cover' }}
                         />
-                      </Box>
-
-                      {(dest.region_name || dest.country_name) && (
-                        <Typography variant="body2" sx={{ color: '#786C65', mb: 2 }}>
-                          📍 {[dest.region_name, dest.country_name].filter(Boolean).join(', ')}
-                        </Typography>
+                      ) : (
+                        <Box
+                          sx={{
+                            height: 120,
+                            bgcolor: '#FAF7F2',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: 48,
+                            borderBottom: '1px solid #E8E2D9',
+                          }}
+                        >
+                          {dest.flag_emoji || '🌍'}
+                        </Box>
                       )}
 
-                      <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mt: 2, pt: 1.5, borderTop: '1px solid #FAF7F2' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#C85A32', fontSize: '0.85rem', fontWeight: 600 }}>
-                          <AutoAwesomeIcon sx={{ fontSize: 16 }} />
-                          <span>{dest.recommendations_count ?? 0} recomanacions</span>
+                      <CardContent sx={{ p: 2.5 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                          <Typography variant="h6" sx={{ fontWeight: 800, color: '#2C221E' }}>
+                            {dest.name} {dest.flag_emoji ? `${dest.flag_emoji}` : ''}
+                          </Typography>
+                          <Chip
+                            label={dest.type === 'town' ? 'Ciutat' : 'País'}
+                            size="small"
+                            sx={{
+                              bgcolor: dest.type === 'town' ? '#FDEEE9' : '#FFF8E1',
+                              color: dest.type === 'town' ? '#C85A32' : '#E65100',
+                              fontWeight: 700,
+                              fontSize: '0.75rem',
+                            }}
+                          />
                         </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#703817', fontSize: '0.85rem', fontWeight: 600 }}>
-                          <PeopleIcon sx={{ fontSize: 16 }} />
-                          <span>{dest.active_felagis_count ?? 0} viatgers ara</span>
+
+                        {(dest.region_name || dest.country_name) && (
+                          <Typography variant="body2" sx={{ color: '#786C65', mb: 1.5 }}>
+                            📍 {[dest.region_name, dest.country_name].filter(Boolean).join(', ')}
+                          </Typography>
+                        )}
+
+                        <Box sx={{ mb: 1.5 }}>
+                          <Chip
+                            label={`🧭 ${tripLabel}`}
+                            size="small"
+                            sx={{
+                              bgcolor: '#FAF7F2',
+                              color: '#703817',
+                              border: '1px solid #E8E2D9',
+                              fontWeight: 700,
+                              fontSize: '0.78rem',
+                            }}
+                          />
                         </Box>
-                      </Box>
-                    </CardContent>
-                  </CardActionArea>
-                </Card>
-              </Grid>
-            ))}
+
+                        <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', pt: 1.5, borderTop: '1px solid #FAF7F2' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#C85A32', fontSize: '0.85rem', fontWeight: 600 }}>
+                            <AutoAwesomeIcon sx={{ fontSize: 16 }} />
+                            <span>{dest.recommendations_count ?? 0} recomanacions</span>
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#703817', fontSize: '0.85rem', fontWeight: 600 }}>
+                            <PeopleIcon sx={{ fontSize: 16 }} />
+                            <span>{dest.active_felagis_count ?? 0} viatgers ara</span>
+                          </Box>
+                        </Box>
+                      </CardContent>
+                    </CardActionArea>
+                  </Card>
+                </Grid>
+              );
+            })}
           </Grid>
         )}
       </Container>

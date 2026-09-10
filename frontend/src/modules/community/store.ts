@@ -10,6 +10,7 @@ import {
   LiveMoment,
   OriginFilter,
   PhotoSharingMode,
+  PublicTripSummary,
   Recommendation,
   RecommendationCategoryFilter,
   SortOrder,
@@ -18,6 +19,7 @@ import {
 interface CommunityState {
   destinations: DestinationSummary[];
   currentDestination: DestinationDetail | null;
+  publicTrips: PublicTripSummary[];
   recommendations: Recommendation[];
   commentsByRecId: Record<string, Comment[]>;
   selectedCategory: RecommendationCategoryFilter;
@@ -25,10 +27,12 @@ interface CommunityState {
   selectedSort: SortOrder;
   searchQuery: string;
   isLoading: boolean;
+  isLoadingTrips: boolean;
   error: string | null;
 
   fetchDestinations: (q?: string) => Promise<void>;
   fetchDestinationDetail: (id: string) => Promise<void>;
+  fetchPublicTrips: (destinationId: string) => Promise<void>;
   fetchRecommendations: (
     destinationId: string,
     category?: RecommendationCategoryFilter,
@@ -56,6 +60,7 @@ interface CommunityState {
 export const useCommunityStore = create<CommunityState>((set, get) => ({
   destinations: [],
   currentDestination: null,
+  publicTrips: [],
   recommendations: [],
   commentsByRecId: {},
   selectedCategory: 'all',
@@ -63,6 +68,7 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
   selectedSort: 'useful',
   searchQuery: '',
   isLoading: false,
+  isLoadingTrips: false,
   error: null,
 
   fetchDestinations: async (q?: string) => {
@@ -88,6 +94,17 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
         error: err.response?.data?.error || err.response?.data?.message || 'Error carregant el detall de la destinació',
         isLoading: false,
       });
+    }
+  },
+
+  fetchPublicTrips: async (destinationId: string) => {
+    set({ isLoadingTrips: true, error: null });
+    try {
+      const publicTrips = await communityApi.getDestinationPublicTrips(destinationId);
+      set({ publicTrips: Array.isArray(publicTrips) ? publicTrips : [], isLoadingTrips: false });
+    } catch (_err: any) {
+      // Fallback a array buit per no bloquejar la vista
+      set({ publicTrips: [], isLoadingTrips: false });
     }
   },
 
@@ -236,7 +253,7 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
   },
 
   clearError: () => set({ error: null }),
-  clearCurrentDestination: () => set({ currentDestination: null, recommendations: [] }),
+  clearCurrentDestination: () => set({ currentDestination: null, recommendations: [], publicTrips: [] }),
 }));
 
 interface LiveFeedState {

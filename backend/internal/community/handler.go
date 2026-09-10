@@ -289,3 +289,38 @@ func (h *Handler) CreateReport(c *gin.Context) {
 		Message: "Denúncia rebuda correctament.",
 	})
 }
+
+func (h *Handler) ListPublicTrips(c *gin.Context) {
+	destID := c.Param("id")
+	if destID == "" {
+		shared.ErrorResponse(c, http.StatusBadRequest, "BAD_REQUEST", "Identificador de destinació obligatori.")
+		return
+	}
+
+	limit := 20
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if parsed, err := strconv.Atoi(limitStr); err == nil && parsed > 0 {
+			limit = parsed
+		}
+	}
+
+	offset := 0
+	if offsetStr := c.Query("offset"); offsetStr != "" {
+		if parsed, err := strconv.Atoi(offsetStr); err == nil && parsed >= 0 {
+			offset = parsed
+		}
+	}
+
+	trips, err := h.service.ListPublicTrips(destID, limit, offset)
+	if err != nil {
+		if errors.Is(err, ErrDestinationNotFound) {
+			shared.ErrorResponse(c, http.StatusNotFound, "NOT_FOUND", "Destinació no trobada.")
+			return
+		}
+		shared.ErrorResponse(c, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, trips)
+}
+

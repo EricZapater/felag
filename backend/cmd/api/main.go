@@ -191,6 +191,8 @@ func main() {
 			destinationsGroup.GET("", communityHandler.SearchDestinations)
 			destinationsGroup.GET("/:id", communityHandler.GetDestinationDetail)
 			destinationsGroup.GET("/:id/recommendations", communityHandler.ListRecommendations)
+			destinationsGroup.GET("/:id/trips", communityHandler.ListPublicTrips)
+			destinationsGroup.GET("/:id/public-trips", communityHandler.ListPublicTrips)
 		}
 
 		// Recommendation public routes

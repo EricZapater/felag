@@ -2,9 +2,14 @@ package community
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 type mockCommunityRepo struct {
@@ -15,6 +20,7 @@ type mockCommunityRepo struct {
 	userActiveTrips map[string]string // "userID:destID" -> tripID
 	liveMoments     map[string][]LiveMoment
 	reports         []CommunityReportRequest
+	publicTrips     map[string][]PublicTripSummary
 }
 
 func newMockCommunityRepo() *mockCommunityRepo {
@@ -34,6 +40,7 @@ func newMockCommunityRepo() *mockCommunityRepo {
 		CountryName: "Japan",
 	}
 
+	townName := "Girona"
 	return &mockCommunityRepo{
 		destinations: map[string]*DestinationInfo{
 			"town-tokyo": tokyoTown,
@@ -45,6 +52,39 @@ func newMockCommunityRepo() *mockCommunityRepo {
 		userActiveTrips: make(map[string]string),
 		liveMoments:     make(map[string][]LiveMoment),
 		reports:         make([]CommunityReportRequest, 0),
+		publicTrips: map[string][]PublicTripSummary{
+			"town-tokyo": {
+				{
+					ID:              "trip-1",
+					Title:           "Ruta de tardor pel Japó",
+					StartDate:       "2026-09-01",
+					EndDate:         "2026-09-07",
+					TotalDays:       7,
+					FormattedPeriod: "Setembre 2026 • 7 dies",
+					Author: PublicAuthorSummary{
+						ID:             "user-1",
+						AnonymousTitle: "Un felagi de Girona",
+						TownName:       &townName,
+					},
+					CompanionsCount: 1,
+					Stages: []PublicTripStage{
+						{
+							ID:              "stage-1",
+							DestinationName: "Tokyo",
+							StartDate:       "2026-09-01",
+							EndDate:         "2026-09-07",
+						},
+					},
+					Photos: []PublicTripPhoto{
+						{
+							ID:         "photo-1",
+							ImageURL:   "https://r2.felag.app/photos/tokyo1.jpg",
+							IsFeatured: true,
+						},
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -64,6 +104,8 @@ func (m *mockCommunityRepo) SearchDestinations(q string, limit int) ([]Destinati
 				Type:                 "town",
 				RecommendationsCount: len(m.recs),
 				ActiveFelagisCount:   1,
+				PublicTripsCount:     len(m.publicTrips[d.TownID]),
+				TotalTravelersCount:  5,
 			})
 		}
 	}
@@ -91,9 +133,23 @@ func (m *mockCommunityRepo) GetDestinationStats(info *DestinationInfo, currentUs
 		TotalRecommendations: len(m.recs),
 		ActiveFelagisCount:   2,
 		TotalVisitorsCount:   10,
+		PublicTripsCount:     len(m.publicTrips[info.TownID]),
+		TotalTravelersCount:  10,
 		UserIsTravellingNow:  currentUserID != "",
 		UserPhotoSharingMode: "all_felagis",
 	}, nil
+}
+
+func (m *mockCommunityRepo) ListPublicTripsByDestination(info *DestinationInfo, limit, offset int) ([]PublicTripSummary, error) {
+	key := info.TownID
+	if !info.IsTown {
+		key = info.CountryCode
+	}
+	trips := m.publicTrips[key]
+	if trips == nil {
+		return []PublicTripSummary{}, nil
+	}
+	return trips, nil
 }
 
 func (m *mockCommunityRepo) ListRecommendations(info *DestinationInfo, category string, originFilter string, sort string, currentUserID string) ([]Recommendation, error) {
@@ -406,3 +462,133 @@ func TestCommunityService_Reports(t *testing.T) {
 		t.Errorf("expected 1 report in repo, got %d", len(repo.reports))
 	}
 }
+
+func TestCommunityService_ListPublicTrips(t *testing.T) {
+	repo := newMockCommunityRepo()
+	svc := NewService(repo)
+
+	// List trips for existing town destination
+	trips, err := svc.ListPublicTrips("town-tokyo", 10, 0)
+	if err != nil {
+		t.Fatalf("unexpected error listing public trips: %v", err)
+	}
+	if len(trips) != 1 {
+		t.Fatalf("expected 1 public trip, got %d", len(trips))
+	}
+
+	trip := trips[0]
+	if trip.Title != "Ruta de tardor pel Japó" {
+		t.Errorf("expected trip title 'Ruta de tardor pel Japó', got %s", trip.Title)
+	}
+	if trip.TotalDays != 7 {
+		t.Errorf("expected TotalDays 7, got %d", trip.TotalDays)
+	}
+	if trip.FormattedPeriod != "Setembre 2026 • 7 dies" {
+		t.Errorf("expected FormattedPeriod 'Setembre 2026 • 7 dies', got %s", trip.FormattedPeriod)
+	}
+	if trip.Author.AnonymousTitle != "Un felagi de Girona" {
+		t.Errorf("expected AnonymousTitle 'Un felagi de Girona', got %s", trip.Author.AnonymousTitle)
+	}
+	if len(trip.Stages) != 1 || trip.Stages[0].DestinationName != "Tokyo" {
+		t.Errorf("expected 1 stage to Tokyo, got %+v", trip.Stages)
+	}
+	if len(trip.Photos) != 1 || !trip.Photos[0].IsFeatured {
+		t.Errorf("expected 1 featured photo, got %+v", trip.Photos)
+	}
+
+	// Destination not found
+	_, err = svc.ListPublicTrips("unknown-dest", 10, 0)
+	if !errors.Is(err, ErrDestinationNotFound) {
+		t.Errorf("expected ErrDestinationNotFound, got %v", err)
+	}
+}
+
+func TestCommunityService_CalculateTripPeriodAndDays(t *testing.T) {
+	tests := []struct {
+		start     string
+		end       string
+		wantDays  int
+		wantLabel string
+	}{
+		{
+			start:     "2026-09-01",
+			end:       "2026-09-07",
+			wantDays:  7,
+			wantLabel: "Setembre 2026 • 7 dies",
+		},
+		{
+			start:     "2026-01-15",
+			end:       "2026-01-15",
+			wantDays:  1,
+			wantLabel: "Gener 2026 • 1 dia",
+		},
+		{
+			start:     "2026-08-10",
+			end:       "2026-08-20",
+			wantDays:  11,
+			wantLabel: "Agost 2026 • 11 dies",
+		},
+	}
+
+	for _, tt := range tests {
+		days, label := calculateTripPeriodAndDays(tt.start, tt.end)
+		if days != tt.wantDays {
+			t.Errorf("start=%s, end=%s: got days %d, want %d", tt.start, tt.end, days, tt.wantDays)
+		}
+		if label != tt.wantLabel {
+			t.Errorf("start=%s, end=%s: got label '%s', want '%s'", tt.start, tt.end, label, tt.wantLabel)
+		}
+	}
+}
+
+func TestHandler_ListPublicTrips(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	repo := newMockCommunityRepo()
+	svc := NewService(repo)
+	handler := NewHandler(svc)
+
+	r := gin.New()
+	r.GET("/destinations/:id/trips", handler.ListPublicTrips)
+	r.GET("/destinations/:id/public-trips", handler.ListPublicTrips)
+
+	// Test 1: GET /destinations/town-tokyo/trips
+	req, _ := http.NewRequest(http.MethodGet, "/destinations/town-tokyo/trips?limit=10&offset=0", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d. Body: %s", w.Code, w.Body.String())
+	}
+
+	var trips []PublicTripSummary
+	if err := json.Unmarshal(w.Body.Bytes(), &trips); err != nil {
+		t.Fatalf("failed to unmarshal trips: %v", err)
+	}
+	if len(trips) != 1 {
+		t.Fatalf("expected 1 trip, got %d", len(trips))
+	}
+	if trips[0].ID != "trip-1" {
+		t.Errorf("expected trip id 'trip-1', got %s", trips[0].ID)
+	}
+
+	// Test 2: GET /destinations/town-tokyo/public-trips
+	req2, _ := http.NewRequest(http.MethodGet, "/destinations/town-tokyo/public-trips", nil)
+	w2 := httptest.NewRecorder()
+	r.ServeHTTP(w2, req2)
+
+	if w2.Code != http.StatusOK {
+		t.Fatalf("expected status 200 for alias route, got %d", w2.Code)
+	}
+
+	// Test 3: Not found
+	req3, _ := http.NewRequest(http.MethodGet, "/destinations/unknown-id/trips", nil)
+	w3 := httptest.NewRecorder()
+	r.ServeHTTP(w3, req3)
+
+	if w3.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404 for unknown destination, got %d", w3.Code)
+	}
+}
+
+

@@ -26,6 +26,8 @@ export interface DestinationSummary {
   flag_emoji?: string;
   recommendations_count?: number;
   active_felagis_count?: number;
+  public_trips_count?: number;
+  total_travelers_count?: number;
 }
 
 export interface DestinationDetail {
@@ -39,8 +41,51 @@ export interface DestinationDetail {
   total_recommendations?: number;
   active_felagis_count?: number;
   total_visitors_count?: number;
+  public_trips_count?: number;
+  total_travelers_count?: number;
   user_is_travelling_now?: boolean;
   user_photo_sharing_mode?: PhotoSharingMode;
+}
+
+export interface PublicAuthorSummary {
+  id: string;
+  name?: string;
+  avatar_url?: string;
+  town_name?: string;
+  region_name?: string;
+  country_name?: string;
+}
+
+export interface PublicTripStage {
+  id?: string;
+  destination_name: string;
+  town_name?: string;
+  region_name?: string;
+  country_name?: string;
+  flag_emoji?: string;
+  order_index?: number;
+  arrival_date?: string;
+  departure_date?: string;
+}
+
+export interface PublicTripPhoto {
+  id: string;
+  photo_url: string;
+  caption?: string;
+  is_cover?: boolean;
+}
+
+export interface PublicTripSummary {
+  id: string;
+  title: string;
+  description?: string;
+  start_date: string;
+  end_date: string;
+  status?: string;
+  author: PublicAuthorSummary;
+  stages?: PublicTripStage[];
+  photos?: PublicTripPhoto[];
+  created_at?: string;
 }
 
 export interface AuthorSummary {
