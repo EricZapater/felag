@@ -2,6 +2,7 @@
   "expo": {
     "name": "FELAG",
     "slug": "felag",
+    "owner": "devfelags-team",
     "version": "0.6.0",
     "orientation": "portrait",
     "updates": {
