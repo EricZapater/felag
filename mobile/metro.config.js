@@ -28,6 +28,7 @@ const PINNED_PACKAGES = [
   'react-native-paper',
   'react-native-safe-area-context',
   'zustand',
+  'expo-image-picker',
 ];
 
 const defaultResolver = config.resolver.resolveRequest;

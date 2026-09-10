@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Button, Divider, Searchbar, Text } from 'react-native-paper';
 import { placesApi } from '@/modules/places/api';
-import { PlacePrediction } from '@/modules/places/types';
+import { PlacePrediction, formatDestinationWithCountry } from '@/modules/places/types';
 import { communityApi } from '@/modules/community/api';
 import { DestinationSummary } from '@/modules/community/types';
 
@@ -19,6 +19,7 @@ interface DestinationItem {
   name: string;
   secondary_text?: string;
   country_code?: string;
+  country_name?: string;
   region_name?: string;
   town_id?: string;
 }
@@ -29,6 +30,7 @@ interface DestinationPickerModalProps {
   onSelect: (destination: {
     name: string;
     country_code?: string;
+    country_name?: string;
     region_name?: string;
     destination_id?: string;
     town_id?: string;
@@ -65,6 +67,7 @@ export default function DestinationPickerModal({
             name: d.name,
             secondary_text: [d.region_name, d.country_name].filter(Boolean).join(', '),
             country_code: d.country_code,
+            country_name: d.country_name,
             region_name: d.region_name,
             town_id: d.id,
           }))
@@ -103,6 +106,7 @@ export default function DestinationPickerModal({
             name: d.name,
             secondary_text: [d.region_name, d.country_name].filter(Boolean).join(', '),
             country_code: d.country_code,
+            country_name: d.country_name,
             region_name: d.region_name,
             town_id: d.id,
           }))
@@ -131,9 +135,16 @@ export default function DestinationPickerModal({
       try {
         const details = await placesApi.resolvePlace(item.google_place_id, 'ca');
         if (details) {
+          const finalName = formatDestinationWithCountry(
+            details.name || item.name,
+            details.country_name,
+            details.country_code,
+            item.secondary_text
+          );
           onSelect({
-            name: details.name || item.name,
+            name: finalName,
             country_code: details.country_code,
+            country_name: details.country_name,
             region_name: details.region_name,
             town_id: details.town_id,
             destination_id: details.town_id || details.place_id,
@@ -148,9 +159,16 @@ export default function DestinationPickerModal({
       }
     }
 
+    const finalName = formatDestinationWithCountry(
+      item.name,
+      item.country_name,
+      item.country_code,
+      item.secondary_text
+    );
     onSelect({
-      name: item.name,
+      name: finalName,
       country_code: item.country_code,
+      country_name: item.country_name,
       region_name: item.region_name,
       destination_id: item.id || item.town_id,
       town_id: item.town_id,
@@ -234,7 +252,7 @@ export default function DestinationPickerModal({
                   <Text style={styles.itemIcon}>📍</Text>
                   <View style={styles.itemTexts}>
                     <Text variant="bodyLarge" style={styles.itemName}>
-                      {item.name}
+                      {formatDestinationWithCountry(item.name, item.country_name, item.country_code, item.secondary_text)}
                     </Text>
                     {item.secondary_text ? (
                       <Text variant="bodySmall" style={styles.itemSecondary}>

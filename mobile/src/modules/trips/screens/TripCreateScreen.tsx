@@ -25,7 +25,7 @@ import { CreateTripRequest, FelagiUserSummary, TripStageInput, TripVisibility } 
 import DestinationPickerModal from '../components/DestinationPickerModal';
 import CompanionPickerModal from '../components/CompanionPickerModal';
 import { placesApi } from '@/modules/places/api';
-import { PlacePrediction } from '@/modules/places/types';
+import { PlacePrediction, formatDestinationWithCountry } from '@/modules/places/types';
 
 interface Props {
   navigation: {
@@ -101,15 +101,33 @@ export default function TripCreateScreen({ navigation, route }: Props) {
     try {
       const details = await placesApi.resolvePlace(prediction.google_place_id, 'ca');
       if (details) {
-        setStageDest(details.name || prediction.main_text || prediction.full_text);
+        const finalName = formatDestinationWithCountry(
+          details.name || prediction.main_text || prediction.full_text,
+          details.country_name,
+          details.country_code,
+          prediction.secondary_text
+        );
+        setStageDest(finalName);
         if (details.country_code) {
           setStageCountry(details.country_code.toUpperCase());
         }
       } else {
-        setStageDest(prediction.main_text || prediction.full_text);
+        const finalName = formatDestinationWithCountry(
+          prediction.main_text || prediction.full_text,
+          undefined,
+          undefined,
+          prediction.secondary_text
+        );
+        setStageDest(finalName);
       }
     } catch {
-      setStageDest(prediction.main_text || prediction.full_text);
+      const finalName = formatDestinationWithCountry(
+        prediction.main_text || prediction.full_text,
+        undefined,
+        undefined,
+        prediction.secondary_text
+      );
+      setStageDest(finalName);
     } finally {
       setIsResolvingPlace(false);
     }
@@ -526,7 +544,9 @@ export default function TripCreateScreen({ navigation, route }: Props) {
                       >
                         <Text style={styles.autocompleteIcon}>📍</Text>
                         <View style={{ flex: 1 }}>
-                          <Text style={styles.autocompleteMainText}>{p.main_text || p.full_text}</Text>
+                          <Text style={styles.autocompleteMainText}>
+                            {formatDestinationWithCountry(p.main_text || p.full_text, undefined, undefined, p.secondary_text)}
+                          </Text>
                           {p.secondary_text ? (
                             <Text style={styles.autocompleteSubText}>{p.secondary_text}</Text>
                           ) : null}

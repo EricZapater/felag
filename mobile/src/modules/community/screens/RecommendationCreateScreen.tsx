@@ -22,6 +22,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useCommunityStore } from '../store';
 import { communityApi } from '../api';
 import { DestinationSummary, RecommendationCategory } from '../types';
+import { formatDestinationWithCountry } from '@/modules/places/types';
 
 interface Props {
   navigation: {
@@ -148,7 +149,13 @@ export default function RecommendationCreateScreen({ navigation, route }: Props)
     }
     try {
       const results = await communityApi.searchDestinations(text.trim(), 10);
-      setTownSearchResults(results.map((r: DestinationSummary) => ({ id: r.id, name: r.name, country_name: r.country_name })));
+      setTownSearchResults(
+        results.map((r: DestinationSummary) => ({
+          id: r.id,
+          name: formatDestinationWithCountry(r.name, r.country_name, r.country_code),
+          country_name: r.country_name,
+        }))
+      );
     } catch {
       setTownSearchResults([]);
     }

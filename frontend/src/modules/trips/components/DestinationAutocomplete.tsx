@@ -8,6 +8,7 @@ import {
 } from '@mui/material';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import { placesApi } from '@/modules/places/api';
+import { formatDestinationWithCountry } from '@/modules/places/types';
 import { communityApi } from '@/modules/community/api';
 
 export interface DestinationChangeData {
@@ -170,7 +171,12 @@ export default function DestinationAutocomplete({
       return;
     }
 
-    const placeName = option.name;
+    const placeName = formatDestinationWithCountry(
+      option.name,
+      option.country_name,
+      option.country_code,
+      option.secondary_text
+    );
     setInputValue(placeName);
 
     // If it's a Google Place, resolve it
@@ -184,8 +190,15 @@ export default function DestinationAutocomplete({
       try {
         const placeDetails = await placesApi.resolvePlace(option.google_place_id, 'ca');
         if (placeDetails) {
+          const resolvedName = formatDestinationWithCountry(
+            placeDetails.name || placeName,
+            placeDetails.country_name || option.country_name,
+            placeDetails.country_code || option.country_code,
+            option.secondary_text
+          );
+          setInputValue(resolvedName);
           onChange({
-            destination_name: placeDetails.name || placeName,
+            destination_name: resolvedName,
             country_code: placeDetails.country_code || option.country_code || countryCodeRef.current || '',
             place_id: placeDetails.id,
             google_place_id: option.google_place_id,
@@ -275,7 +288,7 @@ export default function DestinationAutocomplete({
             <LocationOnIcon sx={{ color: '#C85A32', fontSize: 20, flexShrink: 0 }} />
             <Box sx={{ overflow: 'hidden' }}>
               <Typography variant="body1" sx={{ fontWeight: 600, color: '#2C221E' }}>
-                {option.name}
+                {formatDestinationWithCountry(option.name, option.country_name, option.country_code, option.secondary_text)}
               </Typography>
               {option.secondary_text && (
                 <Typography variant="caption" sx={{ color: '#786C65', display: 'block' }} noWrap>
