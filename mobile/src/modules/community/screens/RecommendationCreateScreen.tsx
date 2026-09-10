@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Image,
   ScrollView,
@@ -17,6 +18,7 @@ import {
   Text,
   TextInput,
 } from 'react-native-paper';
+import * as ImagePicker from 'expo-image-picker';
 import { useCommunityStore } from '../store';
 import { communityApi } from '../api';
 import { DestinationSummary, RecommendationCategory } from '../types';
@@ -53,11 +55,90 @@ export default function RecommendationCreateScreen({ navigation, route }: Props)
   const [description, setDescription] = useState('');
   const [locationName, setLocationName] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
+  const [selectedImageBase64, setSelectedImageBase64] = useState<string | null>(null);
+  const [isPickingImage, setIsPickingImage] = useState(false);
   const [isPublic, setIsPublic] = useState(true);
   const [selectedTown, setSelectedTown] = useState<{ id: string; name: string } | null>(null);
   const [townSearchQuery, setTownSearchQuery] = useState('');
   const [townSearchResults, setTownSearchResults] = useState<Array<{ id: string; name: string; country_name?: string }>>([]);
   const [formError, setFormError] = useState('');
+
+  const handlePickImageFromGallery = async () => {
+    try {
+      setIsPickingImage(true);
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert(
+          'Permís necessari',
+          'Cal concedir permís per accedir a la galeria de fotos del teu dispositiu.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.7,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const base64Str = asset.base64
+          ? `data:image/jpeg;base64,${asset.base64}`
+          : asset.uri;
+        setSelectedImageUri(asset.uri);
+        setSelectedImageBase64(base64Str);
+        setImageUrl('');
+      }
+    } catch (err: any) {
+      Alert.alert('Error', 'No s\'ha pogut seleccionar la imatge.');
+    } finally {
+      setIsPickingImage(false);
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      setIsPickingImage(true);
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert(
+          'Permís necessari',
+          'Cal concedir permís per accedir a la càmera del teu dispositiu.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.7,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const base64Str = asset.base64
+          ? `data:image/jpeg;base64,${asset.base64}`
+          : asset.uri;
+        setSelectedImageUri(asset.uri);
+        setSelectedImageBase64(base64Str);
+        setImageUrl('');
+      }
+    } catch (err: any) {
+      Alert.alert('Error', 'No s\'ha pogut fer la foto.');
+    } finally {
+      setIsPickingImage(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImageUri(null);
+    setSelectedImageBase64(null);
+  };
 
   const handleSearchTowns = async (text: string) => {
     setTownSearchQuery(text);
@@ -88,13 +169,15 @@ export default function RecommendationCreateScreen({ navigation, route }: Props)
       return;
     }
 
+    const finalImage = selectedImageBase64 || (imageUrl.trim() ? imageUrl.trim() : undefined);
+
     try {
       await createRecommendation(destinationId, {
         category,
         title: title.trim(),
         description: description.trim(),
         location_name: locationName.trim() ? locationName.trim() : undefined,
-        image_url: imageUrl.trim() ? imageUrl.trim() : undefined,
+        image_url: finalImage,
         town_id: selectedTown ? selectedTown.id : undefined,
         is_public: isPublic,
       });
@@ -238,15 +321,66 @@ export default function RecommendationCreateScreen({ navigation, route }: Props)
               mode="outlined"
             />
 
-            <TextInput
-              label="URL de la Foto (opcional)"
-              placeholder="https://images.unsplash.com/..."
-              value={imageUrl}
-              onChangeText={setImageUrl}
-              style={styles.input}
-              activeOutlineColor="#C85A32"
-              mode="outlined"
-            />
+            {/* Photo Selection */}
+            <Text variant="titleSmall" style={[styles.sectionTitle, { marginTop: 8, marginBottom: 8 }]}>
+              Fotografia (opcional) 📷
+            </Text>
+
+            {selectedImageUri ? (
+              <View style={styles.selectedImageContainer}>
+                <Image source={{ uri: selectedImageUri }} style={styles.selectedImagePreview} resizeMode="cover" />
+                <View style={styles.imageActionRow}>
+                  <Text style={styles.imageBadge}>✓ Imatge carregada</Text>
+                  <TouchableOpacity onPress={handleRemoveImage} style={styles.removeImageBtn}>
+                    <Text style={styles.removeImageText}>✕ Eliminar foto</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <View style={{ marginBottom: 12 }}>
+                <View style={styles.imageBtnRow}>
+                  <Button
+                    mode="outlined"
+                    icon="camera"
+                    onPress={handleTakePhoto}
+                    disabled={isPickingImage}
+                    textColor="#C85A32"
+                    style={styles.imagePickerBtn}
+                  >
+                    Fer foto
+                  </Button>
+                  <Button
+                    mode="outlined"
+                    icon="image"
+                    onPress={handlePickImageFromGallery}
+                    disabled={isPickingImage}
+                    textColor="#C85A32"
+                    style={styles.imagePickerBtn}
+                  >
+                    Galeria
+                  </Button>
+                </View>
+                {isPickingImage ? (
+                  <ActivityIndicator size="small" color="#C85A32" style={{ marginVertical: 8 }} />
+                ) : null}
+
+                <TextInput
+                  label="O introdueix URL de la imatge"
+                  placeholder="https://images.unsplash.com/..."
+                  value={imageUrl}
+                  onChangeText={(txt) => {
+                    setImageUrl(txt);
+                    if (txt) {
+                      setSelectedImageUri(null);
+                      setSelectedImageBase64(null);
+                    }
+                  }}
+                  style={[styles.input, { marginTop: 8 }]}
+                  activeOutlineColor="#C85A32"
+                  mode="outlined"
+                />
+              </View>
+            )}
 
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingVertical: 4 }}>
               <View style={{ flex: 1, paddingRight: 12 }}>
@@ -283,9 +417,9 @@ export default function RecommendationCreateScreen({ navigation, route }: Props)
                 </View>
               </View>
 
-              {imageUrl ? (
+              {selectedImageUri || imageUrl ? (
                 <Image
-                  source={{ uri: imageUrl }}
+                  source={{ uri: selectedImageUri || imageUrl }}
                   style={styles.previewImage}
                   resizeMode="cover"
                 />
@@ -401,6 +535,53 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     marginBottom: 12,
   },
+  imageBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 4,
+  },
+  imagePickerBtn: {
+    flex: 1,
+    borderColor: '#C85A32',
+    borderRadius: 10,
+  },
+  selectedImageContainer: {
+    marginBottom: 12,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#FAF7F2',
+    borderWidth: 1,
+    borderColor: '#E8E2D9',
+    padding: 8,
+  },
+  selectedImagePreview: {
+    width: '100%',
+    height: 180,
+    borderRadius: 8,
+  },
+  imageActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
+  imageBadge: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#2E7D32',
+  },
+  removeImageBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    backgroundColor: '#FDEEE9',
+  },
+  removeImageText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#C85A32',
+  },
   previewCard: {
     backgroundColor: '#FAF7F2',
     borderRadius: 12,
@@ -438,7 +619,7 @@ const styles = StyleSheet.create({
   },
   previewImage: {
     width: '100%',
-    height: 120,
+    height: 140,
     borderRadius: 8,
     marginVertical: 6,
   },
