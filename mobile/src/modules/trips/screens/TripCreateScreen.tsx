@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Modal,
   ScrollView,
@@ -23,6 +24,8 @@ import { useTripsStore } from '../store';
 import { CreateTripRequest, FelagiUserSummary, TripStageInput, TripVisibility } from '../types';
 import DestinationPickerModal from '../components/DestinationPickerModal';
 import CompanionPickerModal from '../components/CompanionPickerModal';
+import { placesApi } from '@/modules/places/api';
+import { PlacePrediction } from '@/modules/places/types';
 
 interface Props {
   navigation: {
@@ -62,6 +65,68 @@ export default function TripCreateScreen({ navigation, route }: Props) {
   const [stageNotes, setStageNotes] = useState('');
   const [stageModalError, setStageModalError] = useState('');
   const [formError, setFormError] = useState('');
+  const [stagePredictions, setStagePredictions] = useState<PlacePrediction[]>([]);
+  const [isSearchingPlaces, setIsSearchingPlaces] = useState(false);
+  const [isResolvingPlace, setIsResolvingPlace] = useState(false);
+  const searchDebounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  const handleStageDestChange = (text: string) => {
+    setStageDest(text);
+    if (searchDebounceTimer.current) {
+      clearTimeout(searchDebounceTimer.current);
+    }
+    const trimmed = text.trim();
+    if (trimmed.length < 2) {
+      setStagePredictions([]);
+      setIsSearchingPlaces(false);
+      return;
+    }
+
+    setIsSearchingPlaces(true);
+    searchDebounceTimer.current = setTimeout(async () => {
+      try {
+        const predictions = await placesApi.autocomplete(trimmed, 'ca');
+        setStagePredictions(predictions || []);
+      } catch {
+        setStagePredictions([]);
+      } finally {
+        setIsSearchingPlaces(false);
+      }
+    }, 250);
+  };
+
+  const handleSelectPrediction = async (prediction: PlacePrediction) => {
+    setStagePredictions([]);
+    setIsResolvingPlace(true);
+    try {
+      const details = await placesApi.resolvePlace(prediction.google_place_id, 'ca');
+      if (details) {
+        setStageDest(details.name || prediction.main_text || prediction.full_text);
+        if (details.country_code) {
+          setStageCountry(details.country_code.toUpperCase());
+        }
+      } else {
+        setStageDest(prediction.main_text || prediction.full_text);
+      }
+    } catch {
+      setStageDest(prediction.main_text || prediction.full_text);
+    } finally {
+      setIsResolvingPlace(false);
+    }
+  };
+
+  const handleOpenAddStage = () => {
+    setStageDest('');
+    setStageCountry('');
+    setStageStart(startDate || '');
+    setStageEnd(endDate || '');
+    setStageNotes('');
+    setStageModalError('');
+    setStagePredictions([]);
+    setIsSearchingPlaces(false);
+    setIsResolvingPlace(false);
+    setModalVisible(true);
+  };
 
   useEffect(() => {
     clearError();
@@ -129,16 +194,6 @@ export default function TripCreateScreen({ navigation, route }: Props) {
       }
     }
   }, [isEditing, tripId]);
-
-  const handleOpenAddStage = () => {
-    setStageDest('');
-    setStageCountry('');
-    setStageStart(startDate || '');
-    setStageEnd(endDate || '');
-    setStageNotes('');
-    setStageModalError('');
-    setModalVisible(true);
-  };
 
   const handleSaveStage = () => {
     if (!stageDest.trim()) {
@@ -441,32 +496,46 @@ export default function TripCreateScreen({ navigation, route }: Props) {
                 </HelperText>
               ) : null}
 
-              <View style={{ marginBottom: 12 }}>
+              <View style={{ marginBottom: 12, position: 'relative', zIndex: 10 }}>
                 <TextInput
                   label="Nom de la ciutat / destinació *"
-                  placeholder="Ex: Estocolm"
+                  placeholder="Escriu per cercar qualsevol ciutat (ex: Girona, Kyoto...)"
                   value={stageDest}
-                  onChangeText={setStageDest}
+                  onChangeText={handleStageDestChange}
                   style={styles.input}
                   activeOutlineColor="#C85A32"
                   mode="outlined"
                   right={
-                    <TextInput.Icon
-                      icon="magnify"
-                      color="#C85A32"
-                      onPress={() => setPickerVisible(true)}
-                    />
+                    isSearchingPlaces || isResolvingPlace ? (
+                      <TextInput.Icon icon={() => <ActivityIndicator size="small" color="#C85A32" />} />
+                    ) : (
+                      <TextInput.Icon icon="magnify" color="#C85A32" />
+                    )
                   }
                 />
-                <Button
-                  mode="text"
-                  icon="map-search"
-                  textColor="#C85A32"
-                  style={{ alignSelf: 'flex-start', marginTop: -6 }}
-                  onPress={() => setPickerVisible(true)}
-                >
-                  Cercar a la BD geogràfica
-                </Button>
+
+                {/* Live Places Suggestions */}
+                {stagePredictions.length > 0 && (
+                  <View style={styles.autocompleteDropdown}>
+                    {stagePredictions.slice(0, 5).map((p) => (
+                      <TouchableOpacity
+                        key={p.google_place_id}
+                        style={styles.autocompleteItem}
+                        onPress={() => handleSelectPrediction(p)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.autocompleteIcon}>📍</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.autocompleteMainText}>{p.main_text || p.full_text}</Text>
+                          {p.secondary_text ? (
+                            <Text style={styles.autocompleteSubText}>{p.secondary_text}</Text>
+                          ) : null}
+                        </View>
+                        <Text style={styles.autocompleteSelectText}>Triar</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
               </View>
 
               <TextInput
@@ -713,5 +782,46 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: 8,
     marginTop: 16,
+  },
+  autocompleteDropdown: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E8E2D9',
+    marginTop: 4,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    overflow: 'hidden',
+  },
+  autocompleteItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5EFE6',
+  },
+  autocompleteIcon: {
+    fontSize: 16,
+    marginRight: 10,
+  },
+  autocompleteMainText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2C221E',
+  },
+  autocompleteSubText: {
+    fontSize: 12,
+    color: '#786C65',
+    marginTop: 1,
+  },
+  autocompleteSelectText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#C85A32',
+    marginLeft: 8,
   },
 });
