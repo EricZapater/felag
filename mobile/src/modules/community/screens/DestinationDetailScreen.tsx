@@ -4,7 +4,6 @@ import {
   Alert,
   FlatList,
   Image,
-  ImageBackground,
   Modal,
   RefreshControl,
   ScrollView,
@@ -24,9 +23,12 @@ import {
   TextInput,
 } from 'react-native-paper';
 import { useCommunityStore } from '../store';
+import { useAuthStore } from '@/modules/auth/store';
+import { useChatStore } from '@/modules/chat/store';
 import {
   Comment,
   OriginFilter,
+  PublicTripSummary,
   Recommendation,
   RecommendationCategory,
   ReportReason,
@@ -56,17 +58,22 @@ const CATEGORIES: { id: RecommendationCategory; label: string; icon: string }[] 
 
 export default function DestinationDetailScreen({ navigation, route }: Props) {
   const destinationId = route?.params?.destinationId || '';
+  const { user } = useAuthStore();
+  const { createOrGetConversation } = useChatStore();
 
   const {
     currentDestination,
     recommendations,
+    publicTrips,
     selectedCategory,
     originFilter,
     sortBy,
     isLoading,
+    isLoadingTrips,
     error,
     fetchDestinationDetail,
     fetchRecommendations,
+    fetchPublicTrips,
     toggleVote,
     fetchComments,
     addComment,
@@ -76,16 +83,19 @@ export default function DestinationDetailScreen({ navigation, route }: Props) {
     setSortBy,
   } = useCommunityStore();
 
+  const [activeTab, setActiveTab] = useState<'trips' | 'recommendations'>('trips');
   const [refreshing, setRefreshing] = useState(false);
   const [activeCommentsRec, setActiveCommentsRec] = useState<Recommendation | null>(null);
   const [commentsList, setCommentsList] = useState<Comment[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
   const [newCommentText, setNewCommentText] = useState('');
   const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [chatStartingId, setChatStartingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (destinationId) {
       fetchDestinationDetail(destinationId);
+      fetchPublicTrips(destinationId);
       fetchRecommendations(destinationId);
     }
   }, [destinationId, selectedCategory, originFilter, sortBy]);
@@ -95,9 +105,31 @@ export default function DestinationDetailScreen({ navigation, route }: Props) {
     setRefreshing(true);
     await Promise.all([
       fetchDestinationDetail(destinationId),
+      fetchPublicTrips(destinationId),
       fetchRecommendations(destinationId),
     ]);
     setRefreshing(false);
+  };
+
+  const handleStartChatWithAuthor = async (authorId: string, authorTitle: string) => {
+    if (!authorId) return;
+    if (user?.id === authorId) {
+      Alert.alert('Informació', 'Aquest és el teu propi viatge.');
+      return;
+    }
+
+    setChatStartingId(authorId);
+    try {
+      const conv = await createOrGetConversation(authorId);
+      navigation.navigate('ChatRoom', {
+        conversationId: conv.id,
+        otherUserName: authorTitle,
+      });
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'No s’ha pogut obrir la conversa.');
+    } finally {
+      setChatStartingId(null);
+    }
   };
 
   const handleOpenComments = async (rec: Recommendation) => {
@@ -156,86 +188,153 @@ export default function DestinationDetailScreen({ navigation, route }: Props) {
     );
   };
 
-  const getCategoryMeta = (cat: string) => {
-    const found = CATEGORIES.find((c) => c.id === cat);
-    return found ? `${found.icon} ${found.label}` : cat;
-  };
+  const renderPublicTripCard = ({ item }: { item: PublicTripSummary }) => {
+    const isCurrentUserAuthor = user?.id === item.author.id;
+    const isStartingChat = chatStartingId === item.author.id;
 
-  const destName = currentDestination?.name || destinationId;
-  const activeFelagis = currentDestination?.active_felagis_count || 0;
-  const totalTips = currentDestination?.total_recommendations || recommendations.length;
-
-  const renderRecommendationCard = ({ item }: { item: Recommendation }) => {
     return (
-      <Card style={styles.card}>
-        <Card.Content style={styles.cardInner}>
-          {/* Card Top: Category and Helpful Vote */}
-          <View style={styles.cardTop}>
-            <Text style={styles.cardCatBadge}>{getCategoryMeta(item.category)}</Text>
-            <TouchableOpacity
-              style={[styles.btnVote, item.user_has_voted && styles.btnVoteActive]}
-              activeOpacity={0.7}
-              onPress={() => toggleVote(item.id)}
-            >
-              <Text style={[styles.btnVoteText, item.user_has_voted && styles.btnVoteTextActive]}>
-                👍 {item.useful_votes_count || 0}
-              </Text>
-            </TouchableOpacity>
+      <Card style={styles.tripCard}>
+        <Card.Content style={styles.tripCardContent}>
+          {/* Author Header (Anonymized) */}
+          <View style={styles.authorHeader}>
+            <View style={styles.authorAvatarBox}>
+              <Text style={styles.authorAvatarEmoji}>🧭</Text>
+            </View>
+            <View style={styles.authorInfo}>
+              <Text style={styles.authorTitle}>{item.author.anonymous_title}</Text>
+              <Text style={styles.tripPeriod}>{item.formatted_period}</Text>
+            </View>
           </View>
 
-          {/* Optional Image */}
-          {item.image_url ? (
-            <Image
-              source={{ uri: item.image_url }}
-              style={styles.cardImage}
-              resizeMode="cover"
-            />
+          {/* Trip Title & Description */}
+          <Text style={styles.tripTitle}>{item.title}</Text>
+          {item.description ? (
+            <Text style={styles.tripDesc}>{item.description}</Text>
           ) : null}
 
-          {/* Title & Description */}
-          <Text variant="titleMedium" style={styles.cardTitle}>
-            {item.title}
-          </Text>
-          <Text style={styles.cardDesc}>{item.description}</Text>
+          {/* Stages Timeline Route */}
+          {item.stages && item.stages.length > 0 ? (
+            <View style={styles.stagesContainer}>
+              <Text style={styles.stagesHeading}>Itinerari:</Text>
+              <View style={styles.stagesRow}>
+                {item.stages.map((stage, idx) => (
+                  <View key={stage.id || idx} style={styles.stageChipWrapper}>
+                    <View style={styles.stageChip}>
+                      <Text style={styles.stageOrderNumber}>{idx + 1}</Text>
+                      <Text style={styles.stageName}>{stage.destination_name}</Text>
+                    </View>
+                    {idx < item.stages.length - 1 && (
+                      <Text style={styles.stageArrow}>➔</Text>
+                    )}
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          {/* Photos Gallery */}
+          {item.photos && item.photos.length > 0 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.photosScroll}
+              contentContainerStyle={styles.photosContent}
+            >
+              {item.photos.map((photo, pIdx) => (
+                <View key={photo.id || pIdx} style={styles.tripPhotoWrapper}>
+                  <Image source={{ uri: photo.image_url }} style={styles.tripPhoto} />
+                </View>
+              ))}
+            </ScrollView>
+          ) : null}
+
+          {/* Chat Action Button */}
+          {!isCurrentUserAuthor && (
+            <TouchableOpacity
+              style={styles.chatAuthorBtn}
+              onPress={() => handleStartChatWithAuthor(item.author.id, item.author.anonymous_title)}
+              disabled={isStartingChat}
+              activeOpacity={0.8}
+            >
+              {isStartingChat ? (
+                <ActivityIndicator size="small" color="#C85A32" />
+              ) : (
+                <>
+                  <Text style={styles.chatAuthorBtnIcon}>💬</Text>
+                  <Text style={styles.chatAuthorBtnText}>Demanar més informació a l'autor</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+        </Card.Content>
+      </Card>
+    );
+  };
+
+  const renderRecommendationCard = ({ item }: { item: Recommendation }) => {
+    const isVoted = item.user_has_voted;
+    return (
+      <Card style={styles.recCard}>
+        <Card.Content>
+          <View style={styles.recHeader}>
+            <View style={styles.authorArea}>
+              <View style={styles.recAvatar}>
+                <Text style={styles.recAvatarText}>
+                  {item.author.name ? item.author.name[0].toUpperCase() : 'F'}
+                </Text>
+              </View>
+              <View>
+                <Text style={styles.recAuthorName}>{item.author.name}</Text>
+                <Text style={styles.recAuthorOrigin}>
+                  {[item.author.town_name, item.author.region_name].filter(Boolean).join(', ') || 'Felagi'}
+                </Text>
+              </View>
+            </View>
+
+            <IconButton
+              icon="flag-outline"
+              size={18}
+              iconColor="#A89A90"
+              onPress={() => handleReportRecommendation(item)}
+            />
+          </View>
+
+          <Text style={styles.recTitle}>{item.title}</Text>
+          <Text style={styles.recDesc}>{item.description}</Text>
+
+          {item.image_url ? (
+            <Image source={{ uri: item.image_url }} style={styles.recImage} resizeMode="cover" />
+          ) : null}
 
           {item.location_name ? (
-            <Text style={styles.cardLocation}>📍 {item.location_name}</Text>
+            <View style={styles.locationRow}>
+              <Text style={styles.locationIcon}>📍</Text>
+              <Text style={styles.locationText}>{item.location_name}</Text>
+            </View>
           ) : null}
 
-          {/* Author info & footer */}
-          <Divider style={styles.cardDivider} />
-          <View style={styles.cardAuthorRow}>
-            <View style={styles.authorDetails}>
-              <Text style={styles.authorName}>
-                Per <Text style={{ fontWeight: '700' }}>{item.author.name}</Text>
+          <View style={styles.recFooter}>
+            <TouchableOpacity
+              style={[styles.voteBtn, isVoted && styles.voteBtnActive]}
+              onPress={() => toggleVote(item.id)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.voteIcon}>{isVoted ? '❤️' : '🤍'}</Text>
+              <Text style={[styles.voteCount, isVoted && styles.voteCountActive]}>
+                {item.useful_votes_count || 0} aval{item.useful_votes_count === 1 ? '' : 's'}
               </Text>
-              {item.author.town_name || item.author.region_name ? (
-                <View style={styles.authorPill}>
-                  <Text style={styles.authorPillText}>
-                    📍 {item.author.town_name || item.author.region_name}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
+            </TouchableOpacity>
 
-            <View style={styles.cardActionsRow}>
-              <TouchableOpacity
-                style={styles.commentActionBtn}
-                onPress={() => handleOpenComments(item)}
-              >
-                <Text style={styles.commentActionText}>
-                  💬 {item.comments_count || 0}
-                </Text>
-              </TouchableOpacity>
-
-              <IconButton
-                icon="flag-outline"
-                size={16}
-                iconColor="#8C7A70"
-                onPress={() => handleReportRecommendation(item)}
-                style={{ margin: 0 }}
-              />
-            </View>
+            <TouchableOpacity
+              style={styles.commentBtn}
+              onPress={() => handleOpenComments(item)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.commentIcon}>💬</Text>
+              <Text style={styles.commentCount}>
+                {item.comments_count || 0} comentari{item.comments_count === 1 ? '' : 's'}
+              </Text>
+            </TouchableOpacity>
           </View>
         </Card.Content>
       </Card>
@@ -244,219 +343,214 @@ export default function DestinationDetailScreen({ navigation, route }: Props) {
 
   return (
     <View style={styles.container}>
-      {/* Hero Header with Dynamic Community Banner */}
-      <ImageBackground
-        source={{
-          uri:
-            currentDestination?.banner_url ||
-            'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=800&auto=format&fit=crop&q=80',
-        }}
-        style={styles.hero}
-        imageStyle={{ opacity: 0.45 }}
-      >
-        <View style={styles.heroTop}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.btnBack}
-            activeOpacity={0.7}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <Text style={styles.btnBackText}>‹ Destins</Text>
-          </TouchableOpacity>
-
-          {currentDestination?.country_name || currentDestination?.country_code ? (
-            <View style={styles.countryBadge}>
-              <Text style={styles.countryBadgeText}>
-                {currentDestination.flag_emoji || '🌐'}{' '}
-                {currentDestination.country_name || currentDestination.country_code}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-
-        <View style={styles.heroBottom}>
-          <Text style={styles.heroTitle}>{destName}</Text>
-          <Text style={styles.heroSub}>
-            {totalTips} consells • {activeFelagis} FELAGIS ara mateix
-          </Text>
-        </View>
-      </ImageBackground>
-
-      {/* Live Alert Chip */}
-      <View style={styles.liveChipContainer}>
-        <View style={styles.liveChipTextRow}>
-          <View style={styles.livePulseDot} />
-          <Text style={styles.liveChipText}>
-            {activeFelagis} FELAGIS a {destName} ara
-          </Text>
-        </View>
-
-        <TouchableOpacity
-          style={styles.liveFeedBtn}
-          activeOpacity={0.7}
-          onPress={() =>
-            navigation.navigate('LiveFeed', {
-              destinationId: currentDestination?.id || destinationId,
-              destinationName: destName,
-            })
-          }
-        >
-          <Text style={styles.liveFeedBtnText}>📸 Feed en Viu ›</Text>
+      {/* Header Bar */}
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Text style={styles.backText}>‹ Enrere</Text>
         </TouchableOpacity>
+        <Text variant="titleMedium" style={styles.topBarTitle} numberOfLines={1}>
+          {currentDestination?.name || 'Destí'}
+        </Text>
+        <View style={{ width: 60 }} />
       </View>
 
-      {/* Categories Scroll */}
-      <View style={styles.categoryScrollContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryScroll}
-        >
-          {CATEGORIES.map((cat) => {
-            const isActive = selectedCategory === cat.id;
-            return (
-              <TouchableOpacity
-                key={cat.id}
-                style={[styles.catChip, isActive && styles.catChipActive]}
-                onPress={() => setSelectedCategory(cat.id)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.catChipText, isActive && styles.catChipTextActive]}>
-                  {cat.icon} {cat.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      {/* Filter and Sort Toolbar */}
-      <View style={styles.toolbar}>
-        <View style={styles.originFilterRow}>
-          <TouchableOpacity
-            style={[
-              styles.originFilterBtn,
-              originFilter === 'all' && styles.originFilterBtnActive,
-            ]}
-            onPress={() => setOriginFilter('all')}
-          >
-            <Text
-              style={[
-                styles.originFilterBtnText,
-                originFilter === 'all' && styles.originFilterBtnTextActive,
-              ]}
-            >
-              Tots
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.originFilterBtn,
-              originFilter === 'same_origin' && styles.originFilterBtnActive,
-            ]}
-            onPress={() => setOriginFilter('same_origin')}
-          >
-            <Text
-              style={[
-                styles.originFilterBtnText,
-                originFilter === 'same_origin' && styles.originFilterBtnTextActive,
-              ]}
-            >
-              🏡 De la meva terra
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity
-          style={styles.sortToggleBtn}
-          onPress={() => setSortBy(sortBy === 'useful' ? 'recent' : 'useful')}
-        >
-          <Text style={styles.sortToggleText}>
-            {sortBy === 'useful' ? '🔥 Més útils' : '🕒 Més recents'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Main Recommendations Stream */}
-      {isLoading && !refreshing && recommendations.length === 0 ? (
-        <View style={styles.centerBox}>
-          <ActivityIndicator size="large" color="#C85A32" />
-        </View>
-      ) : (
-        <FlatList
-          data={recommendations}
-          keyExtractor={(item) => item.id}
-          renderItem={renderRecommendationCard}
-          contentContainerStyle={styles.streamContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#C85A32"
-            />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyBox}>
-              <Text style={styles.emptyIcon}>💡</Text>
-              <Text style={styles.emptyTitle}>Cap consell en aquesta categoria</Text>
-              <Text style={styles.emptyText}>
-                Sigues el primer FELAGI en compartir un racó o consell pràctic per a {destName}!
-              </Text>
-              <Button
-                mode="contained"
-                buttonColor="#C85A32"
-                icon="plus"
-                onPress={() =>
-                  navigation.navigate('RecommendationCreate', {
-                    destinationId: currentDestination?.id || destinationId,
-                    destinationName: destName,
-                  })
-                }
-                style={{ marginTop: 16, borderRadius: 20 }}
-              >
-                Afegir consell
-              </Button>
-            </View>
-          }
-        />
-      )}
-
-      {/* Floating Action Button (+) */}
-      <TouchableOpacity
-        style={styles.fab}
-        activeOpacity={0.85}
-        onPress={() =>
-          navigation.navigate('RecommendationCreate', {
-            destinationId: currentDestination?.id || destinationId,
-            destinationName: destName,
-          })
+      <ScrollView
+        style={styles.scrollArea}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#C85A32"
+          />
         }
       >
-        <Text style={styles.fabIcon}>+</Text>
-      </TouchableOpacity>
+        {/* Destination Hero Banner */}
+        <View style={styles.heroBanner}>
+          {currentDestination?.banner_url ? (
+            <Image source={{ uri: currentDestination.banner_url }} style={styles.heroImage} />
+          ) : (
+            <View style={styles.fallbackHero}>
+              <Text style={styles.fallbackHeroFlag}>
+                {currentDestination?.flag_emoji || '🗺️'}
+              </Text>
+            </View>
+          )}
+
+          <View style={styles.heroOverlay}>
+            <View style={styles.heroTitleRow}>
+              <Text style={styles.heroName}>{currentDestination?.name}</Text>
+              <Text style={styles.heroFlag}>{currentDestination?.flag_emoji}</Text>
+            </View>
+            <Text style={styles.heroRegion}>
+              {[currentDestination?.region_name, currentDestination?.country_name]
+                .filter(Boolean)
+                .join(', ')}
+            </Text>
+
+            {/* Quick Stats Badges */}
+            <View style={styles.heroBadgesRow}>
+              <View style={styles.heroStatBadge}>
+                <Text style={styles.heroStatText}>
+                  ✈️ {currentDestination?.public_trips_count || publicTrips.length || 0} viatges
+                </Text>
+              </View>
+              <View style={styles.heroStatBadge}>
+                <Text style={styles.heroStatText}>
+                  💡 {currentDestination?.total_recommendations || recommendations.length || 0} consells
+                </Text>
+              </View>
+              {(currentDestination?.active_felagis_count || 0) > 0 ? (
+                <View style={styles.heroLiveBadge}>
+                  <View style={styles.heroLiveDot} />
+                  <Text style={styles.heroLiveText}>
+                    {currentDestination?.active_felagis_count} felagis ara
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </View>
+        </View>
+
+        {/* Tab Navigation Segmented Buttons */}
+        <View style={styles.tabSelectorWrapper}>
+          <SegmentedButtons
+            value={activeTab}
+            onValueChange={(val) => setActiveTab(val as 'trips' | 'recommendations')}
+            buttons={[
+              {
+                value: 'trips',
+                label: `Viatges (${publicTrips.length})`,
+                icon: 'airplane',
+              },
+              {
+                value: 'recommendations',
+                label: `Consells (${recommendations.length})`,
+                icon: 'lightbulb-outline',
+              },
+            ]}
+            style={styles.segmentedButtons}
+          />
+        </View>
+
+        {/* TAB 1: Viatges Públics de la Comunitat */}
+        {activeTab === 'trips' && (
+          <View style={styles.tabContent}>
+            {isLoadingTrips && publicTrips.length === 0 ? (
+              <View style={styles.centerLoading}>
+                <ActivityIndicator size="large" color="#C85A32" />
+              </View>
+            ) : publicTrips.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <Text style={styles.emptyIcon}>🗺️</Text>
+                <Text style={styles.emptyTitle}>Cap viatge completat encara</Text>
+                <Text style={styles.emptySubtitle}>
+                  Sigues el primer a compartir el teu itinerari quan finalitzis el viatge a {currentDestination?.name || 'aquest destí'}!
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={publicTrips}
+                keyExtractor={(item) => item.id}
+                renderItem={renderPublicTripCard}
+                scrollEnabled={false}
+              />
+            )}
+          </View>
+        )}
+
+        {/* TAB 2: Recomanacions i Consells */}
+        {activeTab === 'recommendations' && (
+          <View style={styles.tabContent}>
+            {/* Category Filter Chips */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.catScroll}
+              contentContainerStyle={styles.catScrollContent}
+            >
+              {CATEGORIES.map((cat) => (
+                <Chip
+                  key={cat.id}
+                  selected={selectedCategory === cat.id}
+                  onPress={() => setSelectedCategory(cat.id)}
+                  style={[
+                    styles.catChip,
+                    selectedCategory === cat.id && styles.catChipActive,
+                  ]}
+                  textStyle={[
+                    styles.catChipText,
+                    selectedCategory === cat.id && styles.catChipTextActive,
+                  ]}
+                >
+                  {cat.icon} {cat.label}
+                </Chip>
+              ))}
+            </ScrollView>
+
+            {/* Action to create recommendation */}
+            <View style={styles.actionRow}>
+              <Button
+                mode="contained"
+                icon="plus"
+                buttonColor="#C85A32"
+                textColor="#FFFFFF"
+                onPress={() =>
+                  navigation.navigate('RecommendationCreate', {
+                    destinationId,
+                    destinationName: currentDestination?.name,
+                  })
+                }
+                style={styles.addRecBtn}
+              >
+                Compartir consell
+              </Button>
+            </View>
+
+            {isLoading && recommendations.length === 0 ? (
+              <View style={styles.centerLoading}>
+                <ActivityIndicator size="large" color="#C85A32" />
+              </View>
+            ) : recommendations.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <Text style={styles.emptyIcon}>💡</Text>
+                <Text style={styles.emptyTitle}>Cap consell en aquesta categoria</Text>
+                <Text style={styles.emptySubtitle}>
+                  Tens algun racó secret o recomanació per a {currentDestination?.name}? Comparteix-lo amb la comunitat!
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={recommendations}
+                keyExtractor={(item) => item.id}
+                renderItem={renderRecommendationCard}
+                scrollEnabled={false}
+              />
+            )}
+          </View>
+        )}
+      </ScrollView>
 
       {/* Comments Modal */}
       <Modal
-        visible={Boolean(activeCommentsRec)}
-        transparent
+        visible={activeCommentsRec !== null}
         animationType="slide"
+        transparent
         onRequestClose={() => setActiveCommentsRec(null)}
       >
-        <View style={styles.commentsOverlay}>
-          <View style={styles.commentsSheet}>
-            <View style={styles.dragHandle} />
-            <View style={styles.commentsHeader}>
-              <Text variant="titleMedium" style={styles.commentsTitle}>
-                💬 Comentaris
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text variant="titleMedium" style={styles.modalTitle}>
+                Comentaris
               </Text>
               <TouchableOpacity onPress={() => setActiveCommentsRec(null)}>
-                <Text style={styles.closeBtnText}>Tancar</Text>
+                <Text style={styles.modalCloseText}>Tancar</Text>
               </TouchableOpacity>
             </View>
+            <Divider />
 
             {loadingComments ? (
-              <View style={{ padding: 24, alignItems: 'center' }}>
+              <View style={styles.centerLoading}>
                 <ActivityIndicator size="small" color="#C85A32" />
               </View>
             ) : (
@@ -464,42 +558,36 @@ export default function DestinationDetailScreen({ navigation, route }: Props) {
                 data={commentsList}
                 keyExtractor={(c) => c.id}
                 style={styles.commentsList}
-                ListEmptyComponent={
-                  <Text style={styles.emptyCommentText}>
-                    Encara no hi ha comentaris. Deixa el primer!
-                  </Text>
-                }
-                renderItem={({ item }) => (
+                renderItem={({ item: c }) => (
                   <View style={styles.commentItem}>
-                    <View style={styles.commentAuthorRow}>
-                      <Text style={styles.commentAuthorName}>{item.author.name}</Text>
-                      {item.author.town_name ? (
-                        <Text style={styles.commentAuthorTown}>
-                          📍 {item.author.town_name}
-                        </Text>
-                      ) : null}
-                    </View>
-                    <Text style={styles.commentContent}>{item.content}</Text>
+                    <Text style={styles.commentAuthor}>{c.author.name}</Text>
+                    <Text style={styles.commentBody}>{c.content}</Text>
                   </View>
                 )}
+                ListEmptyComponent={
+                  <Text style={styles.emptyCommentText}>Encara no hi ha comentaris.</Text>
+                }
               />
             )}
 
             <View style={styles.commentInputRow}>
               <TextInput
-                placeholder="Escriu un comentari o pregunta..."
+                placeholder="Escriu un comentari..."
                 value={newCommentText}
                 onChangeText={setNewCommentText}
-                style={styles.commentInput}
-                activeOutlineColor="#C85A32"
                 mode="outlined"
+                outlineColor="#E8E2D9"
+                activeOutlineColor="#C85A32"
+                style={styles.commentInput}
+                dense
               />
               <Button
                 mode="contained"
                 buttonColor="#C85A32"
+                textColor="#FFFFFF"
                 onPress={handleAddComment}
                 loading={commentSubmitting}
-                disabled={commentSubmitting || !newCommentText.trim()}
+                disabled={!newCommentText.trim() || commentSubmitting}
                 style={styles.commentSendBtn}
               >
                 Enviar
@@ -517,417 +605,515 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9F6F0',
   },
-  hero: {
-    backgroundColor: '#2C221E',
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 20,
-    justifyContent: 'space-between',
-    minHeight: 160,
+    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8E2D9',
   },
-  heroTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  btnBack: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.65)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
-  },
-  btnBackText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  countryBadge: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 10,
+  backBtn: {
     paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 8,
   },
-  countryBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
+  backText: {
+    color: '#C85A32',
     fontWeight: '700',
+    fontSize: 15,
   },
-  heroBottom: {},
-  heroTitle: {
-    fontSize: 28,
+  topBarTitle: {
+    fontWeight: '800',
+    color: '#2C221E',
+    textAlign: 'center',
+    flex: 1,
+  },
+  scrollArea: {
+    flex: 1,
+  },
+  heroBanner: {
+    position: 'relative',
+    height: 180,
+    width: '100%',
+    backgroundColor: '#3E2F2B',
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  fallbackHero: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#4A3B32',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fallbackHeroFlag: {
+    fontSize: 54,
+  },
+  heroOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 16,
+    backgroundColor: 'rgba(28, 18, 14, 0.72)',
+  },
+  heroTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  heroName: {
+    fontSize: 22,
     fontWeight: '800',
     color: '#FFFFFF',
-    letterSpacing: -0.5,
   },
-  heroSub: {
+  heroFlag: {
+    fontSize: 22,
+  },
+  heroRegion: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.85)',
+    color: '#E8E2D9',
     marginTop: 2,
   },
-  liveChipContainer: {
-    backgroundColor: '#FFF3E0',
-    borderColor: '#FFE082',
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginHorizontal: 16,
-    marginTop: 12,
+  heroBadgesRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    marginTop: 8,
+    gap: 6,
+    flexWrap: 'wrap',
   },
-  liveChipTextRow: {
+  heroStatBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  heroStatText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  heroLiveBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    backgroundColor: 'rgba(67, 160, 71, 0.85)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    gap: 4,
   },
-  livePulseDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#E65100',
+  heroLiveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FFFFFF',
   },
-  liveChipText: {
-    fontSize: 13,
+  heroLiveText: {
+    color: '#FFFFFF',
+    fontSize: 11,
     fontWeight: '700',
-    color: '#E65100',
   },
-  liveFeedBtn: {
-    paddingVertical: 2,
-    paddingHorizontal: 4,
+  tabSelectorWrapper: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8E2D9',
   },
-  liveFeedBtnText: {
+  segmentedButtons: {
+    backgroundColor: '#F9F6F0',
+  },
+  tabContent: {
+    padding: 16,
+  },
+  tripCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E8E2D9',
+    marginBottom: 14,
+    elevation: 2,
+    overflow: 'hidden',
+  },
+  tripCardContent: {
+    padding: 14,
+  },
+  authorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+    gap: 10,
+  },
+  authorAvatarBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FFF2EB',
+    borderWidth: 1,
+    borderColor: '#FCD8C5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  authorAvatarEmoji: {
+    fontSize: 18,
+  },
+  authorInfo: {
+    flex: 1,
+  },
+  authorTitle: {
+    fontWeight: '700',
+    color: '#2C221E',
+    fontSize: 15,
+  },
+  tripPeriod: {
+    color: '#786C65',
     fontSize: 12,
-    fontWeight: '800',
+    marginTop: 1,
+  },
+  tripTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#C85A32',
+    marginBottom: 4,
+  },
+  tripDesc: {
+    fontSize: 13,
+    color: '#554A44',
+    lineHeight: 18,
+    marginBottom: 10,
+  },
+  stagesContainer: {
+    marginTop: 6,
+    marginBottom: 10,
+  },
+  stagesHeading: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#786C65',
+    marginBottom: 6,
+  },
+  stagesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  stageChipWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  stageChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5EFE6',
+    borderWidth: 1,
+    borderColor: '#E8E2D9',
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    gap: 4,
+  },
+  stageOrderNumber: {
+    fontSize: 11,
+    fontWeight: '700',
     color: '#C85A32',
   },
-  categoryScrollContainer: {
-    marginTop: 12,
-  },
-  categoryScroll: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  catChip: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E8E2D9',
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  catChipActive: {
-    backgroundColor: '#C85A32',
-    borderColor: '#C85A32',
-  },
-  catChipText: {
+  stageName: {
     fontSize: 12,
     fontWeight: '600',
     color: '#2C221E',
+  },
+  stageArrow: {
+    fontSize: 11,
+    color: '#A89A90',
+  },
+  photosScroll: {
+    marginVertical: 8,
+  },
+  photosContent: {
+    gap: 8,
+  },
+  tripPhotoWrapper: {
+    width: 110,
+    height: 80,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#E8E2D9',
+  },
+  tripPhoto: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  chatAuthorBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF2EB',
+    borderWidth: 1,
+    borderColor: '#FCD8C5',
+    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    marginTop: 8,
+    gap: 6,
+  },
+  chatAuthorBtnIcon: {
+    fontSize: 16,
+  },
+  chatAuthorBtnText: {
+    color: '#C85A32',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  catScroll: {
+    marginBottom: 12,
+  },
+  catScrollContent: {
+    gap: 6,
+  },
+  catChip: {
+    backgroundColor: '#F0EBE1',
+    borderColor: '#E8E2D9',
+  },
+  catChipActive: {
+    backgroundColor: '#C85A32',
+  },
+  catChipText: {
+    color: '#6B5E57',
+    fontSize: 12,
   },
   catChipTextActive: {
     color: '#FFFFFF',
     fontWeight: '700',
   },
-  toolbar: {
+  actionRow: {
+    marginBottom: 12,
+  },
+  addRecBtn: {
+    borderRadius: 10,
+  },
+  recCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E8E2D9',
+    marginBottom: 12,
+    elevation: 2,
+  },
+  recHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    marginTop: 12,
+    marginBottom: 6,
+  },
+  authorArea: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  recAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#C85A32',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  recAvatarText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  recAuthorName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#2C221E',
+  },
+  recAuthorOrigin: {
+    fontSize: 11,
+    color: '#786C65',
+  },
+  recTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#2C221E',
+    marginTop: 4,
     marginBottom: 4,
   },
-  originFilterRow: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  originFilterBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    backgroundColor: '#FAF7F2',
-    borderWidth: 1,
-    borderColor: '#E8E2D9',
-  },
-  originFilterBtnActive: {
-    backgroundColor: '#F4ECE1',
-    borderColor: '#C85A32',
-  },
-  originFilterBtnText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#6B5E57',
-  },
-  originFilterBtnTextActive: {
-    color: '#C85A32',
-    fontWeight: '700',
-  },
-  sortToggleBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  sortToggleText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#703817',
-  },
-  streamContent: {
-    padding: 16,
-    paddingBottom: 90,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E8E2D9',
-    marginBottom: 14,
-    elevation: 1,
-  },
-  cardInner: {
-    padding: 14,
-  },
-  cardTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  recDesc: {
+    fontSize: 13,
+    color: '#554A44',
+    lineHeight: 18,
     marginBottom: 8,
   },
-  cardCatBadge: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#C85A32',
-    backgroundColor: '#FDEEE9',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    textTransform: 'uppercase',
-  },
-  btnVote: {
-    backgroundColor: '#FAF7F2',
-    borderWidth: 1,
-    borderColor: '#E8E2D9',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  btnVoteActive: {
-    backgroundColor: '#E8F5E9',
-    borderColor: '#A5D6A7',
-  },
-  btnVoteText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#2C221E',
-  },
-  btnVoteTextActive: {
-    color: '#2E7D32',
-  },
-  cardImage: {
+  recImage: {
     width: '100%',
-    height: 140,
-    borderRadius: 10,
-    marginBottom: 10,
+    height: 150,
+    borderRadius: 8,
+    marginBottom: 8,
   },
-  cardTitle: {
-    fontWeight: '800',
-    color: '#2C221E',
-    marginBottom: 4,
-    fontSize: 16,
-  },
-  cardDesc: {
-    fontSize: 13,
-    color: '#6B5E57',
-    lineHeight: 18,
-    marginBottom: 6,
-  },
-  cardLocation: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#703817',
-    marginBottom: 6,
-  },
-  cardDivider: {
-    marginVertical: 10,
-    backgroundColor: '#F0EBE3',
-  },
-  cardAuthorRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  authorDetails: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flex: 1,
-  },
-  authorName: {
-    fontSize: 12,
-    color: '#6B5E57',
-  },
-  authorPill: {
-    backgroundColor: '#FFF3E0',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 6,
-  },
-  authorPillText: {
-    color: '#E65100',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  cardActionsRow: {
+  locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    marginBottom: 8,
   },
-  commentActionBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: '#FAF7F2',
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#E8E2D9',
-  },
-  commentActionText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#6B5E57',
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 24,
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#C85A32',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#C85A32',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  fabIcon: {
-    fontSize: 30,
-    color: '#FFFFFF',
-    fontWeight: '300',
-    lineHeight: 32,
-  },
-  centerBox: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyBox: {
-    paddingVertical: 48,
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#2C221E',
-    marginBottom: 4,
-  },
-  emptyText: {
+  locationIcon: {
     fontSize: 13,
-    color: '#6B5E57',
-    textAlign: 'center',
   },
-  commentsOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(44, 34, 30, 0.6)',
-    justifyContent: 'flex-end',
+  locationText: {
+    fontSize: 12,
+    color: '#786C65',
   },
-  commentsSheet: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '80%',
-    minHeight: '50%',
-    padding: 20,
-  },
-  dragHandle: {
-    width: 36,
-    height: 4,
-    backgroundColor: '#E8E2D9',
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 12,
-  },
-  commentsHeader: {
+  recFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F0EBE1',
+    paddingTop: 8,
+    marginTop: 4,
   },
-  commentsTitle: {
-    fontWeight: '800',
+  voteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5EFE6',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    gap: 5,
+  },
+  voteBtnActive: {
+    backgroundColor: '#FFF2EB',
+    borderWidth: 1,
+    borderColor: '#FCD8C5',
+  },
+  voteIcon: {
+    fontSize: 14,
+  },
+  voteCount: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B5E57',
+  },
+  voteCountActive: {
+    color: '#C85A32',
+    fontWeight: '700',
+  },
+  commentBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5EFE6',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    gap: 5,
+  },
+  commentIcon: {
+    fontSize: 14,
+  },
+  commentCount: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B5E57',
+  },
+  centerLoading: {
+    paddingVertical: 32,
+    alignItems: 'center',
+  },
+  emptyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E8E2D9',
+    padding: 24,
+    alignItems: 'center',
+    marginVertical: 12,
+  },
+  emptyIcon: {
+    fontSize: 40,
+    marginBottom: 8,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#2C221E',
+    marginBottom: 4,
+  },
+  emptySubtitle: {
+    fontSize: 13,
+    color: '#786C65',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 16,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 10,
+  },
+  modalTitle: {
+    fontWeight: '700',
     color: '#2C221E',
   },
-  closeBtnText: {
+  modalCloseText: {
     color: '#C85A32',
     fontWeight: '700',
   },
   commentsList: {
-    flexGrow: 1,
-    marginBottom: 12,
+    maxHeight: 280,
+    marginVertical: 10,
   },
   commentItem: {
-    backgroundColor: '#FAF7F2',
-    padding: 10,
-    borderRadius: 10,
-    marginBottom: 8,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5EFE6',
   },
-  commentAuthorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 2,
-  },
-  commentAuthorName: {
+  commentAuthor: {
     fontSize: 12,
     fontWeight: '700',
     color: '#2C221E',
   },
-  commentAuthorTown: {
-    fontSize: 11,
-    color: '#E65100',
-    fontWeight: '600',
-  },
-  commentContent: {
+  commentBody: {
     fontSize: 13,
-    color: '#4A3E39',
+    color: '#554A44',
+    marginTop: 2,
   },
   emptyCommentText: {
-    color: '#6B5E57',
-    fontSize: 13,
     textAlign: 'center',
-    paddingVertical: 24,
+    color: '#786C65',
+    paddingVertical: 16,
+    fontSize: 13,
   },
   commentInputRow: {
     flexDirection: 'row',
-    gap: 8,
     alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
   },
   commentInput: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F9F6F0',
   },
   commentSendBtn: {
-    borderRadius: 10,
+    borderRadius: 8,
   },
 });

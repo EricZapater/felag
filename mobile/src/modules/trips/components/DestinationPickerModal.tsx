@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -8,8 +8,20 @@ import {
   View,
 } from 'react-native';
 import { Button, Divider, Searchbar, Text } from 'react-native-paper';
+import { placesApi } from '@/modules/places/api';
+import { PlacePrediction } from '@/modules/places/types';
 import { communityApi } from '@/modules/community/api';
 import { DestinationSummary } from '@/modules/community/types';
+
+interface DestinationItem {
+  id?: string;
+  google_place_id?: string;
+  name: string;
+  secondary_text?: string;
+  country_code?: string;
+  region_name?: string;
+  town_id?: string;
+}
 
 interface DestinationPickerModalProps {
   visible: boolean;
@@ -19,6 +31,7 @@ interface DestinationPickerModalProps {
     country_code?: string;
     region_name?: string;
     destination_id?: string;
+    town_id?: string;
   }) => void;
 }
 
@@ -28,8 +41,10 @@ export default function DestinationPickerModal({
   onSelect,
 }: DestinationPickerModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [results, setResults] = useState<DestinationSummary[]>([]);
+  const [results, setResults] = useState<DestinationItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [resolving, setResolving] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (visible) {
@@ -38,11 +53,62 @@ export default function DestinationPickerModal({
   }, [visible]);
 
   const loadDestinations = async (q: string) => {
+    const trimmed = q.trim();
+    if (!trimmed) {
+      // Load initial suggestions from community destinations
+      setLoading(true);
+      try {
+        const data = await communityApi.searchDestinations('', 10);
+        setResults(
+          data.map((d: DestinationSummary) => ({
+            id: d.id,
+            name: d.name,
+            secondary_text: [d.region_name, d.country_name].filter(Boolean).join(', '),
+            country_code: d.country_code,
+            region_name: d.region_name,
+            town_id: d.id,
+          }))
+        );
+      } catch {
+        setResults([]);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    if (trimmed.length < 2) {
+      setResults([]);
+      return;
+    }
+
     setLoading(true);
     try {
-      const data = await communityApi.searchDestinations(q);
-      setResults(data);
-    } catch (err) {
+      // 1. Search Google Places & cached places
+      const predictions = await placesApi.autocomplete(trimmed, 'ca');
+      if (predictions && predictions.length > 0) {
+        setResults(
+          predictions.map((p: PlacePrediction) => ({
+            google_place_id: p.google_place_id,
+            name: p.main_text || p.full_text,
+            secondary_text: p.secondary_text,
+          }))
+        );
+      } else {
+        // Fallback to local destinations
+        const data = await communityApi.searchDestinations(trimmed, 10);
+        setResults(
+          data.map((d: DestinationSummary) => ({
+            id: d.id,
+            name: d.name,
+            secondary_text: [d.region_name, d.country_name].filter(Boolean).join(', '),
+            country_code: d.country_code,
+            region_name: d.region_name,
+            town_id: d.id,
+          }))
+        );
+      }
+    } catch {
       setResults([]);
     } finally {
       setLoading(false);
@@ -51,15 +117,43 @@ export default function DestinationPickerModal({
 
   const handleChangeSearch = (query: string) => {
     setSearchQuery(query);
-    loadDestinations(query);
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    searchTimeoutRef.current = setTimeout(() => {
+      loadDestinations(query);
+    }, 250);
   };
 
-  const handleSelect = (item: DestinationSummary) => {
+  const handleSelect = async (item: DestinationItem) => {
+    if (item.google_place_id) {
+      setResolving(true);
+      try {
+        const details = await placesApi.resolvePlace(item.google_place_id, 'ca');
+        if (details) {
+          onSelect({
+            name: details.name || item.name,
+            country_code: details.country_code,
+            region_name: details.region_name,
+            town_id: details.town_id,
+            destination_id: details.town_id || details.place_id,
+          });
+          onClose();
+          return;
+        }
+      } catch {
+        // Continue with basic selection
+      } finally {
+        setResolving(false);
+      }
+    }
+
     onSelect({
       name: item.name,
       country_code: item.country_code,
       region_name: item.region_name,
-      destination_id: item.id,
+      destination_id: item.id || item.town_id,
+      town_id: item.town_id,
     });
     onClose();
   };
@@ -89,7 +183,7 @@ export default function DestinationPickerModal({
           </View>
 
           <Searchbar
-            placeholder="Cerca ciutat, regió o país..."
+            placeholder="Cerca qualsevol ciutat del món..."
             onChangeText={handleChangeSearch}
             value={searchQuery}
             style={styles.searchbar}
@@ -97,14 +191,19 @@ export default function DestinationPickerModal({
             iconColor="#C85A32"
           />
 
-          {loading ? (
+          {loading || resolving ? (
             <View style={styles.center}>
               <ActivityIndicator size="small" color="#C85A32" />
+              {resolving && (
+                <Text style={{ marginTop: 8, fontSize: 12, color: '#786C65' }}>
+                  Resolent ubicació...
+                </Text>
+              )}
             </View>
           ) : (
             <FlatList
               data={results}
-              keyExtractor={(item) => item.id}
+              keyExtractor={(item, index) => item.google_place_id || item.id || `${item.name}-${index}`}
               ItemSeparatorComponent={() => <Divider style={styles.divider} />}
               style={styles.list}
               ListEmptyComponent={
@@ -132,28 +231,35 @@ export default function DestinationPickerModal({
                   onPress={() => handleSelect(item)}
                   activeOpacity={0.7}
                 >
-                  <View style={styles.iconBox}>
-                    <Text style={styles.itemIcon}>
-                      {item.type === 'country' ? '🌐' : '📍'}
+                  <Text style={styles.itemIcon}>📍</Text>
+                  <View style={styles.itemTexts}>
+                    <Text variant="bodyLarge" style={styles.itemName}>
+                      {item.name}
                     </Text>
+                    {item.secondary_text ? (
+                      <Text variant="bodySmall" style={styles.itemSecondary}>
+                        {item.secondary_text}
+                      </Text>
+                    ) : null}
                   </View>
-                  <View style={styles.itemInfo}>
-                    <Text style={styles.itemName}>{item.name}</Text>
-                    <Text style={styles.itemMeta}>
-                      {[item.region_name, item.country_name || item.country_code]
-                        .filter(Boolean)
-                        .join(', ')}
-                    </Text>
-                  </View>
-                  {item.recommendations_count ? (
-                    <View style={styles.badge}>
-                      <Text style={styles.badgeText}>💡 {item.recommendations_count}</Text>
-                    </View>
-                  ) : null}
+                  <Text style={styles.chevron}>›</Text>
                 </TouchableOpacity>
               )}
             />
           )}
+
+          {searchQuery.trim() && results.length > 0 ? (
+            <View style={styles.footer}>
+              <Button
+                mode="text"
+                textColor="#786C65"
+                onPress={handleUseCustomQuery}
+                style={styles.customFooterBtn}
+              >
+                No la trobes? Utilitza "{searchQuery.trim()}" com a text lliure
+              </Button>
+            </View>
+          ) : null}
         </View>
       </View>
     </Modal>
@@ -163,35 +269,36 @@ export default function DestinationPickerModal({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(44, 34, 30, 0.6)',
+    backgroundColor: 'rgba(0,0,0,0.45)',
     justifyContent: 'flex-end',
   },
   modalContent: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     maxHeight: '85%',
-    minHeight: '55%',
-    paddingHorizontal: 20,
-    paddingBottom: 32,
-    paddingTop: 12,
+    paddingBottom: 24,
   },
   dragHandle: {
     width: 40,
     height: 4,
-    backgroundColor: '#E8E2D9',
+    backgroundColor: '#D1C7BD',
     borderRadius: 2,
     alignSelf: 'center',
-    marginBottom: 12,
+    marginTop: 10,
+    marginBottom: 6,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0EBE1',
   },
   title: {
-    fontWeight: '800',
+    fontWeight: '700',
     color: '#2C221E',
   },
   closeBtn: {
@@ -202,80 +309,79 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   searchbar: {
-    backgroundColor: '#FAF7F2',
-    borderRadius: 12,
+    marginHorizontal: 16,
+    marginVertical: 12,
+    backgroundColor: '#F9F6F0',
+    borderRadius: 10,
+    elevation: 0,
     borderWidth: 1,
     borderColor: '#E8E2D9',
-    marginBottom: 12,
-    elevation: 0,
   },
   searchInput: {
     fontSize: 14,
     color: '#2C221E',
   },
+  center: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   list: {
-    flexGrow: 1,
+    maxHeight: 380,
   },
   divider: {
-    backgroundColor: '#F0EBE3',
+    backgroundColor: '#F5EFE6',
   },
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-  },
-  iconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FDF7F4',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
   },
   itemIcon: {
     fontSize: 18,
+    marginRight: 12,
   },
-  itemInfo: {
+  itemTexts: {
     flex: 1,
   },
   itemName: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#2C221E',
   },
-  itemMeta: {
-    fontSize: 12,
+  itemSecondary: {
     color: '#786C65',
     marginTop: 2,
   },
-  badge: {
-    backgroundColor: '#FFF3E0',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#E65100',
-  },
-  center: {
-    paddingVertical: 32,
-    alignItems: 'center',
+  chevron: {
+    fontSize: 20,
+    color: '#C85A32',
+    fontWeight: '600',
+    marginLeft: 8,
   },
   emptyContainer: {
     paddingVertical: 32,
+    paddingHorizontal: 24,
     alignItems: 'center',
   },
   emptyText: {
     color: '#786C65',
-    fontSize: 13,
+    fontSize: 14,
     textAlign: 'center',
     marginBottom: 12,
   },
   customBtn: {
     borderColor: '#C85A32',
-    borderRadius: 12,
+    borderRadius: 8,
+  },
+  footer: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F0EBE1',
+    alignItems: 'center',
+  },
+  customFooterBtn: {
+    marginTop: 4,
   },
 });

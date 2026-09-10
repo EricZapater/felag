@@ -66,6 +66,7 @@ export default function AppNavigation() {
     // If switching between bottom tabs, replace stack
     if (
       screenName === 'TripsList' ||
+      screenName === 'ExploreDestinations' ||
       screenName === 'DestinationsList' ||
       screenName === 'Conversations' ||
       screenName === 'Notifications' ||
@@ -100,7 +101,7 @@ export default function AppNavigation() {
 
   const getActiveTab = (
     screen: string
-  ): 'trips' | 'destinations' | 'chats' | 'notifications' | 'profile' | null => {
+  ): 'trips' | 'explore' | 'destinations' | 'chats' | 'profile' | null => {
     switch (screen) {
       case 'TripsList':
       case 'TripCreate':
@@ -112,11 +113,13 @@ export default function AppNavigation() {
       case 'InstagramStories':
         return 'trips';
 
+      case 'ExploreDestinations':
+        return 'explore';
+
       case 'DestinationsList':
       case 'DestinationDetail':
       case 'RecommendationCreate':
       case 'LiveFeed':
-      case 'ExploreDestinations':
         return 'destinations';
 
       case 'Conversations':
@@ -124,8 +127,6 @@ export default function AppNavigation() {
         return 'chats';
 
       case 'Notifications':
-        return 'notifications';
-
       case 'Profile':
       case 'OriginSelector':
         return 'profile';
@@ -153,6 +154,9 @@ export default function AppNavigation() {
         )}
         {currentScreen === 'TripMatches' && (
           <TripMatchesScreen navigation={navigation} route={{ params: currentParams }} />
+        )}
+        {currentScreen === 'ExploreDestinations' && (
+          <ExploreDestinationsScreen navigation={navigation} />
         )}
         {currentScreen === 'DestinationsList' && (
           <DestinationsListScreen navigation={navigation} />
@@ -188,9 +192,6 @@ export default function AppNavigation() {
         {currentScreen === 'InstagramStories' && (
           <InstagramStoriesScreen navigation={navigation} route={{ params: currentParams }} />
         )}
-        {currentScreen === 'ExploreDestinations' && (
-          <ExploreDestinationsScreen navigation={navigation} />
-        )}
       </View>
 
       {/* Bottom Navigation Bar */}
@@ -204,6 +205,7 @@ export default function AppNavigation() {
             },
           ]}
         >
+          {/* 1. Viatges */}
           <TouchableOpacity
             style={styles.navItem}
             onPress={() => navigate('TripsList')}
@@ -217,6 +219,31 @@ export default function AppNavigation() {
             </Text>
           </TouchableOpacity>
 
+          {/* 2. Explorar */}
+          <TouchableOpacity
+            style={styles.navItem}
+            onPress={() => navigate('ExploreDestinations')}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[
+                styles.navIcon,
+                activeTab === 'explore' && styles.navActiveText,
+              ]}
+            >
+              🧭
+            </Text>
+            <Text
+              style={[
+                styles.navLabel,
+                activeTab === 'explore' && styles.navActiveText,
+              ]}
+            >
+              Explorar
+            </Text>
+          </TouchableOpacity>
+
+          {/* 3. Destins */}
           <TouchableOpacity
             style={styles.navItem}
             onPress={() => navigate('DestinationsList')}
@@ -240,6 +267,7 @@ export default function AppNavigation() {
             </Text>
           </TouchableOpacity>
 
+          {/* 4. Xats */}
           <TouchableOpacity
             style={styles.navItem}
             onPress={() => navigate('Conversations')}
@@ -272,19 +300,15 @@ export default function AppNavigation() {
             </Text>
           </TouchableOpacity>
 
+          {/* 5. Perfil & Avisos */}
           <TouchableOpacity
             style={styles.navItem}
-            onPress={() => navigate('Notifications')}
+            onPress={() => navigate('Profile')}
             activeOpacity={0.7}
           >
             <View style={styles.iconContainer}>
-              <Text
-                style={[
-                  styles.navIcon,
-                  activeTab === 'notifications' && styles.navActiveText,
-                ]}
-              >
-                🔔
+              <Text style={[styles.navIcon, activeTab === 'profile' && styles.navActiveText]}>
+                👤
               </Text>
               {unreadCount > 0 && (
                 <View style={styles.badgeCount}>
@@ -294,24 +318,6 @@ export default function AppNavigation() {
                 </View>
               )}
             </View>
-            <Text
-              style={[
-                styles.navLabel,
-                activeTab === 'notifications' && styles.navActiveText,
-              ]}
-            >
-              Avisos
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.navItem}
-            onPress={() => navigate('Profile')}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.navIcon, activeTab === 'profile' && styles.navActiveText]}>
-              👤
-            </Text>
             <Text style={[styles.navLabel, activeTab === 'profile' && styles.navActiveText]}>
               Perfil
             </Text>
@@ -373,7 +379,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   navLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#786C65',
     fontWeight: '500',
   },

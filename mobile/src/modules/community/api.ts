@@ -10,6 +10,7 @@ import {
   LiveFeedResponse,
   LiveMoment,
   PhotoSharingMode,
+  PublicTripSummary,
   Recommendation,
   SuccessResponse,
   VoteResponse,
@@ -27,6 +28,13 @@ export const communityApi = {
 
   getDestinationDetail: async (id: string): Promise<DestinationDetail> => {
     const res = await apiClient.get<DestinationDetail>(`/api/v1/destinations/${id}`);
+    return res.data;
+  },
+
+  getDestinationPublicTrips: async (destinationId: string): Promise<PublicTripSummary[]> => {
+    const res = await apiClient.get<PublicTripSummary[]>(
+      `/api/v1/destinations/${destinationId}/trips`
+    );
     return res.data;
   },
 

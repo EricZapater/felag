@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   RefreshControl,
   StyleSheet,
   TouchableOpacity,
@@ -22,7 +23,7 @@ export default function DestinationsListScreen({ navigation }: Props) {
   const { destinations, searchDestinations, isLoading, error } = useCommunityStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
-  const [filterType, setFilterType] = useState<'all' | 'popular' | 'active'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'trips' | 'active'>('all');
 
   useEffect(() => {
     searchDestinations('');
@@ -43,28 +44,40 @@ export default function DestinationsListScreen({ navigation }: Props) {
     if (filterType === 'active') {
       return (item.active_felagis_count || 0) > 0;
     }
-    if (filterType === 'popular') {
-      return (item.recommendations_count || 0) > 0;
+    if (filterType === 'trips') {
+      return (item.public_trips_count || 0) > 0;
     }
     return true;
   });
 
   const renderDestinationCard = ({ item }: { item: DestinationSummary }) => {
     const hasActiveFelagis = (item.active_felagis_count || 0) > 0;
+    const tripsCount = item.public_trips_count || 0;
 
     return (
       <TouchableOpacity
-        activeOpacity={0.8}
+        activeOpacity={0.85}
         onPress={() => navigation.navigate('DestinationDetail', { destinationId: item.id || item.name })}
+        style={styles.cardTouchable}
       >
         <Card style={styles.card}>
+          {item.banner_url ? (
+            <View style={styles.imageWrapper}>
+              <Image source={{ uri: item.banner_url }} style={styles.cardImage} />
+              <View style={styles.flagOverlay}>
+                <Text style={styles.flagEmojiText}>{item.flag_emoji || '🗺️'}</Text>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.fallbackHeader}>
+              <Text style={styles.fallbackFlag}>{item.flag_emoji || '🗺️'}</Text>
+            </View>
+          )}
+
           <Card.Content style={styles.cardContent}>
             <View style={styles.cardHeader}>
               <View style={styles.titleArea}>
                 <View style={styles.destNameRow}>
-                  <Text style={styles.destIcon}>
-                    {item.type === 'country' ? '🌐' : '📍'}
-                  </Text>
                   <Text variant="titleMedium" style={styles.destName}>
                     {item.name}
                   </Text>
@@ -83,9 +96,9 @@ export default function DestinationsListScreen({ navigation }: Props) {
             </View>
 
             <View style={styles.badgeRow}>
-              <View style={styles.recBadge}>
-                <Text style={styles.recBadgeText}>
-                  💡 {item.recommendations_count || 0} consells
+              <View style={styles.tripBadge}>
+                <Text style={styles.tripBadgeText}>
+                  ✈️ {tripsCount === 1 ? '1 viatge completat' : `${tripsCount} viatges completats`}
                 </Text>
               </View>
 
@@ -96,11 +109,7 @@ export default function DestinationsListScreen({ navigation }: Props) {
                     {item.active_felagis_count} FELAGIS ara
                   </Text>
                 </View>
-              ) : (
-                <View style={styles.inactiveBadge}>
-                  <Text style={styles.inactiveBadgeText}>🌍 Comunitat activa</Text>
-                </View>
-              )}
+              ) : null}
             </View>
           </Card.Content>
         </Card>
@@ -113,10 +122,10 @@ export default function DestinationsListScreen({ navigation }: Props) {
       {/* Top Header */}
       <View style={styles.header}>
         <Text variant="headlineSmall" style={styles.headerTitle}>
-          Guia de Destins 🗺️
+          Viatges de la Comunitat 🗺️
         </Text>
         <Text variant="bodySmall" style={styles.headerSubtitle}>
-          Descobreix racons, gastronomia i consells de la comunitat FELAG
+          Explora els itineraris i rutes reals completades pels felagis arreu del món
         </Text>
 
         <Searchbar
@@ -139,6 +148,14 @@ export default function DestinationsListScreen({ navigation }: Props) {
             🌟 Tots
           </Chip>
           <Chip
+            selected={filterType === 'trips'}
+            onPress={() => setFilterType('trips')}
+            style={[styles.chip, filterType === 'trips' && styles.chipActive]}
+            textStyle={[styles.chipText, filterType === 'trips' && styles.chipTextActive]}
+          >
+            ✈️ Amb viatges
+          </Chip>
+          <Chip
             selected={filterType === 'active'}
             onPress={() => setFilterType('active')}
             style={[styles.chip, filterType === 'active' && styles.chipActive]}
@@ -146,29 +163,7 @@ export default function DestinationsListScreen({ navigation }: Props) {
           >
             🔥 Amb FELAGIS ara
           </Chip>
-          <Chip
-            selected={filterType === 'popular'}
-            onPress={() => setFilterType('popular')}
-            style={[styles.chip, filterType === 'popular' && styles.chipActive]}
-            textStyle={[styles.chipText, filterType === 'popular' && styles.chipTextActive]}
-          >
-            💎 Amb recomanacions
-          </Chip>
         </View>
-
-        {/* Explore Destinations Banner */}
-        <TouchableOpacity
-          style={styles.exploreBanner}
-          activeOpacity={0.8}
-          onPress={() => navigation.navigate('ExploreDestinations')}
-        >
-          <Text style={styles.exploreBannerIcon}>✨</Text>
-          <View style={styles.exploreBannerTexts}>
-            <Text style={styles.exploreBannerTitle}>Explorar destins populars</Text>
-            <Text style={styles.exploreBannerSub}>Afinitat per origen i recomanacions de la comunitat</Text>
-          </View>
-          <Text style={styles.exploreBannerLink}>Veure ›</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Main List */}
@@ -195,8 +190,8 @@ export default function DestinationsListScreen({ navigation }: Props) {
               <Text style={styles.emptyTitle}>Cap destinació trobada</Text>
               <Text style={styles.emptyText}>
                 {searchQuery
-                  ? `No s'han trobat ciutats que coincideixin amb "${searchQuery}".`
-                  : 'No hi ha destinacions disponibles ara mateix.'}
+                  ? `No s'han trobat destins que coincideixin amb "${searchQuery}".`
+                  : 'Encara no hi ha viatges públics registrats en cap destinació.'}
               </Text>
             </View>
           }
@@ -212,78 +207,111 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9F6F0',
   },
   header: {
-    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
+    paddingTop: 12,
+    paddingBottom: 10,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E8E2D9',
   },
   headerTitle: {
     fontWeight: '800',
     color: '#2C221E',
-    letterSpacing: -0.3,
+    letterSpacing: -0.5,
   },
   headerSubtitle: {
     color: '#6B5E57',
     marginTop: 2,
-    marginBottom: 12,
-  },
-  searchbar: {
-    backgroundColor: '#FAF7F2',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E8E2D9',
-    elevation: 0,
     marginBottom: 10,
   },
+  searchbar: {
+    backgroundColor: '#F9F6F0',
+    borderRadius: 12,
+    elevation: 0,
+    borderWidth: 1,
+    borderColor: '#E8E2D9',
+    height: 44,
+  },
   searchInput: {
+    minHeight: 44,
     fontSize: 14,
     color: '#2C221E',
   },
   chipRow: {
     flexDirection: 'row',
+    marginTop: 10,
     gap: 8,
-    marginTop: 2,
   },
   chip: {
-    backgroundColor: '#FAF7F2',
+    backgroundColor: '#F0EBE1',
     borderColor: '#E8E2D9',
-    borderWidth: 1,
-    height: 32,
   },
   chipActive: {
     backgroundColor: '#C85A32',
-    borderColor: '#C85A32',
   },
   chipText: {
-    fontSize: 12,
     color: '#6B5E57',
-    fontWeight: '600',
+    fontSize: 12,
   },
   chipTextActive: {
     color: '#FFFFFF',
+    fontWeight: '700',
   },
   listContent: {
     padding: 16,
-    paddingBottom: 40,
+    gap: 12,
+  },
+  cardTouchable: {
+    marginBottom: 4,
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: '#E8E2D9',
-    marginBottom: 12,
-    elevation: 1,
+    elevation: 2,
+    overflow: 'hidden',
+  },
+  imageWrapper: {
+    position: 'relative',
+    height: 120,
+    width: '100%',
+    backgroundColor: '#EDE6DB',
+  },
+  cardImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  flagOverlay: {
+    position: 'absolute',
+    bottom: 8,
+    right: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  flagEmojiText: {
+    fontSize: 18,
+  },
+  fallbackHeader: {
+    height: 60,
+    backgroundColor: '#F5EFE6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fallbackFlag: {
+    fontSize: 32,
   },
   cardContent: {
-    padding: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
   },
   titleArea: {
     flex: 1,
@@ -293,83 +321,71 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  destIcon: {
-    fontSize: 16,
-  },
   destName: {
-    fontWeight: '800',
+    fontWeight: '700',
     color: '#2C221E',
+    fontSize: 17,
   },
   countryCodeBadge: {
-    backgroundColor: '#F0EBE3',
-    color: '#703817',
     fontSize: 11,
-    fontWeight: '700',
-    paddingHorizontal: 6,
+    fontWeight: '600',
+    color: '#8A7A70',
+    backgroundColor: '#F0EBE1',
+    paddingHorizontal: 5,
     paddingVertical: 1,
     borderRadius: 4,
   },
   destRegion: {
-    fontSize: 12,
-    color: '#6B5E57',
+    fontSize: 13,
+    color: '#786C65',
     marginTop: 2,
   },
   arrowIcon: {
     fontSize: 22,
     color: '#C85A32',
-    fontWeight: '700',
+    fontWeight: '600',
     marginLeft: 8,
   },
   badgeRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    marginTop: 10,
     gap: 8,
+    flexWrap: 'wrap',
   },
-  recBadge: {
-    backgroundColor: '#FDF7F4',
-    borderColor: '#F1DDD6',
+  tripBadge: {
+    backgroundColor: '#FFF2EB',
     borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
+    borderColor: '#FCD8C5',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
-  recBadgeText: {
-    color: '#C85A32',
+  tripBadgeText: {
     fontSize: 12,
     fontWeight: '700',
+    color: '#C85A32',
   },
   liveBadge: {
-    backgroundColor: '#FFF3E0',
-    borderColor: '#FFE082',
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    borderWidth: 1,
+    borderColor: '#C8E6C9',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
     gap: 5,
   },
   liveDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#E65100',
+    backgroundColor: '#43A047',
   },
   liveBadgeText: {
-    color: '#E65100',
     fontSize: 12,
-    fontWeight: '700',
-  },
-  inactiveBadge: {
-    backgroundColor: '#F4ECE1',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  inactiveBadgeText: {
-    color: '#703817',
-    fontSize: 11,
     fontWeight: '600',
+    color: '#2E7D32',
   },
   centerBox: {
     flex: 1,
@@ -377,8 +393,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyContainer: {
-    paddingVertical: 48,
     alignItems: 'center',
+    paddingVertical: 48,
     paddingHorizontal: 24,
   },
   emptyIcon: {
@@ -386,47 +402,15 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   emptyTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     color: '#2C221E',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   emptyText: {
-    fontSize: 13,
-    color: '#6B5E57',
+    fontSize: 14,
+    color: '#786C65',
     textAlign: 'center',
-  },
-  exploreBanner: {
-    marginTop: 12,
-    backgroundColor: '#F4ECE1',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#DDCFBF',
-    padding: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  exploreBannerIcon: {
-    fontSize: 20,
-    marginRight: 10,
-  },
-  exploreBannerTexts: {
-    flex: 1,
-  },
-  exploreBannerTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#703817',
-  },
-  exploreBannerSub: {
-    fontSize: 10,
-    color: '#8C7A70',
-    marginTop: 1,
-  },
-  exploreBannerLink: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#C85A32',
-    paddingLeft: 6,
+    lineHeight: 20,
   },
 });

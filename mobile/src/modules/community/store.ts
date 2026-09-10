@@ -11,6 +11,7 @@ import {
   LiveMoment,
   OriginFilter,
   PhotoSharingMode,
+  PublicTripSummary,
   Recommendation,
   RecommendationCategory,
   SortBy,
@@ -20,15 +21,18 @@ interface CommunityState {
   destinations: DestinationSummary[];
   currentDestination: DestinationDetail | null;
   recommendations: Recommendation[];
+  publicTrips: PublicTripSummary[];
   selectedCategory: RecommendationCategory;
   originFilter: OriginFilter;
   sortBy: SortBy;
   isLoading: boolean;
+  isLoadingTrips: boolean;
   error: string | null;
 
   searchDestinations: (q?: string) => Promise<void>;
   fetchDestinationDetail: (id: string) => Promise<void>;
   fetchRecommendations: (destinationId: string) => Promise<void>;
+  fetchPublicTrips: (destinationId: string) => Promise<void>;
   createRecommendation: (
     destinationId: string,
     data: CreateRecommendationRequest
@@ -48,10 +52,12 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
   destinations: [],
   currentDestination: null,
   recommendations: [],
+  publicTrips: [],
   selectedCategory: 'all',
   originFilter: 'all',
   sortBy: 'useful',
   isLoading: false,
+  isLoadingTrips: false,
   error: null,
 
   searchDestinations: async (q?: string) => {
@@ -81,6 +87,21 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
         err.message ||
         'Error en carregar el detall de la destinació';
       set({ error: msg, isLoading: false });
+    }
+  },
+
+  fetchPublicTrips: async (destinationId: string) => {
+    set({ isLoadingTrips: true, error: null });
+    try {
+      const publicTrips = await communityApi.getDestinationPublicTrips(destinationId);
+      set({ publicTrips, isLoadingTrips: false });
+    } catch (err: any) {
+      const msg =
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        err.message ||
+        'Error en carregar els viatges de la comunitat';
+      set({ error: msg, isLoadingTrips: false });
     }
   },
 
@@ -219,8 +240,10 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
     set({
       currentDestination: null,
       recommendations: [],
+      publicTrips: [],
       error: null,
       isLoading: false,
+      isLoadingTrips: false,
     }),
 }));
 
