@@ -406,7 +406,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E8E2D9',
     marginBottom: 16,
-    overflow: 'hidden',
     elevation: 1,
   },
   postUserRow: {

@@ -737,7 +737,6 @@ const styles = StyleSheet.create({
     borderColor: '#E8E2D9',
     marginBottom: 14,
     elevation: 2,
-    overflow: 'hidden',
   },
   tripCardContent: {
     padding: 14,

@@ -226,16 +226,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E8E2D9',
     marginBottom: 14,
-    overflow: 'hidden',
   },
   bannerImage: {
     width: '100%',
     height: 140,
     backgroundColor: '#E8E2D9',
+    borderTopLeftRadius: 15,
+    borderTopRightRadius: 15,
+    overflow: 'hidden',
   },
   bannerFallback: {
     justifyContent: 'center',
     alignItems: 'center',
+    borderTopLeftRadius: 15,
+    borderTopRightRadius: 15,
   },
   cardBody: {
     padding: 12,

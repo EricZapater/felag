@@ -270,13 +270,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E8E2D9',
     elevation: 2,
-    overflow: 'hidden',
   },
   imageWrapper: {
     position: 'relative',
     height: 120,
     width: '100%',
     backgroundColor: '#EDE6DB',
+    borderTopLeftRadius: 13,
+    borderTopRightRadius: 13,
+    overflow: 'hidden',
   },
   cardImage: {
     width: '100%',
@@ -298,6 +300,8 @@ const styles = StyleSheet.create({
   fallbackHeader: {
     height: 60,
     backgroundColor: '#F5EFE6',
+    borderTopLeftRadius: 13,
+    borderTopRightRadius: 13,
     justifyContent: 'center',
     alignItems: 'center',
   },
