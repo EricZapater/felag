@@ -1,0 +1,22 @@
+.agent/security-agent.md
+  h_42175f19913982 1-190
+backend/internal/auth/service_test.go
+  h_42175f19913982 10,339-449
+backend/internal/community/service_test.go
+  h_42175f19913982 9,725-808
+constitution.md
+  h_42175f19913982 10,213,240-241,267,282-290,296-303,353-359,364-369,379
+security-reports/full-audit.md
+  h_42175f19913982 57,60-73,84-103
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "cc32e228d1e533e7a839fd699e8f29adcafd550e",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
