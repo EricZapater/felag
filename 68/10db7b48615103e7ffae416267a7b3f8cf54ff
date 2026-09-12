@@ -1,0 +1,18 @@
+frontend/src/modules/posttrip/components/InstagramStoriesCard.tsx
+  h_42175f19913982 23,33,37-38,40,43,60,62-97,99,115,420,428,447-466,514-599,601-604,607-612
+frontend/src/modules/posttrip/views/CelebrationCardGeneratorView.tsx
+  h_42175f19913982 36,38,61,64-71,388-431
+frontend/src/modules/posttrip/views/TripWrapupView.tsx
+  h_42175f19913982 43,468-480
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "6810db7b48615103e7ffae416267a7b3f8cf54ff",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
