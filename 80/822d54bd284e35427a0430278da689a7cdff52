@@ -1,0 +1,26 @@
+frontend/src/modules/posttrip/components/InstagramStoriesCard.tsx
+  h_42175f19913982 1,9,13-18,22,25-32,37-124,201-203,205-208,210-235,237,240,242,244-279,307,342,356-357,359-514,630,635,638-639,642-643,649-650,653-745,833
+frontend/src/modules/posttrip/views/CelebrationCardGeneratorView.tsx
+  h_42175f19913982 129-130,132-147,150-238,245-258,264-270
+frontend/src/modules/posttrip/views/TripWrapupView.tsx
+  h_42175f19913982 39,42,63,65,467
+mobile/package.json
+  h_42175f19913982 25,28,31,37
+mobile/src/modules/posttrip/screens/CelebrationCardScreen.tsx
+  h_42175f19913982 1,14-16,39-41,171-172,174-178,180-190,192-194,214-237,421-427,461,467
+mobile/src/modules/posttrip/screens/InstagramStoriesScreen.tsx
+  h_42175f19913982 1,4,13-16,43-46,49,53,59,61,66,70-80,82-109,111-113,115-128,130-139,181-186,188-212,228,247-263,265-281,292-315,323,382-422,496-555,592,594-597,611-623
+pnpm-lock.yaml
+  h_42175f19913982 75-77,84-86,93-95,111-113,1832-1835,2126-2128,2411-2415,2433-2437,2708-2711,3769-3774,4263-4265,4437-4439,6938-6939,7264-7267,7613-7616,7651-7654,7985-7989,9125-9130,9740-9743,9911-9914
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "80822d54bd284e35427a0430278da689a7cdff52",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
