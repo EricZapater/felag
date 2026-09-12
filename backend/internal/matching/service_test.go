@@ -269,3 +269,37 @@ func TestCalculateMatchesForTrip(t *testing.T) {
 		t.Errorf("expected 2 upserted matches, got %d", len(repo.upsertedMatches))
 	}
 }
+
+func TestMatchingService_NotifyMatch(t *testing.T) {
+	repo := &mockMatchingRepo{}
+	svc := NewService(repo)
+
+	notifSvc := &mockNotificationSvc{}
+	svc.SetNotificationService(notifSvc)
+
+	payload := MatchNotificationPayload{
+		MatchID:           "match-1",
+		TripID:            "trip-1",
+		MatchedTripID:     "trip-2",
+		UserID:            "user-1",
+		MatchedUserID:     "user-2",
+		MatchedUserName:   "Anna",
+		MatchedUserOrigin: "Girona",
+		DestinationName:   "Roma",
+		OverlapStartDate:  "2026-10-01",
+		OverlapEndDate:    "2026-10-05",
+	}
+
+	err := svc.NotifyMatch(payload)
+	if err != nil {
+		t.Fatalf("unexpected error notifying match: %v", err)
+	}
+
+	if len(notifSvc.notifications) != 1 {
+		t.Fatalf("expected 1 notification sent, got %d", len(notifSvc.notifications))
+	}
+	if notifSvc.notifications[0].UserID != "user-1" {
+		t.Errorf("expected user-1, got %s", notifSvc.notifications[0].UserID)
+	}
+}
+

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"felag/backend/internal/notification"
 )
 
 var (
@@ -16,15 +18,46 @@ type Service interface {
 	GetTripMatches(tripID string, currentUserID string) ([]Match, error)
 	GetMatchByID(matchID string, currentUserID string) (*Match, error)
 	CalculateMatchesForTrip(tripID string) ([]MatchNotificationPayload, error)
+	NotifyMatch(m MatchNotificationPayload) error
+	SetNotificationService(notifSvc notification.Service)
 }
 
 type service struct {
-	repo Repository
+	repo     Repository
+	notifSvc notification.Service
 }
 
 func NewService(repo Repository) Service {
 	return &service{repo: repo}
 }
+
+func (s *service) SetNotificationService(notifSvc notification.Service) {
+	s.notifSvc = notifSvc
+}
+
+func (s *service) NotifyMatch(m MatchNotificationPayload) error {
+	title := fmt.Sprintf("✨ Nou FELAGI a %s!", m.DestinationName)
+	body := fmt.Sprintf("%s (%s) coincidirà amb tu a %s del %s al %s.",
+		m.MatchedUserName, m.MatchedUserOrigin, m.DestinationName, m.OverlapStartDate, m.OverlapEndDate)
+	if m.MatchedUserOrigin == "" {
+		body = fmt.Sprintf("%s coincidirà amb tu a %s del %s al %s.",
+			m.MatchedUserName, m.DestinationName, m.OverlapStartDate, m.OverlapEndDate)
+	}
+
+	data := map[string]interface{}{
+		"match_id":        m.MatchID,
+		"trip_id":         m.TripID,
+		"matched_trip_id": m.MatchedTripID,
+		"matched_user_id": m.MatchedUserID,
+	}
+
+	if s.notifSvc != nil {
+		_, err := s.notifSvc.SendNotification(m.UserID, "new_match", title, body, data)
+		return err
+	}
+	return nil
+}
+
 
 func (s *service) GetTripMatches(tripID string, currentUserID string) ([]Match, error) {
 	// Query matches for tripID

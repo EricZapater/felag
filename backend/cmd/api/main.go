@@ -105,6 +105,7 @@ func main() {
 
 	matchingRepo := matching.NewRepository(database)
 	matchingService := matching.NewService(matchingRepo)
+	matchingService.SetNotificationService(notificationService)
 	matchingHandler := matching.NewHandler(matchingService)
 
 	// Worker asíncron per processar matching i notificacions en segon pla
@@ -167,6 +168,8 @@ func main() {
 			authGroup.POST("/register", authHandler.Register)
 			authGroup.POST("/login", authHandler.Login)
 			authGroup.POST("/refresh", authHandler.Refresh)
+			authGroup.POST("/otp/request", authHandler.RequestOTP)
+			authGroup.POST("/otp/verify", authHandler.VerifyOTP)
 		}
 
 		// Origins public routes
@@ -198,6 +201,9 @@ func main() {
 		// Recommendation public routes
 		v1.GET("/recommendations/:id/comments", communityHandler.ListComments)
 
+		// Inspiration feed public / optional auth route
+		v1.GET("/inspiration", shared.OptionalAuthMiddleware(), communityHandler.GetInspirationFeed)
+
 		// WebSocket route for real-time chat (handles auth token via query param or header)
 		v1.GET("/ws/chat", chatHandler.HandleWebSocket)
 
@@ -207,6 +213,8 @@ func main() {
 		{
 			protected.POST("/auth/logout", authHandler.Logout)
 			protected.GET("/auth/me", authHandler.GetCurrentUser)
+			protected.GET("/auth/devices", authHandler.ListDevices)
+			protected.DELETE("/auth/devices/:id", authHandler.RevokeDevice)
 
 			protected.GET("/profile", profileHandler.GetProfile)
 			protected.PUT("/profile", profileHandler.UpdateProfile)

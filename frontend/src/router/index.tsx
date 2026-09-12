@@ -22,6 +22,7 @@ import ExploreDestinationsView from '@/modules/explore/views/ExploreDestinations
 import AdminDashboardView from '@/modules/admin/views/AdminDashboardView';
 import PublicDestinationsIndexView from '@/modules/publicseo/views/PublicDestinationsIndexView';
 import PublicDestinationGuideView from '@/modules/publicseo/views/PublicDestinationGuideView';
+import InspirationView from '@/modules/inspiration/views/InspirationView';
 import { useAuthStore } from '@/modules/auth/store';
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
@@ -135,6 +136,14 @@ export default function AppRouter() {
           element={
             <ProtectedRoute>
               <ExploreDestinationsView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/inspiration"
+          element={
+            <ProtectedRoute>
+              <InspirationView />
             </ProtectedRoute>
           }
         />

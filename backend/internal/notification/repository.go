@@ -58,9 +58,9 @@ func (r *repository) UnregisterPushToken(userID, token string) error {
 
 func (r *repository) GetPushTokensByUserID(userID string) ([]string, error) {
 	query := `
-		SELECT token
-		FROM user_push_tokens
-		WHERE user_id = $1
+		SELECT push_token FROM user_devices WHERE user_id = $1 AND push_token IS NOT NULL AND push_token != ''
+		UNION
+		SELECT token AS push_token FROM user_push_tokens WHERE user_id = $1 AND token IS NOT NULL AND token != ''
 	`
 	rows, err := r.db.Query(query, userID)
 	if err != nil {

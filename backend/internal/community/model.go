@@ -162,3 +162,34 @@ type DestinationInfo struct {
 	CountryCode string
 	CountryName string
 }
+
+type InspirationCategory struct {
+	ID    string `json:"id"`
+	Label string `json:"label"`
+	Icon  string `json:"icon"`
+}
+
+type InspirationItem struct {
+	Type            string              `json:"type"` // "itinerary" | "recommendation"
+	ID              string              `json:"id"`
+	Title           string              `json:"title"`
+	Description     string              `json:"description"`
+	Category        string              `json:"category"`
+	DestinationID   string              `json:"destination_id"`
+	DestinationName string              `json:"destination_name"`
+	CountryCode     *string             `json:"country_code,omitempty"`
+	ImageURL        *string             `json:"image_url,omitempty"`
+	Author          PublicAuthorSummary `json:"author"`
+	UsefulCount     int                 `json:"useful_count"`
+	UserHasVoted    bool                `json:"user_has_voted"`
+	CreatedAt       time.Time           `json:"created_at"`
+	TripSummary     *PublicTripSummary  `json:"trip_summary,omitempty"`
+	LocationName    *string             `json:"location_name,omitempty"`
+}
+
+type InspirationResponse struct {
+	Items      []InspirationItem     `json:"items"`
+	Categories []InspirationCategory `json:"categories"`
+	Total      int                   `json:"total"`
+}
+

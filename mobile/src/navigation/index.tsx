@@ -17,6 +17,7 @@ import NotificationsScreen from '@/modules/notifications/screens/NotificationsSc
 import ConversationsScreen from '@/modules/chat/screens/ConversationsScreen';
 import ChatRoomScreen from '@/modules/chat/screens/ChatRoomScreen';
 import PublicProfileScreen from '@/modules/users/screens/PublicProfileScreen';
+import InspirationScreen from '@/modules/inspiration/screens/InspirationScreen';
 import DestinationsListScreen from '@/modules/community/screens/DestinationsListScreen';
 import DestinationDetailScreen from '@/modules/community/screens/DestinationDetailScreen';
 import RecommendationCreateScreen from '@/modules/community/screens/RecommendationCreateScreen';
@@ -29,7 +30,7 @@ import ExploreDestinationsScreen from '@/modules/explore/screens/ExploreDestinat
 
 export default function AppNavigation() {
   const insets = useSafeAreaInsets();
-  const { isAuthenticated, accessToken } = useAuthStore();
+  const { isAuthenticated, accessToken, isAutoLoggingIn, autoLoginSilent } = useAuthStore();
   const { unreadCount, fetchNotifications } = useNotificationsStore();
   const {
     totalUnreadCount: unreadChatCount,
@@ -41,6 +42,10 @@ export default function AppNavigation() {
   const [screenStack, setScreenStack] = useState<{ name: string; params?: any }[]>([
     { name: 'TripsList' },
   ]);
+
+  useEffect(() => {
+    autoLoginSilent();
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -66,13 +71,13 @@ export default function AppNavigation() {
     // If switching between bottom tabs, replace stack
     if (
       screenName === 'TripsList' ||
-      screenName === 'ExploreDestinations' ||
-      screenName === 'DestinationsList' ||
+      screenName === 'Inspiration' ||
+      screenName === 'InspirationScreen' ||
       screenName === 'Conversations' ||
-      screenName === 'Notifications' ||
       screenName === 'Profile'
     ) {
-      setScreenStack([{ name: screenName, params }]);
+      const normalizedName = screenName === 'InspirationScreen' ? 'Inspiration' : screenName;
+      setScreenStack([{ name: normalizedName, params }]);
     } else {
       setScreenStack((prev) => [...prev, { name: screenName, params }]);
     }
@@ -86,6 +91,27 @@ export default function AppNavigation() {
     navigate,
     goBack,
   };
+
+  if (isAutoLoggingIn) {
+    return (
+      <View
+        style={[
+          styles.container,
+          {
+            paddingTop: insets.top,
+            paddingBottom: insets.bottom,
+            justifyContent: 'center',
+            alignItems: 'center',
+          },
+        ]}
+      >
+        <Text style={{ fontSize: 28, marginBottom: 12 }}>✈️</Text>
+        <Text style={{ color: '#786C65', fontSize: 13, fontWeight: '600' }}>
+          Connectant a FELAG...
+        </Text>
+      </View>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
@@ -101,7 +127,7 @@ export default function AppNavigation() {
 
   const getActiveTab = (
     screen: string
-  ): 'trips' | 'explore' | 'destinations' | 'chats' | 'profile' | null => {
+  ): 'trips' | 'inspiration' | 'chats' | 'profile' | null => {
     switch (screen) {
       case 'TripsList':
       case 'TripCreate':
@@ -113,14 +139,14 @@ export default function AppNavigation() {
       case 'InstagramStories':
         return 'trips';
 
+      case 'Inspiration':
+      case 'InspirationScreen':
       case 'ExploreDestinations':
-        return 'explore';
-
       case 'DestinationsList':
       case 'DestinationDetail':
       case 'RecommendationCreate':
       case 'LiveFeed':
-        return 'destinations';
+        return 'inspiration';
 
       case 'Conversations':
       case 'PublicProfile':
@@ -154,6 +180,9 @@ export default function AppNavigation() {
         )}
         {currentScreen === 'TripMatches' && (
           <TripMatchesScreen navigation={navigation} route={{ params: currentParams }} />
+        )}
+        {(currentScreen === 'Inspiration' || currentScreen === 'InspirationScreen') && (
+          <InspirationScreen navigation={navigation} />
         )}
         {currentScreen === 'ExploreDestinations' && (
           <ExploreDestinationsScreen navigation={navigation} />
@@ -194,7 +223,7 @@ export default function AppNavigation() {
         )}
       </View>
 
-      {/* Bottom Navigation Bar */}
+      {/* Simplified Bottom Navigation Bar - 4 Clean Tabs */}
       {showBottomNav && (
         <View
           style={[
@@ -205,7 +234,7 @@ export default function AppNavigation() {
             },
           ]}
         >
-          {/* 1. Viatges */}
+          {/* 1. ✈️ Viatges */}
           <TouchableOpacity
             style={styles.navItem}
             onPress={() => navigate('TripsList')}
@@ -219,55 +248,31 @@ export default function AppNavigation() {
             </Text>
           </TouchableOpacity>
 
-          {/* 2. Explorar */}
+          {/* 2. 💡 Inspiració */}
           <TouchableOpacity
             style={styles.navItem}
-            onPress={() => navigate('ExploreDestinations')}
+            onPress={() => navigate('Inspiration')}
             activeOpacity={0.7}
           >
             <Text
               style={[
                 styles.navIcon,
-                activeTab === 'explore' && styles.navActiveText,
+                activeTab === 'inspiration' && styles.navActiveText,
               ]}
             >
-              🧭
+              💡
             </Text>
             <Text
               style={[
                 styles.navLabel,
-                activeTab === 'explore' && styles.navActiveText,
+                activeTab === 'inspiration' && styles.navActiveText,
               ]}
             >
-              Explorar
+              Inspiració
             </Text>
           </TouchableOpacity>
 
-          {/* 3. Destins */}
-          <TouchableOpacity
-            style={styles.navItem}
-            onPress={() => navigate('DestinationsList')}
-            activeOpacity={0.7}
-          >
-            <Text
-              style={[
-                styles.navIcon,
-                activeTab === 'destinations' && styles.navActiveText,
-              ]}
-            >
-              🗺️
-            </Text>
-            <Text
-              style={[
-                styles.navLabel,
-                activeTab === 'destinations' && styles.navActiveText,
-              ]}
-            >
-              Destins
-            </Text>
-          </TouchableOpacity>
-
-          {/* 4. Xats */}
+          {/* 3. 💬 Xats */}
           <TouchableOpacity
             style={styles.navItem}
             onPress={() => navigate('Conversations')}
@@ -300,7 +305,7 @@ export default function AppNavigation() {
             </Text>
           </TouchableOpacity>
 
-          {/* 5. Perfil & Avisos */}
+          {/* 4. 👤 Perfil & Avisos */}
           <TouchableOpacity
             style={styles.navItem}
             onPress={() => navigate('Profile')}
@@ -358,7 +363,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   navIcon: {
-    fontSize: 18,
+    fontSize: 19,
     marginBottom: 2,
   },
   badgeCount: {

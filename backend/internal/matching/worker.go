@@ -1,7 +1,6 @@
 package matching
 
 import (
-	"fmt"
 	"log"
 
 	"felag/backend/internal/notification"
@@ -67,23 +66,9 @@ func (w *Worker) processTripEvent(event shared.TripEvent) {
 	}
 
 	for _, m := range newMatches {
-		title := fmt.Sprintf("✨ Nou FELAGI a %s!", m.DestinationName)
-		body := fmt.Sprintf("%s (%s) coincidirà amb tu a %s del %s al %s.",
-			m.MatchedUserName, m.MatchedUserOrigin, m.DestinationName, m.OverlapStartDate, m.OverlapEndDate)
-		if m.MatchedUserOrigin == "" {
-			body = fmt.Sprintf("%s coincidirà amb tu a %s del %s al %s.",
-				m.MatchedUserName, m.DestinationName, m.OverlapStartDate, m.OverlapEndDate)
-		}
-
-		data := map[string]interface{}{
-			"match_id":        m.MatchID,
-			"trip_id":         m.TripID,
-			"matched_trip_id": m.MatchedTripID,
-			"matched_user_id": m.MatchedUserID,
-		}
-
-		if _, err := w.notificationService.SendNotification(m.UserID, "new_match", title, body, data); err != nil {
+		if err := w.matchingService.NotifyMatch(m); err != nil {
 			log.Printf("[MatchingWorker] Error enviant notificació a usuari %s: %v", m.UserID, err)
 		}
 	}
 }
+

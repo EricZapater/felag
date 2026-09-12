@@ -1,21 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { Avatar, Button, Card, Divider, HelperText, Text, TextInput } from 'react-native-paper';
+import { Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Avatar, Button, Card, Chip, Divider, HelperText, Text, TextInput } from 'react-native-paper';
 import { useProfileStore } from '../store';
 import { useAuthStore } from '@/modules/auth/store';
 
 export default function ProfileScreen({ navigation }: any) {
   const { profile, fetchProfile, updateProfile, isLoading, error } = useProfileStore();
-  const { user, logout } = useAuthStore();
+  const { user, devices, fetchDevices, revokeDevice, logout } = useAuthStore();
 
   const [name, setName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [bio, setBio] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [revokingId, setRevokingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProfile();
-  }, [fetchProfile]);
+    fetchDevices();
+  }, [fetchProfile, fetchDevices]);
 
   useEffect(() => {
     if (profile) {
@@ -30,8 +32,17 @@ export default function ProfileScreen({ navigation }: any) {
     try {
       await updateProfile(name, phoneNumber, bio);
       setSuccessMsg('Perfil actualitzat amb èxit!');
-    } catch (err) {
+    } catch {
       // Handled in store
+    }
+  };
+
+  const handleRevokeDevice = async (deviceId: string) => {
+    setRevokingId(deviceId);
+    try {
+      await revokeDevice(deviceId);
+    } finally {
+      setRevokingId(null);
     }
   };
 
@@ -39,8 +50,16 @@ export default function ProfileScreen({ navigation }: any) {
     ? `${profile.origin.country.name} ➔ ${profile.origin.region.name} ➔ ${profile.origin.town.name}`
     : 'Cap origen definit';
 
+  const currentPlatformLabel =
+    Platform.OS === 'ios'
+      ? 'iPhone (iOS)'
+      : Platform.OS === 'android'
+      ? 'Android'
+      : 'Web App';
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      {/* Profile Header */}
       <Card style={styles.card}>
         <Card.Content style={styles.profileHeader}>
           <Avatar.Text
@@ -63,6 +82,7 @@ export default function ProfileScreen({ navigation }: any) {
         </Card.Content>
       </Card>
 
+      {/* Origin */}
       <Card style={styles.card}>
         <Card.Content>
           <Text variant="titleMedium" style={styles.sectionTitle}>
@@ -87,6 +107,7 @@ export default function ProfileScreen({ navigation }: any) {
         </Card.Content>
       </Card>
 
+      {/* Edit Profile Info */}
       <Card style={styles.card}>
         <Card.Content>
           <Text variant="titleMedium" style={styles.sectionTitle}>
@@ -94,7 +115,11 @@ export default function ProfileScreen({ navigation }: any) {
           </Text>
 
           {error ? <HelperText type="error" visible>{error}</HelperText> : null}
-          {successMsg ? <HelperText type="info" visible style={{ color: '#2e7d32' }}>{successMsg}</HelperText> : null}
+          {successMsg ? (
+            <HelperText type="info" visible style={{ color: '#2e7d32' }}>
+              {successMsg}
+            </HelperText>
+          ) : null}
 
           <TextInput
             label="Nom complet"
@@ -140,7 +165,82 @@ export default function ProfileScreen({ navigation }: any) {
         </Card.Content>
       </Card>
 
-      <Button mode="text" onPress={logout} textColor="#d32f2f" style={{ marginVertical: 24 }}>
+      {/* Dispositius connectats 📱 */}
+      <Card style={styles.card}>
+        <Card.Content>
+          <View style={styles.sectionHeaderRow}>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Dispositius connectats 📱
+            </Text>
+            <Chip icon="shield-check" compact style={styles.securityChip}>
+              Sessió segura
+            </Chip>
+          </View>
+
+          <Text variant="bodySmall" style={styles.sectionSubtitle}>
+            Gestiona els telèfons, tauletes i navegadors que tenen accés permanent al teu compte FELAG.
+          </Text>
+
+          {/* Current Device Card */}
+          <View style={styles.deviceItemCurrent}>
+            <View style={styles.deviceIconBox}>
+              <Text style={styles.deviceEmoji}>
+                {Platform.OS === 'ios' ? '🍏' : Platform.OS === 'android' ? '🤖' : '💻'}
+              </Text>
+            </View>
+            <View style={styles.deviceInfo}>
+              <View style={styles.deviceTitleRow}>
+                <Text style={styles.deviceName}>{currentPlatformLabel}</Text>
+                <View style={styles.activeBadge}>
+                  <Text style={styles.activeBadgeText}>Aquest dispositiu</Text>
+                </View>
+              </View>
+              <Text style={styles.deviceMeta}>
+                🟢 Sessió activa ara mateix • App Mòbil FELAG
+              </Text>
+            </View>
+          </View>
+
+          {/* Other Devices from API */}
+          {devices && devices.length > 0
+            ? devices
+                .filter((d) => !d.device_name?.includes('Aquest dispositiu'))
+                .map((dev) => (
+                  <View key={dev.id || dev.device_id} style={styles.deviceItem}>
+                    <View style={styles.deviceIconBox}>
+                      <Text style={styles.deviceEmoji}>
+                        {dev.platform === 'ios' ? '📱' : dev.platform === 'android' ? '🤖' : '💻'}
+                      </Text>
+                    </View>
+                    <View style={styles.deviceInfo}>
+                      <Text style={styles.deviceName}>{dev.device_name}</Text>
+                      <Text style={styles.deviceMeta}>
+                        Última activitat: {new Date(dev.last_active_at).toLocaleDateString('ca-ES')}
+                      </Text>
+                    </View>
+                    <Button
+                      mode="text"
+                      textColor="#d32f2f"
+                      loading={revokingId === dev.id || revokingId === dev.device_id}
+                      onPress={() => handleRevokeDevice(dev.id || dev.device_id)}
+                      compact
+                    >
+                      Desconnectar
+                    </Button>
+                  </View>
+                ))
+            : null}
+        </Card.Content>
+      </Card>
+
+      {/* Logout button */}
+      <Button
+        mode="contained-tonal"
+        onPress={logout}
+        textColor="#d32f2f"
+        icon="logout"
+        style={styles.logoutButton}
+      >
         Tancar sessió
       </Button>
     </ScrollView>
@@ -150,13 +250,17 @@ export default function ProfileScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
     backgroundColor: '#F9F6F0',
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 40,
   },
   card: {
     marginBottom: 16,
     backgroundColor: '#FFFFFF',
     borderColor: '#E8E2D9',
+    borderRadius: 12,
   },
   profileHeader: {
     alignItems: 'center',
@@ -173,7 +277,22 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontWeight: 'bold',
     color: '#3E2723',
-    marginBottom: 12,
+    marginBottom: 8,
+  },
+  sectionSubtitle: {
+    color: '#786C65',
+    marginBottom: 14,
+    lineHeight: 18,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  securityChip: {
+    backgroundColor: '#E8F5E9',
+    height: 28,
   },
   originBox: {
     backgroundColor: '#F4ECE1',
@@ -191,5 +310,75 @@ const styles = StyleSheet.create({
   input: {
     marginBottom: 12,
     backgroundColor: '#FFFFFF',
+  },
+  deviceItemCurrent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F7F3EC',
+    borderColor: '#C85A32',
+    borderWidth: 1.5,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+  },
+  deviceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E8E2D9',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 8,
+  },
+  deviceIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    borderColor: '#E8E2D9',
+    borderWidth: 1,
+  },
+  deviceEmoji: {
+    fontSize: 18,
+  },
+  deviceInfo: {
+    flex: 1,
+  },
+  deviceTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  deviceName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#2C221E',
+  },
+  activeBadge: {
+    backgroundColor: '#2E7D32',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+  },
+  activeBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  deviceMeta: {
+    fontSize: 11,
+    color: '#786C65',
+    marginTop: 2,
+  },
+  logoutButton: {
+    marginVertical: 16,
+    backgroundColor: '#FFEBEE',
+    borderRadius: 24,
+    paddingVertical: 4,
   },
 });

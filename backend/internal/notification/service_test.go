@@ -199,3 +199,42 @@ func TestNotificationsReadStatus(t *testing.T) {
 		t.Errorf("expected n2 to be read after MarkAllAsRead")
 	}
 }
+
+func TestSendPushNotificationDirect(t *testing.T) {
+	mockTransport := roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		var messages []ExpoPushMessage
+		_ = json.NewDecoder(req.Body).Decode(&messages)
+		if len(messages) != 2 {
+			t.Errorf("expected 2 messages, got %d", len(messages))
+		}
+
+		respBody, _ := json.Marshal(ExpoPushResponse{
+			Data: []ExpoPushTicket{
+				{Status: "ok", ID: "ticket-1"},
+				{Status: "ok", ID: "ticket-2"},
+			},
+		})
+
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(bytes.NewBuffer(respBody)),
+			Header:     make(http.Header),
+		}, nil
+	})
+
+	repo := &mockNotificationRepo{tokens: make(map[string]string)}
+	httpClient := &http.Client{Transport: mockTransport}
+	svc := NewServiceWithClient(repo, httpClient, "https://exp.host/--/api/v2/push/send")
+
+	err := svc.SendPushNotification(nil, []string{"ExponentPushToken[1]", "ExponentPushToken[2]"}, "Títol", "Cos", map[string]interface{}{"key": "val"})
+	if err != nil {
+		t.Fatalf("unexpected error sending push notification: %v", err)
+	}
+
+	// Empty tokens list should return nil immediately
+	err = svc.SendPushNotification(nil, []string{}, "Títol", "Cos", nil)
+	if err != nil {
+		t.Fatalf("unexpected error for empty tokens: %v", err)
+	}
+}
+

@@ -102,3 +102,95 @@ func (h *Handler) GetCurrentUser(c *gin.Context) {
 
 	c.JSON(http.StatusOK, user)
 }
+
+func (h *Handler) RequestOTP(c *gin.Context) {
+	var req OTPRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		shared.ErrorResponse(c, http.StatusBadRequest, "INVALID_INPUT", err.Error())
+		return
+	}
+
+	if err := h.service.RequestOTP(req.Email, req.DeviceName, req.Platform); err != nil {
+		shared.ErrorResponse(c, http.StatusBadRequest, "BAD_REQUEST", err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Codi d'accés enviat correctament al teu correu.",
+	})
+}
+
+func (h *Handler) VerifyOTP(c *gin.Context) {
+	var req OTPVerifyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		shared.ErrorResponse(c, http.StatusBadRequest, "INVALID_INPUT", err.Error())
+		return
+	}
+
+	resp, err := h.service.VerifyOTP(req.Email, req.Code, req.DeviceID, req.DeviceName, req.Platform, req.PushToken)
+	if err != nil {
+		if errors.Is(err, ErrInvalidOTP) {
+			shared.ErrorResponse(c, http.StatusUnauthorized, "INVALID_OTP", "Codi OTP invàlid o caducat.")
+			return
+		}
+		if errors.Is(err, ErrTooManyAttempts) {
+			shared.ErrorResponse(c, http.StatusTooManyRequests, "TOO_MANY_ATTEMPTS", "Massa intents fallits. Sol·licita un nou codi.")
+			return
+		}
+		shared.ErrorResponse(c, http.StatusBadRequest, "BAD_REQUEST", err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) ListDevices(c *gin.Context) {
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		shared.ErrorResponse(c, http.StatusUnauthorized, "UNAUTHORIZED", "No s'ha trobat la sessió.")
+		return
+	}
+
+	devices, err := h.service.ListUserDevices(userIDVal.(string))
+	if err != nil {
+		shared.ErrorResponse(c, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, devices)
+}
+
+func (h *Handler) RevokeDevice(c *gin.Context) {
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		shared.ErrorResponse(c, http.StatusUnauthorized, "UNAUTHORIZED", "No s'ha trobat la sessió.")
+		return
+	}
+
+	deviceID := c.Param("id")
+	if deviceID == "" {
+		deviceID = c.Param("device_id")
+	}
+	if deviceID == "" {
+		shared.ErrorResponse(c, http.StatusBadRequest, "BAD_REQUEST", "Identificador de dispositiu obligatori.")
+		return
+	}
+
+	if err := h.service.RevokeDevice(userIDVal.(string), deviceID); err != nil {
+		if errors.Is(err, ErrDeviceNotFound) {
+			shared.ErrorResponse(c, http.StatusNotFound, "NOT_FOUND", "Dispositiu no trobat.")
+			return
+		}
+		shared.ErrorResponse(c, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Dispositiu revocat correctament.",
+	})
+}
+
+
+

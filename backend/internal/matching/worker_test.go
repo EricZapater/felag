@@ -1,6 +1,7 @@
 package matching
 
 import (
+	"context"
 	"sync"
 	"testing"
 	"time"
@@ -11,6 +12,7 @@ import (
 
 type mockMatchingSvc struct {
 	calculateFn func(tripID string) ([]MatchNotificationPayload, error)
+	notifSvc    notification.Service
 }
 
 func (m *mockMatchingSvc) GetTripMatches(tripID string, currentUserID string) ([]Match, error) {
@@ -26,6 +28,18 @@ func (m *mockMatchingSvc) CalculateMatchesForTrip(tripID string) ([]MatchNotific
 		return m.calculateFn(tripID)
 	}
 	return nil, nil
+}
+
+func (m *mockMatchingSvc) SetNotificationService(notifSvc notification.Service) {
+	m.notifSvc = notifSvc
+}
+
+func (m *mockMatchingSvc) NotifyMatch(payload MatchNotificationPayload) error {
+	if m.notifSvc != nil {
+		_, err := m.notifSvc.SendNotification(payload.UserID, "new_match", "✨ Nou FELAGI!", "Coincidència", map[string]interface{}{"match_id": payload.MatchID})
+		return err
+	}
+	return nil
 }
 
 type mockNotificationSvc struct {
@@ -50,6 +64,14 @@ func (m *mockNotificationSvc) MarkAsRead(notificationID, userID string) error {
 }
 
 func (m *mockNotificationSvc) MarkAllAsRead(userID string) error {
+	return nil
+}
+
+func (m *mockNotificationSvc) GetPushTokensByUserID(userID string) ([]string, error) {
+	return nil, nil
+}
+
+func (m *mockNotificationSvc) SendPushNotification(ctx context.Context, pushTokens []string, title, body string, data map[string]interface{}) error {
 	return nil
 }
 
@@ -92,6 +114,7 @@ func TestMatchingWorkerEventProcessing(t *testing.T) {
 	}
 
 	notifSvc := &mockNotificationSvc{}
+	matchingSvc.notifSvc = notifSvc
 	worker := NewWorker(matchingSvc, notifSvc, 10)
 	worker.Start()
 	defer worker.Stop()

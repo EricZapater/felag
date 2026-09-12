@@ -47,6 +47,7 @@ type Service interface {
 	CreateLiveMoment(destID string, userID string, req CreateLiveMomentRequest) (*LiveMoment, error)
 	CreateReport(reporterID string, req CommunityReportRequest) error
 	ListPublicTrips(destID string, limit, offset int) ([]PublicTripSummary, error)
+	GetInspirationFeed(q, category, countryCode string, limit, offset int, currentUserID string) (*InspirationResponse, error)
 	SetStorageService(storage storage.StorageService)
 	GetStorageService() storage.StorageService
 }
@@ -326,4 +327,16 @@ func (s *service) ListPublicTrips(destID string, limit, offset int) ([]PublicTri
 
 	return s.repo.ListPublicTripsByDestination(info, limit, offset)
 }
+
+func (s *service) GetInspirationFeed(q, category, countryCode string, limit, offset int, currentUserID string) (*InspirationResponse, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	return s.repo.GetInspirationFeed(q, category, countryCode, limit, offset, currentUserID)
+}
+
 

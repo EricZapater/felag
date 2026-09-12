@@ -324,3 +324,37 @@ func (h *Handler) ListPublicTrips(c *gin.Context) {
 	c.JSON(http.StatusOK, trips)
 }
 
+func (h *Handler) GetInspirationFeed(c *gin.Context) {
+	q := c.Query("q")
+	category := c.Query("category")
+	countryCode := c.Query("country_code")
+
+	limit := 20
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if parsed, err := strconv.Atoi(limitStr); err == nil && parsed > 0 {
+			limit = parsed
+		}
+	}
+
+	offset := 0
+	if offsetStr := c.Query("offset"); offsetStr != "" {
+		if parsed, err := strconv.Atoi(offsetStr); err == nil && parsed >= 0 {
+			offset = parsed
+		}
+	}
+
+	var currentUserID string
+	if uid, exists := c.Get("user_id"); exists {
+		currentUserID, _ = uid.(string)
+	}
+
+	feed, err := h.service.GetInspirationFeed(q, category, countryCode, limit, offset, currentUserID)
+	if err != nil {
+		shared.ErrorResponse(c, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, feed)
+}
+
+

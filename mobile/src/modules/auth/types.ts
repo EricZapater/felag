@@ -36,3 +36,29 @@ export interface LoginRequest {
   email: string;
   password: string;
 }
+
+export interface OTPRequest {
+  email: string;
+  device_name?: string;
+  platform?: string;
+}
+
+export interface OTPVerifyRequest {
+  email: string;
+  code: string;
+  device_id: string;
+  device_name?: string;
+  platform?: string;
+  push_token?: string;
+}
+
+export interface DeviceSummary {
+  id: string;
+  user_id?: string;
+  device_id: string;
+  device_name: string;
+  platform: string;
+  push_token?: string | null;
+  last_active_at: string;
+  created_at: string;
+}

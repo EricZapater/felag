@@ -281,6 +281,63 @@ func (m *mockCommunityRepo) CreateReport(reporterID, targetType, targetID, reaso
 	return nil
 }
 
+func (m *mockCommunityRepo) GetInspirationFeed(q, category, countryCode string, limit, offset int, currentUserID string) (*InspirationResponse, error) {
+	cats := []InspirationCategory{
+		{ID: "all", Label: "Tot", Icon: "✨"},
+		{ID: "itineraries", Label: "Itineraris", Icon: "🗺️"},
+		{ID: "food", Label: "Gastronomia", Icon: "🍽️"},
+		{ID: "hidden_gem", Label: "Racons Secrets", Icon: "💎"},
+		{ID: "practical_tip", Label: "Consells Pràctics", Icon: "💡"},
+		{ID: "transport", Label: "Transport", Icon: "🚆"},
+		{ID: "anecdote", Label: "Anècdotes", Icon: "📖"},
+	}
+
+	var items []InspirationItem
+	for _, tripList := range m.publicTrips {
+		for _, trip := range tripList {
+			tripCopy := trip
+			items = append(items, InspirationItem{
+				Type:            "itinerary",
+				ID:              trip.ID,
+				Title:           trip.Title,
+				Category:        "itineraries",
+				DestinationName: "Tokyo",
+				Author:          trip.Author,
+				UsefulCount:     trip.CompanionsCount,
+				TripSummary:     &tripCopy,
+				CreatedAt:       time.Now(),
+			})
+		}
+	}
+	for _, rec := range m.recs {
+		items = append(items, InspirationItem{
+			Type:            "recommendation",
+			ID:              rec.ID,
+			Title:           rec.Title,
+			Description:     rec.Description,
+			Category:        rec.Category,
+			DestinationName: "Tokyo",
+			UsefulCount:     rec.UsefulVotesCount,
+			CreatedAt:       rec.CreatedAt,
+		})
+	}
+
+	var filtered []InspirationItem
+	for _, it := range items {
+		if category != "" && category != "all" && it.Category != category {
+			continue
+		}
+		filtered = append(filtered, it)
+	}
+
+	return &InspirationResponse{
+		Items:      filtered,
+		Categories: cats,
+		Total:      len(filtered),
+	}, nil
+}
+
+
 func TestCommunityService_SearchAndDetail(t *testing.T) {
 	repo := newMockCommunityRepo()
 	svc := NewService(repo)
@@ -590,5 +647,79 @@ func TestHandler_ListPublicTrips(t *testing.T) {
 		t.Fatalf("expected status 404 for unknown destination, got %d", w3.Code)
 	}
 }
+
+func TestCommunityService_InspirationFeed(t *testing.T) {
+	repo := newMockCommunityRepo()
+	svc := NewService(repo)
+
+	// Add recommendation
+	_, _ = svc.CreateRecommendation("town-tokyo", "user-1", CreateRecommendationRequest{
+		Category:    "food",
+		Title:       "Ramen Bar",
+		Description: "Deliciós ramen",
+	})
+
+	// 1. Get Feed 'all'
+	feed, err := svc.GetInspirationFeed("", "all", "", 20, 0, "")
+	if err != nil {
+		t.Fatalf("unexpected error getting inspiration feed: %v", err)
+	}
+	if len(feed.Categories) != 7 {
+		t.Errorf("expected 7 standard categories, got %d", len(feed.Categories))
+	}
+	if feed.Total < 2 {
+		t.Errorf("expected at least 2 items (trip + rec), got total %d", feed.Total)
+	}
+
+	// 2. Get Feed 'itineraries'
+	itFeed, err := svc.GetInspirationFeed("", "itineraries", "", 20, 0, "")
+	if err != nil {
+		t.Fatalf("unexpected error getting itineraries: %v", err)
+	}
+	for _, item := range itFeed.Items {
+		if item.Type != "itinerary" {
+			t.Errorf("expected type 'itinerary', got %s", item.Type)
+		}
+	}
+
+	// 3. Get Feed 'food'
+	foodFeed, err := svc.GetInspirationFeed("", "food", "", 20, 0, "")
+	if err != nil {
+		t.Fatalf("unexpected error getting food feed: %v", err)
+	}
+	for _, item := range foodFeed.Items {
+		if item.Type != "recommendation" || item.Category != "food" {
+			t.Errorf("expected food recommendation, got type=%s category=%s", item.Type, item.Category)
+		}
+	}
+}
+
+func TestHandler_GetInspirationFeed(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	repo := newMockCommunityRepo()
+	svc := NewService(repo)
+	handler := NewHandler(svc)
+
+	r := gin.New()
+	r.GET("/inspiration", handler.GetInspirationFeed)
+
+	req, _ := http.NewRequest(http.MethodGet, "/inspiration?category=all&limit=10&offset=0", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d. Body: %s", w.Code, w.Body.String())
+	}
+
+	var resp InspirationResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to unmarshal InspirationResponse: %v", err)
+	}
+	if len(resp.Categories) != 7 {
+		t.Errorf("expected 7 categories, got %d", len(resp.Categories))
+	}
+}
+
 
 

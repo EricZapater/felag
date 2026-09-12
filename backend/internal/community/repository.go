@@ -3,6 +3,7 @@ package community
 import (
 	"database/sql"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -24,6 +25,7 @@ type Repository interface {
 	CreateLiveMoment(townID, userID, tripID, imageURL string, caption *string) (*LiveMoment, error)
 	CreateReport(reporterID, targetType, targetID, reason string, details *string) error
 	ListPublicTripsByDestination(info *DestinationInfo, limit, offset int) ([]PublicTripSummary, error)
+	GetInspirationFeed(q, category, countryCode string, limit, offset int, currentUserID string) (*InspirationResponse, error)
 }
 
 type repository struct {
@@ -1804,3 +1806,447 @@ func (r *repository) ListPublicTripsByDestination(info *DestinationInfo, limit, 
 
 	return results, nil
 }
+
+func (r *repository) GetInspirationFeed(q, category, countryCode string, limit, offset int, currentUserID string) (*InspirationResponse, error) {
+	if r.db == nil {
+		return nil, fmt.Errorf("database connection is nil")
+	}
+
+	categories := []InspirationCategory{
+		{ID: "all", Label: "Tot", Icon: "✨"},
+		{ID: "itineraries", Label: "Itineraris", Icon: "🗺️"},
+		{ID: "food", Label: "Gastronomia", Icon: "🍽️"},
+		{ID: "hidden_gem", Label: "Racons Secrets", Icon: "💎"},
+		{ID: "practical_tip", Label: "Consells Pràctics", Icon: "💡"},
+		{ID: "transport", Label: "Transport", Icon: "🚆"},
+		{ID: "anecdote", Label: "Anècdotes", Icon: "📖"},
+	}
+
+	cleanCategory := strings.TrimSpace(category)
+	cleanQ := strings.TrimSpace(q)
+	cleanCC := strings.TrimSpace(countryCode)
+
+	var items []InspirationItem
+
+	fetchTrips := cleanCategory == "" || cleanCategory == "all" || cleanCategory == "itineraries"
+	fetchRecs := cleanCategory == "" || cleanCategory == "all" || (cleanCategory != "itineraries")
+
+	if fetchTrips {
+		tripItems, err := r.fetchInspirationTrips(cleanQ, cleanCC)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching inspiration trips: %w", err)
+		}
+		items = append(items, tripItems...)
+	}
+
+	if fetchRecs {
+		recCategory := cleanCategory
+		if recCategory == "all" {
+			recCategory = ""
+		}
+		recItems, err := r.fetchInspirationRecommendations(cleanQ, recCategory, cleanCC, currentUserID)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching inspiration recommendations: %w", err)
+		}
+		items = append(items, recItems...)
+	}
+
+	// Sort items
+	sort.SliceStable(items, func(i, j int) bool {
+		if items[i].UsefulCount != items[j].UsefulCount {
+			return items[i].UsefulCount > items[j].UsefulCount
+		}
+		return items[i].CreatedAt.After(items[j].CreatedAt)
+	})
+
+	total := len(items)
+	if offset < 0 {
+		offset = 0
+	}
+	if offset > total {
+		offset = total
+	}
+
+	end := offset + limit
+	if limit <= 0 {
+		end = total
+	} else if end > total {
+		end = total
+	}
+
+	pagedItems := items[offset:end]
+	if pagedItems == nil {
+		pagedItems = []InspirationItem{}
+	}
+
+	return &InspirationResponse{
+		Items:      pagedItems,
+		Categories: categories,
+		Total:      total,
+	}, nil
+}
+
+func (r *repository) fetchInspirationTrips(q, countryCode string) ([]InspirationItem, error) {
+	var conditions []string
+	var args []interface{}
+	argIdx := 1
+
+	conditions = append(conditions, "tr.visibility = 'public'")
+
+	if countryCode != "" {
+		conditions = append(conditions, fmt.Sprintf(`EXISTS (
+			SELECT 1 FROM trip_stages ts 
+			WHERE ts.trip_id = tr.id AND (ts.country_code ILIKE $%d OR ts.destination_name ILIKE $%d)
+		)`, argIdx, argIdx))
+		args = append(args, countryCode)
+		argIdx++
+	}
+
+	if q != "" {
+		conditions = append(conditions, fmt.Sprintf(`(
+			tr.title ILIKE $%d OR 
+			COALESCE(tr.description, '') ILIKE $%d OR 
+			EXISTS (SELECT 1 FROM trip_stages ts WHERE ts.trip_id = tr.id AND ts.destination_name ILIKE $%d)
+		)`, argIdx, argIdx, argIdx))
+		args = append(args, "%"+q+"%")
+		argIdx++
+	}
+
+	query := fmt.Sprintf(`
+		SELECT tr.id, tr.title, tr.description, tr.start_date, tr.end_date, tr.created_at,
+		       u.id AS author_id, ut.name AS author_town, ur.name AS author_region, uc.name AS author_country,
+		       COALESCE((SELECT COUNT(*) FROM trip_companions tc WHERE tc.trip_id = tr.id AND tc.status = 'accepted'), 0) AS companions_count
+		FROM trips tr
+		JOIN users u ON tr.user_id = u.id
+		LEFT JOIN towns ut ON u.town_id = ut.id
+		LEFT JOIN regions ur ON ut.region_id = ur.id
+		LEFT JOIN countries uc ON ur.country_id = uc.id
+		WHERE %s
+		ORDER BY tr.created_at DESC
+		LIMIT 100
+	`, strings.Join(conditions, " AND "))
+
+	rows, err := r.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []PublicTripSummary
+	var createdAts []time.Time
+	var tripIDs []string
+
+	for rows.Next() {
+		var pts PublicTripSummary
+		var desc sql.NullString
+		var sDate, eDate, cTime time.Time
+		var authorID string
+		var authorTown, authorRegion, authorCountry sql.NullString
+
+		if err := rows.Scan(
+			&pts.ID,
+			&pts.Title,
+			&desc,
+			&sDate,
+			&eDate,
+			&cTime,
+			&authorID,
+			&authorTown,
+			&authorRegion,
+			&authorCountry,
+			&pts.CompanionsCount,
+		); err != nil {
+			return nil, err
+		}
+
+		if desc.Valid {
+			pts.Description = &desc.String
+		}
+		pts.StartDate = sDate.Format("2006-01-02")
+		pts.EndDate = eDate.Format("2006-01-02")
+		pts.TotalDays, pts.FormattedPeriod = calculateTripPeriodAndDays(pts.StartDate, pts.EndDate)
+
+		pts.Author.ID = authorID
+		if authorTown.Valid && authorTown.String != "" {
+			pts.Author.TownName = &authorTown.String
+			pts.Author.AnonymousTitle = fmt.Sprintf("Un felagi de %s", authorTown.String)
+		} else if authorRegion.Valid && authorRegion.String != "" {
+			pts.Author.RegionName = &authorRegion.String
+			pts.Author.AnonymousTitle = fmt.Sprintf("Un felagi de %s", authorRegion.String)
+		} else {
+			pts.Author.AnonymousTitle = "Un felagi de la teva terra"
+		}
+		if authorCountry.Valid && authorCountry.String != "" {
+			pts.Author.CountryName = &authorCountry.String
+		}
+
+		pts.Stages = []PublicTripStage{}
+		pts.Photos = []PublicTripPhoto{}
+
+		results = append(results, pts)
+		createdAts = append(createdAts, cTime)
+		tripIDs = append(tripIDs, pts.ID)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(results) == 0 {
+		return []InspirationItem{}, nil
+	}
+
+	// Fetch stages
+	stageQuery := `
+		SELECT id, trip_id, stage_order, destination_name, country_code, town_id, start_date, end_date
+		FROM trip_stages
+		WHERE trip_id = ANY($1)
+		ORDER BY trip_id, stage_order ASC
+	`
+	if sRows, err := r.db.Query(stageQuery, pq.Array(tripIDs)); err == nil {
+		defer sRows.Close()
+		stagesByTrip := make(map[string][]PublicTripStage)
+		for sRows.Next() {
+			var st PublicTripStage
+			var tID string
+			var sOrder int
+			var cc, townID sql.NullString
+			var stStart, stEnd time.Time
+			if err := sRows.Scan(&st.ID, &tID, &sOrder, &st.DestinationName, &cc, &townID, &stStart, &stEnd); err == nil {
+				if cc.Valid {
+					st.CountryCode = &cc.String
+				}
+				if townID.Valid {
+					st.TownID = &townID.String
+				}
+				st.StartDate = stStart.Format("2006-01-02")
+				st.EndDate = stEnd.Format("2006-01-02")
+				stagesByTrip[tID] = append(stagesByTrip[tID], st)
+			}
+		}
+		for i := range results {
+			if stList, exists := stagesByTrip[results[i].ID]; exists {
+				results[i].Stages = stList
+			}
+		}
+	}
+
+	// Fetch photos
+	photoQuery := `
+		SELECT id, trip_id, image_url, caption, is_featured
+		FROM trip_photos
+		WHERE trip_id = ANY($1)
+		ORDER BY trip_id, is_featured DESC, created_at DESC
+	`
+	if pRows, err := r.db.Query(photoQuery, pq.Array(tripIDs)); err == nil {
+		defer pRows.Close()
+		photosByTrip := make(map[string][]PublicTripPhoto)
+		for pRows.Next() {
+			var ph PublicTripPhoto
+			var tID string
+			var cap sql.NullString
+			if err := pRows.Scan(&ph.ID, &tID, &ph.ImageURL, &cap, &ph.IsFeatured); err == nil {
+				if cap.Valid {
+					ph.Caption = &cap.String
+				}
+				photosByTrip[tID] = append(photosByTrip[tID], ph)
+			}
+		}
+		for i := range results {
+			if phList, exists := photosByTrip[results[i].ID]; exists {
+				results[i].Photos = phList
+			}
+		}
+	}
+
+	var items []InspirationItem
+	for i, pts := range results {
+		destID := ""
+		destName := ""
+		var ccPtr *string
+		if len(pts.Stages) > 0 {
+			if pts.Stages[0].TownID != nil {
+				destID = *pts.Stages[0].TownID
+			}
+			destName = pts.Stages[0].DestinationName
+			ccPtr = pts.Stages[0].CountryCode
+		}
+		if destName == "" {
+			destName = pts.Title
+		}
+
+		var imgURL *string
+		if len(pts.Photos) > 0 && pts.Photos[0].ImageURL != "" {
+			imgURL = &pts.Photos[0].ImageURL
+		}
+
+		desc := ""
+		if pts.Description != nil {
+			desc = *pts.Description
+		}
+
+		tripCopy := pts
+		items = append(items, InspirationItem{
+			Type:            "itinerary",
+			ID:              pts.ID,
+			Title:           pts.Title,
+			Description:     desc,
+			Category:        "itineraries",
+			DestinationID:   destID,
+			DestinationName: destName,
+			CountryCode:     ccPtr,
+			ImageURL:        imgURL,
+			Author:          pts.Author,
+			UsefulCount:     pts.CompanionsCount,
+			UserHasVoted:    false,
+			CreatedAt:       createdAts[i],
+			TripSummary:     &tripCopy,
+			LocationName:    nil,
+		})
+	}
+
+	return items, nil
+}
+
+func (r *repository) fetchInspirationRecommendations(q, category, countryCode, currentUserID string) ([]InspirationItem, error) {
+	var conditions []string
+	var args []interface{}
+	argIdx := 1
+
+	conditions = append(conditions, "dr.is_public = TRUE")
+
+	if category != "" && category != "all" {
+		conditions = append(conditions, fmt.Sprintf("dr.category = $%d", argIdx))
+		args = append(args, category)
+		argIdx++
+	}
+
+	if countryCode != "" {
+		conditions = append(conditions, fmt.Sprintf(`(
+			dr.country_code ILIKE $%d OR 
+			c.code ILIKE $%d OR 
+			c.name ILIKE $%d
+		)`, argIdx, argIdx, argIdx))
+		args = append(args, countryCode)
+		argIdx++
+	}
+
+	if q != "" {
+		conditions = append(conditions, fmt.Sprintf(`(
+			dr.title ILIKE $%d OR 
+			dr.description ILIKE $%d OR 
+			COALESCE(dr.location_name, '') ILIKE $%d OR 
+			COALESCE(t.name, '') ILIKE $%d OR 
+			COALESCE(c.name, '') ILIKE $%d
+		)`, argIdx, argIdx, argIdx, argIdx, argIdx))
+		args = append(args, "%"+q+"%")
+		argIdx++
+	}
+
+	userVoteArg := currentUserID
+	if userVoteArg == "" {
+		userVoteArg = "00000000-0000-0000-0000-000000000000"
+	}
+	args = append(args, userVoteArg)
+	userVoteIdx := argIdx
+	argIdx++
+
+	query := fmt.Sprintf(`
+		SELECT dr.id, COALESCE(dr.town_id::text, dr.country_code, '') AS destination_id, dr.category, dr.title, dr.description,
+		       dr.image_url, dr.location_name, dr.useful_votes_count, dr.created_at, dr.country_code,
+		       COALESCE(t.name, c.name, dr.location_name, '') AS destination_name,
+		       u.id AS author_id, ut.name AS author_town, ur.name AS author_region, uc.name AS author_country,
+		       EXISTS(SELECT 1 FROM recommendation_votes rv WHERE rv.recommendation_id = dr.id AND rv.user_id = $%d) AS user_has_voted
+		FROM destination_recommendations dr
+		JOIN users u ON dr.user_id = u.id
+		LEFT JOIN towns t ON dr.town_id = t.id
+		LEFT JOIN regions r ON t.region_id = r.id
+		LEFT JOIN countries c ON (r.country_id = c.id OR dr.country_code = c.code)
+		LEFT JOIN towns ut ON u.town_id = ut.id
+		LEFT JOIN regions ur ON ut.region_id = ur.id
+		LEFT JOIN countries uc ON ur.country_id = uc.id
+		WHERE %s
+		ORDER BY dr.useful_votes_count DESC, dr.created_at DESC
+		LIMIT 100
+	`, userVoteIdx, strings.Join(conditions, " AND "))
+
+	rows, err := r.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []InspirationItem
+	for rows.Next() {
+		var item InspirationItem
+		var imgURL, locName, cCode sql.NullString
+		var destID, destName, cat, title, desc string
+		var usefulCount int
+		var createdAt time.Time
+		var userHasVoted bool
+		var authorID string
+		var authorTown, authorRegion, authorCountry sql.NullString
+
+		if err := rows.Scan(
+			&item.ID,
+			&destID,
+			&cat,
+			&title,
+			&desc,
+			&imgURL,
+			&locName,
+			&usefulCount,
+			&createdAt,
+			&cCode,
+			&destName,
+			&authorID,
+			&authorTown,
+			&authorRegion,
+			&authorCountry,
+			&userHasVoted,
+		); err != nil {
+			return nil, err
+		}
+
+		item.Type = "recommendation"
+		item.Category = cat
+		item.Title = title
+		item.Description = desc
+		item.DestinationID = destID
+		item.DestinationName = destName
+		item.UsefulCount = usefulCount
+		item.UserHasVoted = userHasVoted
+		item.CreatedAt = createdAt
+
+		if imgURL.Valid && imgURL.String != "" {
+			item.ImageURL = &imgURL.String
+		}
+		if locName.Valid && locName.String != "" {
+			item.LocationName = &locName.String
+		}
+		if cCode.Valid && cCode.String != "" {
+			item.CountryCode = &cCode.String
+		}
+
+		item.Author.ID = authorID
+		if authorTown.Valid && authorTown.String != "" {
+			item.Author.TownName = &authorTown.String
+			item.Author.AnonymousTitle = fmt.Sprintf("Un felagi de %s", authorTown.String)
+		} else if authorRegion.Valid && authorRegion.String != "" {
+			item.Author.RegionName = &authorRegion.String
+			item.Author.AnonymousTitle = fmt.Sprintf("Un felagi de %s", authorRegion.String)
+		} else {
+			item.Author.AnonymousTitle = "Un felagi de la teva terra"
+		}
+		if authorCountry.Valid && authorCountry.String != "" {
+			item.Author.CountryName = &authorCountry.String
+		}
+
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return items, nil
+}
+

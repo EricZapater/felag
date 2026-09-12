@@ -2,6 +2,7 @@ package notification
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,6 +26,8 @@ type Service interface {
 	MarkAsRead(notificationID, userID string) error
 	MarkAllAsRead(userID string) error
 	SendNotification(userID string, notifType, title, body string, data map[string]interface{}) (*Notification, error)
+	SendPushNotification(ctx context.Context, pushTokens []string, title, body string, data map[string]interface{}) error
+	GetPushTokensByUserID(userID string) ([]string, error)
 }
 
 type service struct {
@@ -96,6 +99,68 @@ func (s *service) MarkAllAsRead(userID string) error {
 	return s.repo.MarkAllAsRead(userID)
 }
 
+func (s *service) GetPushTokensByUserID(userID string) ([]string, error) {
+	return s.repo.GetPushTokensByUserID(userID)
+}
+
+func (s *service) SendPushNotification(ctx context.Context, pushTokens []string, title, body string, data map[string]interface{}) error {
+	var validTokens []string
+	seen := make(map[string]bool)
+	for _, tok := range pushTokens {
+		trimmed := strings.TrimSpace(tok)
+		if trimmed != "" && !seen[trimmed] {
+			seen[trimmed] = true
+			validTokens = append(validTokens, trimmed)
+		}
+	}
+
+	if len(validTokens) == 0 {
+		return nil
+	}
+
+	messages := make([]ExpoPushMessage, 0, len(validTokens))
+	for _, tok := range validTokens {
+		messages = append(messages, ExpoPushMessage{
+			To:        tok,
+			Title:     title,
+			Body:      body,
+			Data:      data,
+			Sound:     "default",
+			ChannelID: "matches",
+		})
+	}
+
+	payloadBytes, err := json.Marshal(messages)
+	if err != nil {
+		return fmt.Errorf("error codificant payload expo push: %w", err)
+	}
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.pushURL, bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		return fmt.Errorf("error creant petició expo push: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept-Encoding", "gzip, deflate")
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("error executant petició expo push: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("resposta no satisfactòria d'Expo push API: status %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
 func (s *service) SendNotification(userID string, notifType, title, body string, data map[string]interface{}) (*Notification, error) {
 	if notifType == "" {
 		notifType = "new_match"
@@ -126,19 +191,7 @@ func (s *service) SendNotification(userID string, notifType, title, body string,
 			return
 		}
 
-		messages := make([]ExpoPushMessage, 0, len(tokens))
-		for _, tok := range tokens {
-			messages = append(messages, ExpoPushMessage{
-				To:        tok,
-				Title:     title,
-				Body:      body,
-				Data:      data,
-				Sound:     "default",
-				ChannelID: "matches",
-			})
-		}
-
-		if err := s.sendExpoPush(messages); err != nil {
+		if err := s.SendPushNotification(context.Background(), tokens, title, body, data); err != nil {
 			log.Printf("[Notification] Error enviant push a Expo per a usuari %s: %v", userID, err)
 		}
 	}()
@@ -146,34 +199,3 @@ func (s *service) SendNotification(userID string, notifType, title, body string,
 	return n, nil
 }
 
-func (s *service) sendExpoPush(messages []ExpoPushMessage) error {
-	if len(messages) == 0 {
-		return nil
-	}
-
-	payloadBytes, err := json.Marshal(messages)
-	if err != nil {
-		return fmt.Errorf("error codificant payload expo push: %w", err)
-	}
-
-	req, err := http.NewRequest(http.MethodPost, s.pushURL, bytes.NewBuffer(payloadBytes))
-	if err != nil {
-		return fmt.Errorf("error creant petició expo push: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json; charset=utf-8")
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Accept-Encoding", "gzip, deflate")
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("error executant petició expo push: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("resposta no satisfactòria d'Expo push API: status %d", resp.StatusCode)
-	}
-
-	return nil
-}
