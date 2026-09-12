@@ -1,16 +1,19 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   Image,
   RefreshControl,
   ScrollView,
-  Share,
   StyleSheet,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Button, Card, HelperText, Text } from 'react-native-paper';
+import { Button, HelperText, Text } from 'react-native-paper';
+import { captureRef } from 'react-native-view-shot';
+import * as Sharing from 'expo-sharing';
+import * as MediaLibrary from 'expo-media-library';
 import { usePostTripStore } from '../store';
 
 interface Props {
@@ -37,46 +40,107 @@ export default function InstagramStoriesScreen({ navigation, route }: Props) {
   const tripId = route?.params?.tripId || '';
   const fallbackTitle = route?.params?.tripTitle || 'Japó: Tòquio i Kyoto';
 
+  const cardRef = useRef<View>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [selectedPhotoCount, setSelectedPhotoCount] = useState<number>(4);
+
   const {
     storiesCardData,
+    photos: albumPhotos,
     isLoading,
     error,
     fetchStoriesCardData,
+    fetchPhotos,
   } = usePostTripStore();
 
   useEffect(() => {
     if (tripId) {
       fetchStoriesCardData(tripId);
+      fetchPhotos(tripId);
     }
-  }, [tripId, fetchStoriesCardData]);
+  }, [tripId, fetchStoriesCardData, fetchPhotos]);
 
   const onRefresh = () => {
     if (tripId) {
       fetchStoriesCardData(tripId);
+      fetchPhotos(tripId);
     }
   };
 
-  const handleShareStories = async () => {
-    const title = storiesCardData?.trip_title || fallbackTitle;
-    const author = storiesCardData?.author_name || 'Un viatger';
-    const origin = storiesCardData?.author_origin || 'Catalunya';
-    const totalDays = storiesCardData?.total_days || 15;
-    const felagisMet = storiesCardData?.felagis_met_count || 3;
+  const allAvailablePhotos = Array.from(
+    new Set([
+      ...(storiesCardData?.featured_photos || []),
+      ...(albumPhotos?.map((p) => p.image_url) || []),
+      ...FALLBACK_PHOTOS,
+    ])
+  );
 
+  const activePhotos = allAvailablePhotos.slice(0, selectedPhotoCount);
+
+  // Native Image Sharing with Expo Sharing (Instagram Stories, WhatsApp, etc.)
+  const handleShareStories = async () => {
+    if (!cardRef.current) return;
     try {
-      await Share.share({
-        title: `FELAG Story — ${title}`,
-        message: `✨ ${title} ✨\n👤 ${author} (${origin})\n📅 ${totalDays} dies de viatge • 👥 ${felagisMet} FELAGIS coneguts!\n\nViatja pel món, connecta amb la teva terra ✈️ https://felag.app`,
+      setIsExporting(true);
+      const uri = await captureRef(cardRef, {
+        format: 'png',
+        quality: 1.0,
+        result: 'tmpfile',
       });
-    } catch (err) {
-      // User cancelled share
+
+      const isSharingAvailable = await Sharing.isAvailableAsync();
+      if (isSharingAvailable) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'image/png',
+          dialogTitle: `Compartir Stories 9:16 — ${storiesCardData?.trip_title || fallbackTitle}`,
+          UTI: 'public.png',
+        });
+      } else {
+        Alert.alert(
+          'Compartir no disponible',
+          'La compartició de fitxers no està suportada en aquest dispositiu.'
+        );
+      }
+    } catch (err: any) {
+      Alert.alert('Error', 'No s’ha pogut generar la imatge per compartir.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Save real image to Camera Roll
+  const handleSaveToGallery = async () => {
+    if (!cardRef.current) return;
+    try {
+      setIsExporting(true);
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permís necessari',
+          'Cal concedir permís d’accés a la galeria per desar la imatge.'
+        );
+        return;
+      }
+
+      const uri = await captureRef(cardRef, {
+        format: 'png',
+        quality: 1.0,
+        result: 'tmpfile',
+      });
+
+      await MediaLibrary.saveToLibraryAsync(uri);
+      Alert.alert(
+        '📥 Desat al carret!',
+        'La targeta 9:16 s’ha guardat correctament a la galeria de fotos del dispositiu.'
+      );
+    } catch (err: any) {
+      Alert.alert('Error', 'No s’ha pogut desar la imatge a la galeria.');
+    } finally {
+      setIsExporting(false);
     }
   };
 
   const data = storiesCardData;
-  const photos = data?.featured_photos && data.featured_photos.length > 0
-    ? data.featured_photos
-    : FALLBACK_PHOTOS;
 
   return (
     <View style={styles.container}>
@@ -114,12 +178,38 @@ export default function InstagramStoriesScreen({ navigation, route }: Props) {
             />
           }
         >
-          <Text style={styles.previewSubtitle}>
-            Previsualització del reportatge preparat per a Instagram & TikTok Stories:
-          </Text>
+          {/* Informative notice */}
+          <View style={styles.infoBanner}>
+            <Text style={styles.infoText}>
+              ℹ️ <Text style={{ fontWeight: 'bold' }}>Plantilla Stories 9:16:</Text> Admet de 1 a 4 fotos per oferir un disseny net i impactant a xarxes.
+            </Text>
+          </View>
 
-          {/* 9:16 Vertical Story Card */}
-          <View style={styles.storyCard}>
+          {/* Layout Selector Chips */}
+          <View style={styles.layoutSelectorRow}>
+            {[1, 2, 3, 4].map((cnt) => (
+              <TouchableOpacity
+                key={cnt}
+                onPress={() => setSelectedPhotoCount(cnt)}
+                style={[
+                  styles.layoutChip,
+                  selectedPhotoCount === cnt && styles.layoutChipActive,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.layoutChipText,
+                    selectedPhotoCount === cnt && styles.layoutChipTextActive,
+                  ]}
+                >
+                  {cnt === 1 ? '1 Hero' : `${cnt} Fotos`}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* 9:16 Vertical Story Card (Captured as Image) */}
+          <View ref={cardRef} collapsable={false} style={styles.storyCard}>
             {/* Top Bar */}
             <View style={styles.storyTop}>
               <View style={styles.brandRow}>
@@ -135,7 +225,7 @@ export default function InstagramStoriesScreen({ navigation, route }: Props) {
             </Text>
 
             <Text style={styles.storyAuthor}>
-              {data?.author_name || 'Èric Zapater'} {data?.author_origin ? `• ${data.author_origin}` : '• Terrassa'}
+              {data?.author_name || 'FELAGI'} {data?.author_origin ? `• ${data.author_origin}` : '• Catalunya'}
             </Text>
 
             {/* 3 Stats Chips */}
@@ -154,14 +244,41 @@ export default function InstagramStoriesScreen({ navigation, route }: Props) {
               </View>
             </View>
 
-            {/* 2x2 Photo Mosaic */}
-            <View style={styles.mosaicGrid}>
-              {photos.slice(0, 4).map((url, i) => (
-                <View key={i} style={styles.mosaicItem}>
-                  <Image source={{ uri: url }} style={styles.mosaicImage} />
+            {/* Dynamic Photo Mosaic / Layout */}
+            {selectedPhotoCount === 1 ? (
+              <View style={styles.heroPhotoContainer}>
+                <Image source={{ uri: activePhotos[0] }} style={styles.heroImage} />
+              </View>
+            ) : selectedPhotoCount === 2 ? (
+              <View style={styles.splitPhotoContainer}>
+                {activePhotos.map((url, i) => (
+                  <View key={i} style={styles.splitItem}>
+                    <Image source={{ uri: url }} style={styles.splitImage} />
+                  </View>
+                ))}
+              </View>
+            ) : selectedPhotoCount === 3 ? (
+              <View style={styles.collagePhotoContainer}>
+                <View style={styles.collageTop}>
+                  <Image source={{ uri: activePhotos[0] }} style={styles.collageTopImage} />
                 </View>
-              ))}
-            </View>
+                <View style={styles.collageBottomRow}>
+                  {activePhotos.slice(1, 3).map((url, i) => (
+                    <View key={i} style={styles.collageBottomItem}>
+                      <Image source={{ uri: url }} style={styles.collageBottomImage} />
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : (
+              <View style={styles.mosaicGrid}>
+                {activePhotos.slice(0, 4).map((url, i) => (
+                  <View key={i} style={styles.mosaicItem}>
+                    <Image source={{ uri: url }} style={styles.mosaicImage} />
+                  </View>
+                ))}
+              </View>
+            )}
 
             {/* Slogan Footer */}
             <View style={styles.storyFooter}>
@@ -172,14 +289,30 @@ export default function InstagramStoriesScreen({ navigation, route }: Props) {
             </View>
           </View>
 
-          {/* Share Button */}
-          <TouchableOpacity
-            style={styles.shareBtn}
-            activeOpacity={0.85}
-            onPress={handleShareStories}
-          >
-            <Text style={styles.shareBtnText}>📲 Compartir a Instagram Stories</Text>
-          </TouchableOpacity>
+          {/* Action Buttons: Native Share Image + Save to Gallery */}
+          <View style={styles.actionsContainer}>
+            <TouchableOpacity
+              style={styles.shareBtn}
+              activeOpacity={0.85}
+              disabled={isExporting}
+              onPress={handleShareStories}
+            >
+              {isExporting ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Text style={styles.shareBtnText}>📲 Compartir Imatge (Stories / WhatsApp)</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.saveBtn}
+              activeOpacity={0.85}
+              disabled={isExporting}
+              onPress={handleSaveToGallery}
+            >
+              <Text style={styles.saveBtnText}>📥 Guardar al Carret</Text>
+            </TouchableOpacity>
+          </View>
 
           <Button
             mode="text"
@@ -187,7 +320,7 @@ export default function InstagramStoriesScreen({ navigation, route }: Props) {
             onPress={() => navigation.navigate('TripGallery', { tripId, tripTitle: fallbackTitle })}
             style={{ marginTop: 6 }}
           >
-            🖼️ Canviar fotos destacades a l'àlbum
+            🖼️ Canviar fotos de l'àlbum
           </Button>
         </ScrollView>
       )}
@@ -245,6 +378,47 @@ const styles = StyleSheet.create({
     color: '#786C65',
     textAlign: 'center',
     marginBottom: 16,
+  },
+  infoBanner: {
+    backgroundColor: 'rgba(200, 90, 50, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(200, 90, 50, 0.25)',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 12,
+    width: cardWidth,
+  },
+  infoText: {
+    fontSize: 12,
+    color: '#5C4339',
+    lineHeight: 16,
+    textAlign: 'center',
+  },
+  layoutSelectorRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 16,
+    width: cardWidth,
+  },
+  layoutChip: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#C85A32',
+    backgroundColor: '#FFFFFF',
+  },
+  layoutChipActive: {
+    backgroundColor: '#C85A32',
+  },
+  layoutChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#C85A32',
+  },
+  layoutChipTextActive: {
+    color: '#FFFFFF',
   },
   storyCard: {
     width: cardWidth,
@@ -319,6 +493,66 @@ const styles = StyleSheet.create({
     opacity: 0.8,
     marginTop: 2,
   },
+  heroPhotoContainer: {
+    width: '100%',
+    height: 180,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 14,
+    backgroundColor: '#4A3B32',
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  splitPhotoContainer: {
+    flexDirection: 'column',
+    gap: 8,
+    marginBottom: 14,
+  },
+  splitItem: {
+    width: '100%',
+    height: 85,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: '#4A3B32',
+  },
+  splitImage: {
+    width: '100%',
+    height: '100%',
+  },
+  collagePhotoContainer: {
+    flexDirection: 'column',
+    gap: 8,
+    marginBottom: 14,
+  },
+  collageTop: {
+    width: '100%',
+    height: 100,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: '#4A3B32',
+  },
+  collageTopImage: {
+    width: '100%',
+    height: '100%',
+  },
+  collageBottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  collageBottomItem: {
+    width: mosaicItemWidth,
+    height: 75,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: '#4A3B32',
+  },
+  collageBottomImage: {
+    width: '100%',
+    height: '100%',
+  },
   mosaicGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -355,8 +589,12 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     marginTop: 2,
   },
-  shareBtn: {
+  actionsContainer: {
     width: cardWidth,
+    gap: 10,
+  },
+  shareBtn: {
+    width: '100%',
     backgroundColor: '#C85A32',
     borderRadius: 14,
     paddingVertical: 14,
@@ -370,6 +608,18 @@ const styles = StyleSheet.create({
   shareBtnText: {
     color: '#FFFFFF',
     fontWeight: '800',
-    fontSize: 15,
+    fontSize: 14,
+  },
+  saveBtn: {
+    width: '100%',
+    backgroundColor: '#2C221E',
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  saveBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 13,
   },
 });

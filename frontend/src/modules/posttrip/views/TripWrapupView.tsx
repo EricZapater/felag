@@ -36,8 +36,10 @@ export default function TripWrapupView() {
   const {
     wrapupStatus,
     storiesCardData,
+    photos,
     fetchWrapupStatus,
     fetchStoriesCardData,
+    fetchTripPhotos,
     submitTripFeedback,
     isLoading,
     error,
@@ -58,8 +60,9 @@ export default function TripWrapupView() {
       fetchTripById(tripId);
       fetchWrapupStatus(tripId);
       fetchStoriesCardData(tripId);
+      fetchTripPhotos(tripId);
     }
-  }, [tripId, fetchTripById, fetchWrapupStatus, fetchStoriesCardData]);
+  }, [tripId, fetchTripById, fetchWrapupStatus, fetchStoriesCardData, fetchTripPhotos]);
 
   const handleSubmitFeedback = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -461,7 +464,7 @@ export default function TripWrapupView() {
                 <CircularProgress sx={{ color: '#C85A32' }} />
               </Box>
             ) : (
-              <InstagramStoriesCard data={activeStoriesData} />
+              <InstagramStoriesCard data={activeStoriesData} availablePhotos={photos} />
             )}
           </Box>
         </Box>

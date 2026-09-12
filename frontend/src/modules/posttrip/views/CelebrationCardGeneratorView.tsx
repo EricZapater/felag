@@ -126,98 +126,149 @@ export default function CelebrationCardGeneratorView() {
     }
   };
 
+  // Helper to load image securely for canvas (avoiding CORS issues)
+  const loadImgSecurely = async (src: string): Promise<HTMLImageElement> => {
+    try {
+      const resp = await fetch(src, { mode: 'cors' });
+      if (resp.ok) {
+        const blob = await resp.blob();
+        const objUrl = URL.createObjectURL(blob);
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => resolve(createFallbackImg());
+          img.src = objUrl;
+        });
+      }
+    } catch {
+      // Direct load fallback
+    }
+
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(createFallbackImg());
+      img.src = src;
+    });
+  };
+
+  const createFallbackImg = (): HTMLImageElement => {
+    const fallback = new Image();
+    fallback.src =
+      'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="500"><rect fill="%233E2F29" width="600" height="500"/><text fill="%23FFE082" x="50%" y="50%" text-anchor="middle" font-size="32" font-family="sans-serif">FELAG 🎉</text></svg>';
+    return fallback;
+  };
+
+  const generateCelebrationCanvas = async (): Promise<string> => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 800;
+    canvas.height = 1000;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Could not get 2d context');
+
+    // Card Background
+    ctx.fillStyle = '#FAF7F2';
+    ctx.fillRect(0, 0, 800, 1000);
+
+    // Outer Border
+    ctx.strokeStyle = '#C85A32';
+    ctx.lineWidth = 14;
+    ctx.strokeRect(7, 7, 786, 986);
+
+    // Inner Header Badge
+    ctx.fillStyle = '#FDEEE9';
+    ctx.beginPath();
+    ctx.roundRect(240, 50, 320, 56, 16);
+    ctx.fill();
+
+    ctx.fillStyle = '#C85A32';
+    ctx.font = 'bold 24px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🎉 ENS HEM TROBAT!', 400, 87);
+
+    // Load and draw photo
+    const img = await loadImgSecurely(selfieUrl);
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(60, 140, 680, 540, 24);
+    ctx.clip();
+    ctx.drawImage(img, 60, 140, 680, 540);
+    ctx.restore();
+
+    // Headlines
+    ctx.fillStyle = '#2C221E';
+    ctx.font = 'bold 36px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    const headline = previewCard?.headline || defaultHeadline;
+    ctx.fillText(headline.length > 36 ? headline.slice(0, 36) + '...' : headline, 400, 740);
+
+    ctx.fillStyle = '#6B5E57';
+    ctx.font = '500 26px -apple-system, sans-serif';
+    const subheadline = previewCard?.subheadline || defaultSubheadline;
+    ctx.fillText(subheadline, 400, 800);
+
+    // Footer divider
+    ctx.strokeStyle = '#E8E2D9';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(60, 880);
+    ctx.lineTo(740, 880);
+    ctx.stroke();
+
+    ctx.fillStyle = '#C85A32';
+    ctx.font = 'bold 22px -apple-system, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(`FELAG • ${currentTrip?.title || 'Viatge'}`, 60, 930);
+
+    ctx.textAlign = 'right';
+    ctx.fillText(new Date().toLocaleDateString('ca-ES'), 740, 930);
+
+    return canvas.toDataURL('image/png');
+  };
+
   // Canvas PNG Download
   const handleDownloadPNG = async () => {
     try {
-      const canvas = document.createElement('canvas');
-      canvas.width = 800;
-      canvas.height = 1000;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-
-      // Card Background
-      ctx.fillStyle = '#FAF7F2';
-      ctx.fillRect(0, 0, 800, 1000);
-
-      // Outer Border
-      ctx.strokeStyle = '#C85A32';
-      ctx.lineWidth = 14;
-      ctx.strokeRect(7, 7, 786, 986);
-
-      // Inner Header Badge
-      ctx.fillStyle = '#FDEEE9';
-      ctx.beginPath();
-      ctx.roundRect(240, 50, 320, 56, 16);
-      ctx.fill();
-
-      ctx.fillStyle = '#C85A32';
-      ctx.font = 'bold 24px -apple-system, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('🎉 ENS HEM TROBAT!', 400, 87);
-
-      // Load Image
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        ctx.save();
-        ctx.beginPath();
-        ctx.roundRect(60, 140, 680, 540, 24);
-        ctx.clip();
-        ctx.drawImage(img, 60, 140, 680, 540);
-        ctx.restore();
-
-        // Headlines
-        ctx.fillStyle = '#2C221E';
-        ctx.font = 'bold 36px -apple-system, sans-serif';
-        ctx.fillText(defaultHeadline.slice(0, 38), 400, 740);
-
-        ctx.fillStyle = '#6B5E57';
-        ctx.font = '500 26px -apple-system, sans-serif';
-        ctx.fillText(defaultSubheadline, 400, 800);
-
-        // Footer divider
-        ctx.strokeStyle = '#E8E2D9';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(60, 880);
-        ctx.lineTo(740, 880);
-        ctx.stroke();
-
-        ctx.fillStyle = '#C85A32';
-        ctx.font = 'bold 22px -apple-system, sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText(`FELAG • ${currentTrip?.title || 'Viatge'}`, 60, 930);
-
-        ctx.textAlign = 'right';
-        ctx.fillText(new Date().toLocaleDateString('ca-ES'), 740, 930);
-
-        const dataUrl = canvas.toDataURL('image/png');
-        const link = document.createElement('a');
-        link.download = `Celebration-Card-${user2Name.replace(/\s+/g, '-')}.png`;
-        link.href = dataUrl;
-        link.click();
-        setSuccessMessage('Targeta de celebració descarregada en PNG! 📥');
-      };
-      img.src = selfieUrl;
+      const dataUrl = await generateCelebrationCanvas();
+      const link = document.createElement('a');
+      link.download = `Celebration-Card-${user2Name.replace(/\s+/g, '-')}.png`;
+      link.href = dataUrl;
+      link.click();
+      setSuccessMessage('Targeta de celebració descarregada en PNG! 📥');
     } catch {
       setSuccessMessage('Error en descarregar la targeta.');
     }
   };
 
   const handleShare = async () => {
-    if (navigator.share) {
-      try {
+    try {
+      const dataUrl = await generateCelebrationCanvas();
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      const file = new File([blob], 'celebration-card.png', { type: 'image/png' });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `Ens hem trobat a ${locationName}!`,
+          text: defaultHeadline,
+        });
+        setSuccessMessage('Targeta compartida! 📲');
+      } else if (navigator.share) {
         await navigator.share({
           title: `Ens hem trobat a ${locationName}!`,
           text: defaultHeadline,
           url: window.location.href,
         });
-        setSuccessMessage('Targeta compartida!');
-      } catch {
-        // Ignored share abort
+        setSuccessMessage('Enllaç compartit!');
+      } else {
+        handleDownloadPNG();
       }
-    } else {
-      handleDownloadPNG();
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        handleDownloadPNG();
+      }
     }
   };
 

@@ -1,17 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Image,
   RefreshControl,
   ScrollView,
-  Share,
   StyleSheet,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { Button, Card, HelperText, Text, TextInput } from 'react-native-paper';
 import * as ImagePicker from 'expo-image-picker';
+import { captureRef } from 'react-native-view-shot';
+import * as Sharing from 'expo-sharing';
+import * as MediaLibrary from 'expo-media-library';
 import { usePostTripStore } from '../store';
 import { CelebrationCard } from '../types';
 
@@ -33,6 +35,9 @@ export default function CelebrationCardScreen({ navigation, route }: Props) {
   const tripId = route?.params?.tripId || '';
   const tripTitle = route?.params?.tripTitle || 'Viatge';
   const destinationName = route?.params?.destinationName || 'Destinació';
+
+  const cardRefs = useRef<{ [key: string]: View | null }>({});
+  const [isExporting, setIsExporting] = useState(false);
 
   const {
     celebrationCards,
@@ -163,15 +168,30 @@ export default function CelebrationCardScreen({ navigation, route }: Props) {
   };
 
   const handleShareCard = async (card: CelebrationCard) => {
+    const targetRef = cardRefs.current[card.id];
+    if (!targetRef) return;
     try {
-      const message = `🎉 ${card.title}\n${card.headline}\n${card.subheadline || ''} • ${card.location_name}\n\nCreat amb FELAG ✈️`;
-      await Share.share({
-        title: card.title,
-        message,
-        url: card.image_url,
+      setIsExporting(true);
+      const uri = await captureRef(targetRef, {
+        format: 'png',
+        quality: 1.0,
+        result: 'tmpfile',
       });
+
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (isAvailable) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'image/png',
+          dialogTitle: `Compartir Celebration Card — ${card.headline}`,
+          UTI: 'public.png',
+        });
+      } else {
+        Alert.alert('Compartició no suportada', 'La compartició de fitxers no està disponible en aquest dispositiu.');
+      }
     } catch (err) {
-      // User cancelled share
+      Alert.alert('Error', 'No s’ha pogut generar la imatge per compartir.');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -191,8 +211,30 @@ export default function CelebrationCardScreen({ navigation, route }: Props) {
     );
   };
 
-  const handleSaveToGallery = () => {
-    Alert.alert('📥 Guardat!', 'La Celebration Card s’ha desat correctament al teu carret.');
+  const handleSaveToGallery = async (card: CelebrationCard) => {
+    const targetRef = cardRefs.current[card.id];
+    if (!targetRef) return;
+    try {
+      setIsExporting(true);
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permís necessari', 'Cal concedir permís per desar fotos al teu dispositiu.');
+        return;
+      }
+
+      const uri = await captureRef(targetRef, {
+        format: 'png',
+        quality: 1.0,
+        result: 'tmpfile',
+      });
+
+      await MediaLibrary.saveToLibraryAsync(uri);
+      Alert.alert('📥 Guardat!', 'La Celebration Card s’ha desat correctament a la teva galeria de fotos.');
+    } catch {
+      Alert.alert('Error', 'No s’ha pogut desar la imatge a la galeria.');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const activeCard: CelebrationCard | null =
@@ -376,7 +418,13 @@ export default function CelebrationCardScreen({ navigation, route }: Props) {
                 return (
                   <View key={card.id} style={styles.cardContainer}>
                     {/* Commemorative Celebration Card */}
-                    <View style={styles.celebrationCard}>
+                    <View
+                      ref={(r) => {
+                        cardRefs.current[card.id] = r;
+                      }}
+                      collapsable={false}
+                      style={styles.celebrationCard}
+                    >
                       <View style={styles.badgeWrap}>
                         <Text style={styles.badgeText}>🎉 ENS HEM TROBAT!</Text>
                       </View>
@@ -410,13 +458,13 @@ export default function CelebrationCardScreen({ navigation, route }: Props) {
                         activeOpacity={0.8}
                         onPress={() => handleShareCard(card)}
                       >
-                        <Text style={styles.btnPrimaryText}>📲 Enviar al Xat & Compartir</Text>
+                        <Text style={styles.btnPrimaryText}>📲 Compartir Imatge</Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
                         style={styles.btnSecondary}
                         activeOpacity={0.8}
-                        onPress={handleSaveToGallery}
+                        onPress={() => handleSaveToGallery(card)}
                       >
                         <Text style={styles.btnSecondaryText}>📥 Desar al Carret</Text>
                       </TouchableOpacity>
