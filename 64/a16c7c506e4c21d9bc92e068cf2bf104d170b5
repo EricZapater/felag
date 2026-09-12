@@ -1,0 +1,96 @@
+backend/cmd/api/main.go
+  h_42175f19913982 108,171-172,204-206,216-217
+backend/internal/auth/handler.go
+  h_42175f19913982 105-196
+backend/internal/auth/model.go
+  h_42175f19913982 48-85
+backend/internal/auth/repository.go
+  h_42175f19913982 16-22,129-246
+backend/internal/auth/service.go
+  h_42175f19913982 4-8,11-13,24-26,35-38,155-293
+backend/internal/auth/service_test.go
+  h_42175f19913982 1-337
+backend/internal/community/handler.go
+  h_42175f19913982 327-360
+backend/internal/community/model.go
+  h_42175f19913982 165-195
+backend/internal/community/repository.go
+  h_42175f19913982 6,28,1809-2252
+backend/internal/community/service.go
+  h_42175f19913982 50,331-342
+backend/internal/community/service_test.go
+  h_42175f19913982 284-340,651-724
+backend/internal/db/migrations/000014_create_user_devices_and_otps.down.sql
+  h_42175f19913982 1-7
+backend/internal/db/migrations/000014_create_user_devices_and_otps.up.sql
+  h_42175f19913982 1-29
+backend/internal/matching/service.go
+  h_42175f19913982 8-9,21-22,26-27,34-61
+backend/internal/matching/service_test.go
+  h_42175f19913982 272-305
+backend/internal/matching/worker.go
+  h_42175f19913982 69,74
+backend/internal/matching/worker_test.go
+  h_42175f19913982 4,15,33-44,70-77,117
+backend/internal/notification/repository.go
+  h_42175f19913982 61-63
+backend/internal/notification/service.go
+  h_42175f19913982 5,29-30,102-163,194
+backend/internal/notification/service_test.go
+  h_42175f19913982 202-240
+frontend/src/components/AppHeader.tsx
+  h_42175f19913982 57-58,141,143,145,150
+frontend/src/modules/inspiration/api.ts
+  h_42175f19913982 1-385
+frontend/src/modules/inspiration/components/CreateInspirationDialog.tsx
+  h_42175f19913982 1-427
+frontend/src/modules/inspiration/store.ts
+  h_42175f19913982 1-113
+frontend/src/modules/inspiration/types.ts
+  h_42175f19913982 1-75
+frontend/src/modules/inspiration/views/InspirationView.tsx
+  h_42175f19913982 1-947
+frontend/src/router/index.tsx
+  h_42175f19913982 25,142-149
+mobile/package.json
+  h_42175f19913982 27-28
+mobile/src/modules/auth/api.ts
+  h_42175f19913982 2-11,24-30,39-58
+mobile/src/modules/auth/screens/LoginScreen.tsx
+  h_42175f19913982 2-3,6-7,9,12-23,25-26,29-49,54-60,62-100,102-251,257,273,275,279-295,297,301-342,344-363
+mobile/src/modules/auth/storage.ts
+  h_42175f19913982 1-51
+mobile/src/modules/auth/store.ts
+  h_42175f19913982 2-3,5,8-15,21,24,26,28,31-34,36-37,44,47,49-150,156,164-167,170-174,176,184,192-195,198-202,204-297,303,308,311-315,321,323,326-328,330-338
+mobile/src/modules/auth/types.ts
+  h_42175f19913982 39-64
+mobile/src/modules/inspiration/api.ts
+  h_42175f19913982 1-384
+mobile/src/modules/inspiration/screens/InspirationScreen.tsx
+  h_42175f19913982 1-760
+mobile/src/modules/inspiration/store.ts
+  h_42175f19913982 1-169
+mobile/src/modules/inspiration/types.ts
+  h_42175f19913982 1-75
+mobile/src/modules/notifications/push.ts
+  h_42175f19913982 1-95
+mobile/src/modules/notifications/services/pushTokenService.ts
+  h_42175f19913982 1-5
+mobile/src/modules/profile/screens/ProfileScreen.tsx
+  h_42175f19913982 2-3,9,15,19-20,35,40-48,53-59,61-62,85,110,118-122,168-243,255-258,263,280-295,314-383
+mobile/src/navigation/index.tsx
+  h_42175f19913982 20,33,46-49,74-75,79-80,95-115,130,142-143,149,184-186,226,237,251,254,260,263,268,271,275,308,366
+pnpm-lock.yaml
+  h_42175f19913982 81-86,1138-1140,1736-1738,1814-1816,2354-2358,2399-2408,2755-2758,2857-2860,3437-3440,4388-4390,6016-6017,6753-6760,6889-6890,7517-7520,7577-7595,8003-8007,8098-8102,8767-8771,9827-9834
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "64a16c7c506e4c21d9bc92e068cf2bf104d170b5",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
