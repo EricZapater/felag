@@ -136,8 +136,21 @@ export default function CelebrationCardGeneratorView() {
     }
   };
 
-  // Helper to load image securely for canvas (avoiding CORS issues)
+  // Helper to load image securely for canvas (avoiding CORS issues and canvas tainting)
   const loadImgSecurely = async (src: string): Promise<HTMLImageElement> => {
+    if (!src) return createFallbackImg();
+
+    // 1. Direct base64 or blob URL (100% safe, no CORS required)
+    if (src.startsWith('data:image/') || src.startsWith('blob:')) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(createFallbackImg());
+        img.src = src;
+      });
+    }
+
+    // 2. Try direct CORS fetch as Blob
     try {
       const resp = await fetch(src, { mode: 'cors' });
       if (resp.ok) {
@@ -151,9 +164,29 @@ export default function CelebrationCardGeneratorView() {
         });
       }
     } catch {
-      // Direct load fallback
+      // Direct CORS fetch failed, try proxy
     }
 
+    // 3. Fallback to FELAG Backend Proxy (adds Access-Control-Allow-Origin: * and streams safely)
+    try {
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      const proxyUrl = `${apiBase}/api/v1/storage/proxy?url=${encodeURIComponent(src)}`;
+      const proxyResp = await fetch(proxyUrl);
+      if (proxyResp.ok) {
+        const blob = await proxyResp.blob();
+        const objUrl = URL.createObjectURL(blob);
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => resolve(createFallbackImg());
+          img.src = objUrl;
+        });
+      }
+    } catch {
+      // Proxy fetch failed
+    }
+
+    // 4. Last-resort direct Image object load
     return new Promise((resolve) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';

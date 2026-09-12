@@ -4,10 +4,13 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/gin-gonic/gin"
 )
 
 func TestStorageLocalFallback(t *testing.T) {
@@ -130,3 +133,36 @@ func TestStorageR2Upload(t *testing.T) {
 		t.Errorf("expected body 'avatar-bytes', got '%s'", string(receivedBody))
 	}
 }
+
+func TestProxyMediaHandler_SSRF(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	svc := NewStorageService()
+
+	router := gin.New()
+	router.GET("/api/v1/storage/proxy", svc.ProxyMediaHandler)
+
+	// 1. Missing URL
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/storage/proxy", nil)
+	router.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for missing url, got %d", w.Code)
+	}
+
+	// 2. Localhost / internal host SSRF
+	w = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/storage/proxy?url=http://localhost:8080/internal", nil)
+	router.ServeHTTP(w, req)
+	if w.Code != http.StatusForbidden {
+		t.Errorf("expected 403 for localhost, got %d", w.Code)
+	}
+
+	// 3. Private IP SSRF
+	w = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/storage/proxy?url=http://127.0.0.1:8080/secret", nil)
+	router.ServeHTTP(w, req)
+	if w.Code != http.StatusForbidden {
+		t.Errorf("expected 403 for 127.0.0.1, got %d", w.Code)
+	}
+}
+

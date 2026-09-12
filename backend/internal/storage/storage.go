@@ -12,6 +12,7 @@ import (
 	"io"
 	"log"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -19,6 +20,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 // StorageService defines the interface for file/image storage operations.
@@ -33,6 +36,8 @@ type StorageService interface {
 	IsBase64Image(data string) bool
 	// IsR2Enabled returns true if Cloudflare R2 is configured and active.
 	IsR2Enabled() bool
+	// ProxyMediaHandler streams external/R2 media with permissive CORS and SSRF protection.
+	ProxyMediaHandler(c *gin.Context)
 }
 
 type storageService struct {
@@ -379,3 +384,103 @@ func getEnvAny(keys ...string) string {
 	}
 	return ""
 }
+
+// ProxyMediaHandler fetches and streams external or R2 media with permissive CORS and SSRF protection.
+func (s *storageService) ProxyMediaHandler(c *gin.Context) {
+	rawURL := strings.TrimSpace(c.Query("url"))
+	if rawURL == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "url parameter is required"})
+		return
+	}
+
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "only http and https schemes are supported"})
+		return
+	}
+
+	host := parsedURL.Hostname()
+	if host == "" || host == "localhost" || strings.HasSuffix(host, ".local") || strings.HasSuffix(host, ".internal") {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access to internal network is forbidden"})
+		return
+	}
+
+	// Resolve host to ensure no private/loopback IPs (SSRF protection)
+	ips, err := net.LookupIP(host)
+	if err != nil || len(ips) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to resolve host"})
+		return
+	}
+
+	for _, ip := range ips {
+		if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() {
+			c.JSON(http.StatusForbidden, gin.H{"error": "access to private IP addresses is forbidden"})
+			return
+		}
+	}
+
+	// Create client with strict timeout and redirect limits
+	client := &http.Client{
+		Timeout: 12 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 3 {
+				return fmt.Errorf("too many redirects")
+			}
+			redirectHost := req.URL.Hostname()
+			redirectIPs, err := net.LookupIP(redirectHost)
+			if err != nil {
+				return fmt.Errorf("failed to resolve redirect host: %w", err)
+			}
+			for _, ip := range redirectIPs {
+				if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() {
+					return fmt.Errorf("redirect to private IP is forbidden")
+				}
+			}
+			return nil
+		},
+	}
+
+	req, err := http.NewRequestWithContext(c.Request.Context(), http.MethodGet, rawURL, nil)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		return
+	}
+	req.Header.Set("User-Agent", "FELAG-Media-Proxy/1.0")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": fmt.Sprintf("failed to fetch upstream media: %v", err)})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		c.JSON(http.StatusBadGateway, gin.H{"error": fmt.Sprintf("upstream returned status %d", resp.StatusCode)})
+		return
+	}
+
+	// Read maximum 15MB to prevent memory exhaustion
+	maxBytes := int64(15 * 1024 * 1024)
+	limitedReader := io.LimitReader(resp.Body, maxBytes)
+	data, err := io.ReadAll(limitedReader)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read media stream"})
+		return
+	}
+
+	contentType := resp.Header.Get("Content-Type")
+	if contentType == "" || contentType == "application/octet-stream" {
+		contentType = http.DetectContentType(data)
+	}
+
+	if !strings.HasPrefix(strings.ToLower(contentType), "image/") {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "upstream resource is not an image"})
+		return
+	}
+
+	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+	c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+	c.Writer.Header().Set("Cache-Control", "public, max-age=86400, immutable")
+	c.Data(http.StatusOK, contentType, data)
+}
+

@@ -204,6 +204,9 @@ func main() {
 		// Inspiration feed public / optional auth route
 		v1.GET("/inspiration", shared.OptionalAuthMiddleware(), communityHandler.GetInspirationFeed)
 
+		// Media storage proxy route (bypasses CORS for canvas export with SSRF protection)
+		v1.GET("/storage/proxy", storageService.ProxyMediaHandler)
+
 		// WebSocket route for real-time chat (handles auth token via query param or header)
 		v1.GET("/ws/chat", chatHandler.HandleWebSocket)
 
