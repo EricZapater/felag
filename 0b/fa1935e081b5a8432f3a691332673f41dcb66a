@@ -1,0 +1,22 @@
+backend/cmd/api/main.go
+  h_42175f19913982 207-209
+backend/internal/storage/storage.go
+  h_42175f19913982 15,23-24,39-40,387-486
+backend/internal/storage/storage_test.go
+  h_42175f19913982 7,12-13,136-168
+frontend/src/modules/posttrip/components/InstagramStoriesCard.tsx
+  h_42175f19913982 131,133-145,159-178,181
+frontend/src/modules/posttrip/views/CelebrationCardGeneratorView.tsx
+  h_42175f19913982 139,141-153,167-186,189
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "0bfa1935e081b5a8432f3a691332673f41dcb66a",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
