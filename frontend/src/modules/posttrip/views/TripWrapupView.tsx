@@ -40,6 +40,7 @@ export default function TripWrapupView() {
     fetchWrapupStatus,
     fetchStoriesCardData,
     fetchTripPhotos,
+    addTripPhoto,
     submitTripFeedback,
     isLoading,
     error,
@@ -464,7 +465,19 @@ export default function TripWrapupView() {
                 <CircularProgress sx={{ color: '#C85A32' }} />
               </Box>
             ) : (
-              <InstagramStoriesCard data={activeStoriesData} availablePhotos={photos} />
+              <InstagramStoriesCard
+                data={activeStoriesData}
+                availablePhotos={photos}
+                onPhotoUploaded={async (base64) => {
+                  if (tripId) {
+                    try {
+                      await addTripPhoto(tripId, { image_url: base64, is_featured: true });
+                    } catch {
+                      // Handled by store
+                    }
+                  }
+                }}
+              />
             )}
           </Box>
         </Box>

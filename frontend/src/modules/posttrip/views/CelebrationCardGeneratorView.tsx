@@ -33,7 +33,9 @@ export default function CelebrationCardGeneratorView() {
   const { profile, fetchProfile } = useProfileStore();
   const {
     celebrationCards,
+    photos: tripPhotos,
     fetchCelebrationCards,
+    fetchTripPhotos,
     createCelebrationCard,
     error,
   } = usePostTripStore();
@@ -56,9 +58,17 @@ export default function CelebrationCardGeneratorView() {
       fetchTripById(tripId);
       fetchTripMatches(tripId);
       fetchCelebrationCards(tripId);
+      fetchTripPhotos(tripId);
     }
     fetchProfile();
-  }, [tripId, fetchTripById, fetchTripMatches, fetchCelebrationCards, fetchProfile]);
+  }, [tripId, fetchTripById, fetchTripMatches, fetchCelebrationCards, fetchTripPhotos, fetchProfile]);
+
+  // Set default photo from album if available
+  useEffect(() => {
+    if (tripPhotos.length > 0 && selfieUrl.includes('images.unsplash.com')) {
+      setSelfieUrl(tripPhotos[0].image_url);
+    }
+  }, [tripPhotos.length]);
 
   // Set default selected felagi if matches loaded
   useEffect(() => {
@@ -375,6 +385,50 @@ export default function CelebrationCardGeneratorView() {
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#2C221E', mb: 1 }}>
                 Foto / Selfie de la trobada
               </Typography>
+
+              {tripPhotos.length > 0 && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="caption" sx={{ color: '#786C65', display: 'block', mb: 0.75 }}>
+                    📸 Tria directament una foto del teu àlbum de viatge:
+                  </Typography>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      gap: 1,
+                      overflowX: 'auto',
+                      pb: 1,
+                    }}
+                  >
+                    {tripPhotos.map((photo) => {
+                      const isSelected = selfieUrl === photo.image_url;
+                      return (
+                        <Box
+                          key={photo.id}
+                          onClick={() => setSelfieUrl(photo.image_url)}
+                          sx={{
+                            width: 68,
+                            height: 68,
+                            flexShrink: 0,
+                            borderRadius: 2,
+                            overflow: 'hidden',
+                            cursor: 'pointer',
+                            border: isSelected ? '3px solid #C85A32' : '1px solid #E8E2D9',
+                            boxShadow: isSelected ? '0 0 8px rgba(200,90,50,0.4)' : 'none',
+                          }}
+                        >
+                          <Box
+                            component="img"
+                            src={photo.image_url}
+                            alt="Foto viatge"
+                            sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                </Box>
+              )}
+
               <Button
                 variant="outlined"
                 component="label"

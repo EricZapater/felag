@@ -20,6 +20,7 @@ import { StoriesCardData, TripPhoto } from '../types';
 interface InstagramStoriesCardProps {
   data: StoriesCardData;
   availablePhotos?: TripPhoto[];
+  onPhotoUploaded?: (base64: string) => Promise<void> | void;
 }
 
 const DEFAULT_FALLBACK_PHOTOS = [
@@ -29,14 +30,17 @@ const DEFAULT_FALLBACK_PHOTOS = [
   'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&auto=format&fit=crop&q=80',
 ];
 
-export default function InstagramStoriesCard({ data, availablePhotos = [] }: InstagramStoriesCardProps) {
+export default function InstagramStoriesCard({ data, availablePhotos = [], onPhotoUploaded }: InstagramStoriesCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState<string | null>(null);
+  const [localUploadedPhotos, setLocalUploadedPhotos] = useState<string[]>([]);
+  const [hasManuallyCustomized, setHasManuallyCustomized] = useState(false);
 
-  // Pool of all candidate photo URLs from trip album or data
+  // Pool of all candidate photo URLs from trip album, data or local uploads
   const candidateUrls: string[] = Array.from(
     new Set([
+      ...localUploadedPhotos,
       ...(availablePhotos.map((p) => p.image_url).filter(Boolean)),
       ...(data.featured_photos || []).filter(Boolean),
     ])
@@ -53,11 +57,46 @@ export default function InstagramStoriesCard({ data, availablePhotos = [] }: Ins
   const [isSlideshowActive, setIsSlideshowActive] = useState(false);
   const [slideshowIndex, setSlideshowIndex] = useState(0);
 
+  // Sync selectedPhotos when real candidateUrls arrive from server (or local upload)
   useEffect(() => {
-    if (candidateUrls.length > 0 && selectedPhotos.length === 0) {
-      setSelectedPhotos(candidateUrls.slice(0, 4));
+    if (candidateUrls.length > 0) {
+      const isCurrentlyUsingFallback =
+        selectedPhotos.length === 0 ||
+        selectedPhotos.every((p) => DEFAULT_FALLBACK_PHOTOS.includes(p));
+
+      if (isCurrentlyUsingFallback || !hasManuallyCustomized) {
+        setSelectedPhotos(candidateUrls.slice(0, 4));
+      }
     }
-  }, [candidateUrls.length]);
+  }, [JSON.stringify(candidateUrls), hasManuallyCustomized]);
+
+  const handleDirectFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        if (typeof reader.result === 'string') {
+          const base64Str = reader.result;
+          setLocalUploadedPhotos((prev) => [base64Str, ...prev]);
+          setSelectedPhotos((prev) => {
+            const filtered = prev.filter((p) => !DEFAULT_FALLBACK_PHOTOS.includes(p));
+            return [base64Str, ...filtered].slice(0, 4);
+          });
+          setHasManuallyCustomized(true);
+          setSnackbarMessage('Foto afegida correctament a la plantilla! 📸');
+
+          if (onPhotoUploaded) {
+            try {
+              await onPhotoUploaded(base64Str);
+            } catch {
+              // Handled quietly
+            }
+          }
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // Slideshow timer
   useEffect(() => {
@@ -73,6 +112,7 @@ export default function InstagramStoriesCard({ data, availablePhotos = [] }: Ins
   }, [isSlideshowActive, candidateUrls.length]);
 
   const togglePhotoSelection = (url: string) => {
+    setHasManuallyCustomized(true);
     if (selectedPhotos.includes(url)) {
       if (selectedPhotos.length <= 1) {
         setSnackbarMessage('Cal mantenir almenys 1 foto a la plantilla.');
@@ -377,7 +417,7 @@ export default function InstagramStoriesCard({ data, availablePhotos = [] }: Ins
         </Typography>
       </Box>
 
-      {/* Controls Bar: Layout / Photo Picker / Slideshow Toggle */}
+      {/* Controls Bar: Layout / Photo Picker / Upload / Slideshow Toggle */}
       <Box
         sx={{
           display: 'flex',
@@ -385,6 +425,7 @@ export default function InstagramStoriesCard({ data, availablePhotos = [] }: Ins
           mb: 2,
           flexWrap: 'wrap',
           justifyContent: 'center',
+          alignItems: 'center',
         }}
       >
         <Button
@@ -403,7 +444,26 @@ export default function InstagramStoriesCard({ data, availablePhotos = [] }: Ins
             '&:hover': { bgcolor: showPhotoSelector ? '#A0471D' : 'rgba(200,90,50,0.08)' },
           }}
         >
-          {showPhotoSelector ? 'Tancar Selecció' : `Triar Fotos (${selectedPhotos.length}/4)`}
+          {showPhotoSelector ? 'Tancar Fotos' : `Triar Fotos (${selectedPhotos.length}/4)`}
+        </Button>
+
+        <Button
+          size="small"
+          variant="outlined"
+          component="label"
+          sx={{
+            textTransform: 'none',
+            fontSize: '0.78rem',
+            fontWeight: 700,
+            borderRadius: 2,
+            borderColor: '#C85A32',
+            color: '#C85A32',
+            bgcolor: 'rgba(200,90,50,0.04)',
+            '&:hover': { bgcolor: 'rgba(200,90,50,0.1)' },
+          }}
+        >
+          📁 + Afegir Foto
+          <input type="file" accept="image/*" hidden onChange={handleDirectFileUpload} />
         </Button>
 
         {candidateUrls.length > 1 && (
@@ -451,64 +511,105 @@ export default function InstagramStoriesCard({ data, availablePhotos = [] }: Ins
             />
           </Box>
 
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: 1,
-              maxHeight: 180,
-              overflowY: 'auto',
-              p: 0.5,
-            }}
-          >
-            {candidateUrls.map((url, idx) => {
-              const isSelected = selectedPhotos.includes(url);
-              return (
-                <Box
-                  key={idx}
-                  onClick={() => togglePhotoSelection(url)}
+          {candidateUrls.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 2 }}>
+              <Typography sx={{ fontSize: '0.8rem', color: '#786C65', mb: 1.5 }}>
+                Encara no hi ha fotos a l'àlbum d'aquest viatge. Puja'n una ara mateix per afegir-la a la plantilla!
+              </Typography>
+              <Button
+                variant="contained"
+                size="small"
+                component="label"
+                sx={{
+                  bgcolor: '#C85A32',
+                  color: '#FFFFFF',
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  borderRadius: 2,
+                  '&:hover': { bgcolor: '#A0471D' },
+                }}
+              >
+                📁 Pujar foto local...
+                <input type="file" accept="image/*" hidden onChange={handleDirectFileUpload} />
+              </Button>
+            </Box>
+          ) : (
+            <>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gap: 1,
+                  maxHeight: 180,
+                  overflowY: 'auto',
+                  p: 0.5,
+                }}
+              >
+                {candidateUrls.map((url, idx) => {
+                  const isSelected = selectedPhotos.includes(url);
+                  return (
+                    <Box
+                      key={idx}
+                      onClick={() => togglePhotoSelection(url)}
+                      sx={{
+                        position: 'relative',
+                        width: '100%',
+                        pt: '100%',
+                        borderRadius: 1.5,
+                        overflow: 'hidden',
+                        cursor: 'pointer',
+                        border: isSelected ? '3px solid #C85A32' : '1px solid #E8E2D9',
+                        boxShadow: isSelected ? '0 0 8px rgba(200,90,50,0.4)' : 'none',
+                      }}
+                    >
+                      <Box
+                        component="img"
+                        src={url}
+                        alt={`Opció ${idx + 1}`}
+                        sx={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          opacity: isSelected ? 1 : 0.6,
+                        }}
+                      />
+                      {isSelected && (
+                        <CheckCircleIcon
+                          sx={{
+                            position: 'absolute',
+                            top: 2,
+                            right: 2,
+                            color: '#C85A32',
+                            bgcolor: '#FFFFFF',
+                            borderRadius: '50%',
+                            fontSize: 16,
+                          }}
+                        />
+                      )}
+                    </Box>
+                  );
+                })}
+              </Box>
+              <Box sx={{ mt: 1.5, textAlign: 'center' }}>
+                <Button
+                  size="small"
+                  component="label"
                   sx={{
-                    position: 'relative',
-                    width: '100%',
-                    pt: '100%',
-                    borderRadius: 1.5,
-                    overflow: 'hidden',
-                    cursor: 'pointer',
-                    border: isSelected ? '3px solid #C85A32' : '1px solid #E8E2D9',
-                    boxShadow: isSelected ? '0 0 8px rgba(200,90,50,0.4)' : 'none',
+                    color: '#C85A32',
+                    textTransform: 'none',
+                    fontWeight: 700,
+                    fontSize: '0.75rem',
                   }}
                 >
-                  <Box
-                    component="img"
-                    src={url}
-                    alt={`Opció ${idx + 1}`}
-                    sx={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      opacity: isSelected ? 1 : 0.6,
-                    }}
-                  />
-                  {isSelected && (
-                    <CheckCircleIcon
-                      sx={{
-                        position: 'absolute',
-                        top: 2,
-                        right: 2,
-                        color: '#C85A32',
-                        bgcolor: '#FFFFFF',
-                        borderRadius: '50%',
-                        fontSize: 16,
-                      }}
-                    />
-                  )}
-                </Box>
-              );
-            })}
-          </Box>
+                  📁 + Pujar una altra foto des del dispositiu
+                  <input type="file" accept="image/*" hidden onChange={handleDirectFileUpload} />
+                </Button>
+              </Box>
+            </>
+          )}
         </Box>
       )}
 
