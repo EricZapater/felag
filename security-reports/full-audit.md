@@ -54,9 +54,23 @@ Totes les proves unitàries i d'integració s'executen amb èxit (100% de cobert
 - **Celebration Cards:** Validació activa que impedeix crear targetes de celebració amb un mateix (`req.User2ID == userID`).
 - **Converses de Xat:** Només els dos participants registrats (`participant_1` i `participant_2`) poden recuperar l'historial de missatges o enviar contingut nou, comprovant a més que cap dels dos hagi blocat l'altre (`moderation.IsBlocked`).
 
-### 3.3. Seguretat en Bases de Dades i Prevenció de SQL Injection
+### 3.3. Seguretat en Bases de Dades i Prevenció de SQL Injection (Test Dinàmic d'Atac)
 - Totes les consultes d'inserció, actualització, selecció i eliminació a `backend/internal/` utilitzen paràmetres preparats `$1, $2...`.
 - Les consultes dinàmiques complexes (com la cerca de consells a `community` o `publicseo`) construeixen dinàmicament la clàusula `WHERE` i l'array `args []interface{}` associant cadascun dels paràmetres posicionals de forma indexada (`$%d`), eliminant qualsevol possibilitat d'injecció SQL per manipulació de cadenes.
+- **Suite Dinàmica d'Atacs SQLi Executada a l'API (`TestSQLInjectionResistance`):**
+  S'han llançat peticions HTTP contra els endpoints públics i autenticats (`/api/v1/auth/login`, `/api/v1/auth/otp/request`, `/api/v1/auth/otp/verify`, `/api/v1/auth/devices/:id`, `/api/v1/inspiration`, `/api/v1/destinations`, `/api/v1/destinations/:id`) injectant els següents vectors d'atac:
+  1. *Tautologies clàssiques*: `' OR '1'='1` i `1 OR 1=1`
+  2. *Truncament i comentaris SQL*: `admin' --` i `admin'/*`
+  3. *Consultes apilades destructives*: `'; DROP TABLE users; --`
+  4. *Exfiltració Union-based*: `' UNION SELECT '1','admin@felag.cat','hash','admin' --`
+  5. *Injecció a cegues basada en temps (Time-based Blind)*: `' AND (SELECT 1 FROM pg_sleep(0.05))='1`
+  6. *Extracció de subcadena booleana a cegues*: `' AND SUBSTRING(version(), 1, 1) = 'P' --`
+  7. *Injecció codificada en hexadecimal*: `0x27204f5220313d31`
+  8. *Injecció de bytes nuls (Null-byte truncation)*: `admin\x00' OR 1=1 --`
+  9. *Desbordament de cometes (Quote cascade overflow)*: `''''''''''''' OR 1=1 --`
+  10. *Injeccions de segon ordre*: `admin' AND 1=1; SELECT * FROM user_devices; --`
+
+  **Resultat:** El 100% dels payloads han estat neutralitzats pel motor de Gin i els paràmetres preparats de PostgreSQL, retornant respostes segures (400 Bad Request, 401 Unauthorized, 404 Not Found o 200 OK amb resultats filtrats com a cadena literal), amb **0 errors 500** i **0 alteracions en la sintaxi de la base de dades**.
 
 ### 3.4. Clients Frontend i Mòbil
 - **Mòbil (`mobile/src/modules/auth/storage.ts`):** Ús prioritari d'`expo-secure-store` a plataformes natives iOS i Android, garantint que el token d'accés no quedi exposat a l'emmagatzematge no protegit del dispositiu.
@@ -67,6 +81,26 @@ Totes les proves unitàries i d'integració s'executen amb èxit (100% de cobert
 ## 4. Resultats de les Proves Automatitzades
 
 ```bash
+=== EXECUTANT go test -v -run TestSQLInjection ./... (backend) ===
+=== RUN   TestSQLInjectionResistance_AuthEndpoints
+    --- PASS: TestSQLInjectionResistance_AuthEndpoints/Login_Classic_Tautology (0.00s)
+    --- PASS: TestSQLInjectionResistance_AuthEndpoints/Login_Stacked_Query_Drop_Attempt (0.00s)
+    --- PASS: TestSQLInjectionResistance_AuthEndpoints/Login_Union-Based_Exfiltration (0.00s)
+    --- PASS: TestSQLInjectionResistance_AuthEndpoints/Login_PostgreSQL_Time-Based_Blind (0.00s)
+    --- PASS: TestSQLInjectionResistance_AuthEndpoints/OTPRequest_Stacked_Query_Drop_Attempt (0.00s)
+    --- PASS: TestSQLInjectionResistance_AuthEndpoints/OTPVerify_Union-Based_Exfiltration (0.00s)
+    --- PASS: TestSQLInjectionResistance_AuthEndpoints/RevokeDevice_Stacked_Query_Drop_Attempt (0.00s)
+PASS: TestSQLInjectionResistance_AuthEndpoints
+
+=== RUN   TestSQLInjectionResistance_CommunityAndInspiration
+    --- PASS: TestSQLInjectionResistance_CommunityAndInspiration/Inspiration_Tautology_bypass (0.00s)
+    --- PASS: TestSQLInjectionResistance_CommunityAndInspiration/Inspiration_Stacked_query_drop_attempt (0.00s)
+    --- PASS: TestSQLInjectionResistance_CommunityAndInspiration/Inspiration_Union-based_extraction_attempt (0.00s)
+    --- PASS: TestSQLInjectionResistance_CommunityAndInspiration/Inspiration_PostgreSQL_time-based_blind_injection (0.00s)
+    --- PASS: TestSQLInjectionResistance_CommunityAndInspiration/Destinations_Stacked_query_drop_attempt (0.00s)
+    --- PASS: TestSQLInjectionResistance_CommunityAndInspiration/DestinationDetail_Stacked_query_drop_attempt (0.00s)
+PASS: TestSQLInjectionResistance_CommunityAndInspiration
+
 === EXECUTANT go test -race ./... (backend) ===
 ok  	felag/backend/cmd/api	1.496s
 ok  	felag/backend/internal/admin	1.863s

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
@@ -720,6 +721,90 @@ func TestHandler_GetInspirationFeed(t *testing.T) {
 		t.Errorf("expected 7 categories, got %d", len(resp.Categories))
 	}
 }
+
+func TestSQLInjectionResistance_CommunityAndInspiration(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	repo := newMockCommunityRepo()
+	svc := NewService(repo)
+	handler := NewHandler(svc)
+
+	r := gin.New()
+	r.GET("/inspiration", handler.GetInspirationFeed)
+	r.GET("/destinations", handler.SearchDestinations)
+	r.GET("/destinations/:id", handler.GetDestinationDetail)
+
+	sqlInjectionPayloads := []struct {
+		name    string
+		payload string
+	}{
+		{"Tautology bypass", "' OR '1'='1"},
+		{"Numeric tautology", "1 OR 1=1"},
+		{"Comment truncation", "admin' --"},
+		{"Multiline comment bypass", "admin' /*"},
+		{"Stacked query drop attempt", "'; DROP TABLE users; --"},
+		{"Union-based extraction attempt", "' UNION SELECT '1','hacked','secret','hash' --"},
+		{"PostgreSQL time-based blind injection", "' AND (SELECT 1 FROM pg_sleep(0.1))='1"},
+		{"Blind boolean substring", "' AND SUBSTRING(version(), 1, 1) = 'P' --"},
+		{"Hexadecimal string injection", "0x27204f5220313d31"},
+		{"Null byte injection", "test\x00' OR 1=1 --"},
+		{"Special character overflow", "''''''''''''' OR 1=1 --"},
+	}
+
+	for _, tc := range sqlInjectionPayloads {
+		t.Run("Inspiration_"+tc.name, func(t *testing.T) {
+			req, err := http.NewRequest(http.MethodGet, "/inspiration?q="+url.QueryEscape(tc.payload)+"&category="+url.QueryEscape(tc.payload), nil)
+			if err != nil {
+				// Standard HTTP client rejected invalid URL character (e.g. malformed control chars)
+				return
+			}
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, req)
+
+			// Response must NEVER be 500 (unhandled SQL syntax error)
+			if w.Code == http.StatusInternalServerError {
+				t.Fatalf("VULNERABILITY: 500 Internal Server Error for SQLi payload %q: %s", tc.payload, w.Body.String())
+			}
+
+			// Verify status is 200 OK and response is valid JSON
+			if w.Code != http.StatusOK {
+				t.Errorf("expected 200 OK for safely handled payload, got %d", w.Code)
+			}
+			var inspResp InspirationResponse
+			if err := json.Unmarshal(w.Body.Bytes(), &inspResp); err != nil {
+				t.Errorf("expected valid JSON response, got error: %v", err)
+			}
+		})
+
+		t.Run("Destinations_"+tc.name, func(t *testing.T) {
+			req, err := http.NewRequest(http.MethodGet, "/destinations?q="+url.QueryEscape(tc.payload), nil)
+			if err != nil {
+				return
+			}
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, req)
+
+			if w.Code == http.StatusInternalServerError {
+				t.Fatalf("VULNERABILITY: 500 on Destinations search for SQLi payload %q: %s", tc.payload, w.Body.String())
+			}
+		})
+
+		t.Run("DestinationDetail_"+tc.name, func(t *testing.T) {
+			req, err := http.NewRequest(http.MethodGet, "/destinations/"+url.PathEscape(tc.payload), nil)
+			if err != nil {
+				return
+			}
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, req)
+
+			// Should return 404 (not found) safely, never 500
+			if w.Code == http.StatusInternalServerError {
+				t.Fatalf("VULNERABILITY: 500 on DestinationDetail for SQLi payload %q: %s", tc.payload, w.Body.String())
+			}
+		})
+	}
+}
+
 
 
 

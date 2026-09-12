@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
@@ -335,3 +336,114 @@ func TestAuthHandler_OTPAndDevices(t *testing.T) {
 		t.Fatalf("expected status 200 on delete device, got %d", w4.Code)
 	}
 }
+
+func TestSQLInjectionResistance_AuthEndpoints(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	repo := newMockAuthRepo()
+	svc := NewService(repo)
+	handler := NewHandler(svc)
+
+	r := gin.New()
+	r.POST("/auth/login", handler.Login)
+	r.POST("/auth/register", handler.Register)
+	r.POST("/auth/otp/request", handler.RequestOTP)
+	r.POST("/auth/otp/verify", handler.VerifyOTP)
+	r.GET("/auth/devices", func(c *gin.Context) {
+		c.Set("user_id", "user-1")
+		handler.ListDevices(c)
+	})
+	r.DELETE("/auth/devices/:id", func(c *gin.Context) {
+		c.Set("user_id", "user-1")
+		handler.RevokeDevice(c)
+	})
+
+	sqlInjectionPayloads := []struct {
+		name    string
+		payload string
+	}{
+		{"Classic Tautology", "' OR '1'='1"},
+		{"Numeric Tautology", "1 OR 1=1"},
+		{"Comment Truncation", "admin' --"},
+		{"Inline Comment", "admin'/*"},
+		{"Stacked Query Drop Attempt", "'; DROP TABLE users; --"},
+		{"Union-Based Exfiltration", "' UNION SELECT '1','admin@felag.cat','hash','admin' --"},
+		{"PostgreSQL Time-Based Blind", "' AND (SELECT 1 FROM pg_sleep(0.05))='1"},
+		{"Blind Boolean Substring", "' AND SUBSTRING(version(), 1, 1) = 'P' --"},
+		{"Hex Encoded Payload", "0x27204f5220313d31"},
+		{"Null Byte Injection", "admin\x00' OR 1=1 --"},
+		{"Quote Cascade Overflow", "''''''''''''' OR 1=1 --"},
+		{"JSON Injection Payload", `{"$gt": ""}`},
+		{"Second-Order Injection Vector", "admin' AND 1=1; SELECT * FROM user_devices; --"},
+	}
+
+	for _, tc := range sqlInjectionPayloads {
+		t.Run("Login_"+tc.name, func(t *testing.T) {
+			loginBody, _ := json.Marshal(LoginRequest{
+				Email:    tc.payload,
+				Password: tc.payload,
+			})
+			req, _ := http.NewRequest(http.MethodPost, "/auth/login", bytes.NewBuffer(loginBody))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, req)
+
+			// Response must NEVER be 500
+			if w.Code == http.StatusInternalServerError {
+				t.Fatalf("VULNERABILITY: 500 Internal Server Error for SQLi in Login %q: %s", tc.payload, w.Body.String())
+			}
+			// Should be 400 Bad Request or 401 Unauthorized
+			if w.Code != http.StatusBadRequest && w.Code != http.StatusUnauthorized {
+				t.Errorf("expected 400 or 401 for invalid login attempt, got %d", w.Code)
+			}
+		})
+
+		t.Run("OTPRequest_"+tc.name, func(t *testing.T) {
+			reqBody, _ := json.Marshal(OTPRequest{
+				Email:      tc.payload,
+				DeviceName: tc.payload,
+				Platform:   tc.payload,
+			})
+			req, _ := http.NewRequest(http.MethodPost, "/auth/otp/request", bytes.NewBuffer(reqBody))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, req)
+
+			if w.Code == http.StatusInternalServerError {
+				t.Fatalf("VULNERABILITY: 500 Internal Server Error for SQLi in OTP Request %q: %s", tc.payload, w.Body.String())
+			}
+		})
+
+		t.Run("OTPVerify_"+tc.name, func(t *testing.T) {
+			verifyBody, _ := json.Marshal(OTPVerifyRequest{
+				Email:      tc.payload,
+				Code:       tc.payload,
+				DeviceID:   tc.payload,
+				DeviceName: tc.payload,
+				Platform:   tc.payload,
+			})
+			req, _ := http.NewRequest(http.MethodPost, "/auth/otp/verify", bytes.NewBuffer(verifyBody))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, req)
+
+			if w.Code == http.StatusInternalServerError {
+				t.Fatalf("VULNERABILITY: 500 Internal Server Error for SQLi in OTP Verify %q: %s", tc.payload, w.Body.String())
+			}
+		})
+
+		t.Run("RevokeDevice_"+tc.name, func(t *testing.T) {
+			req, err := http.NewRequest(http.MethodDelete, "/auth/devices/"+url.PathEscape(tc.payload), nil)
+			if err != nil {
+				return
+			}
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, req)
+
+			if w.Code == http.StatusInternalServerError {
+				t.Fatalf("VULNERABILITY: 500 Internal Server Error for SQLi in RevokeDevice %q: %s", tc.payload, w.Body.String())
+			}
+		})
+	}
+}
+

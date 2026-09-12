@@ -7,7 +7,7 @@ res específic d'un domini de negoci concret.
 
 ## 0. Com s'usa aquesta plantilla
 
-- Aquest fitxer i els vuit fitxers d'agent de `.agent/` defineixen un
+- Aquest fitxer i els nou fitxers d'agent de `.agent/` defineixen un
   sistema multiagent reutilitzable per a qualsevol projecte amb stack
   Go + React + React Native.
 - **El que no canvia entre projectes**: l'stack tecnològic (secció 1), els
@@ -210,6 +210,7 @@ res específic d'un domini de negoci concret.
     qa-agent.md
     ux-agent.md
     infra-agent.md
+    security-agent.md
   backend/
     Dockerfile                -> escrit per l'agent Infra
     ...
@@ -236,6 +237,8 @@ res específic d'un domini de negoci concret.
     <modul>.md                   -> informe QA (APTE/NO APTE)
   ux-reports/
     <modul>.md                   -> informe UX (APTE/A MILLORAR)
+  security-reports/
+    <modul>.md                   -> informe Security (SEGUR/NO SEGUR)
 ```
 
 Cada fitxer d'agent respon, com a mínim: àmbit d'escriptura, font de
@@ -261,7 +264,7 @@ veritat, output esperat, i quan s'atura i pregunta en lloc de decidir sol.
 - Els tags de Git (`vMAJOR.MINOR.PATCH`) es creen alhora que es puja
   `VERSION`.
 
-## 7. Flux de treball multiagent (vuit rols)
+## 7. Flux de treball multiagent (nou rols)
 
 El flux, de cap a cap, per a qualsevol èpica nova:
 
@@ -276,17 +279,27 @@ Humà envia èpica
    → [Checkpoint 3: humà valida el contracte — si KO, torna a l'Orquestrador]
    → Backend + Frontend + Mobile (en paral·lel, contra el mateix contracte
      i els mateixos mockups aprovats)
-   → Agent QA (valida els tres, executant-los de veritat)
-   → [Checkpoint 4: veredicte QA — NO APTE bloqueja, torna al picacodis
-     corresponent]
-   → Agent UX (en paral·lel o just després del QA, compara amb els mockups
-     aprovats)
-   → [Checkpoint 5: humà revisa i decideix el merge, amb informes QA+UX
-     com a input]
+   → Agent QA + Agent Security (en paral·lel, cadascun executant l'app de
+     veritat en local; tots dos són gates bloquejants)
+   → [Checkpoint 4: veredicte QA (APTE/NO APTE) + veredicte Security
+     (SEGUR/NO SEGUR) — qualsevol dels dos negatiu bloqueja i torna a
+     l'agent d'implementació corresponent]
+   → Agent UX (en paral·lel a QA/Security o just després, compara amb els
+     mockups aprovats — el seu informe és consultiu, no bloqueja)
+   → [Checkpoint 5: humà revisa i decideix el merge, amb informes QA +
+     Security + UX com a input]
    → Agent Infra (pipeline, build, un cop mergejat)
    → [Checkpoint 6: humà valida abans de desplegament real a staging/
      producció o publicació a stores]
 ```
+
+Nota important sobre l'ordre real: QA i Security **poden córrer en
+paral·lel** entre ells (tots dos necessiten l'aplicació engegada en
+local, i cap dels dos escriu codi, així que no hi ha conflicte d'àmbit).
+L'UX pot començar tan aviat com hi hagi una versió funcional, sense
+esperar el veredicte de cap dels altres dos. Però el Checkpoint 5 (merge)
+**no es pot superar** fins que QA sigui APTE **i** Security sigui SEGUR —
+l'informe UX hi és com a input, no com a bloqueig.
 
 Si a qualsevol punt un agent es troba amb una ambigüitat que els fitxers
 que té no resolen, **no improvisa**: escala a l'Orquestrador, que ho eleva
@@ -337,15 +350,23 @@ lògica de negoci. Àmbit: `backend/Dockerfile`, `frontend/Dockerfile`,
 `mobile/eas.json`/`app.json`, `docker-compose.yml`,
 `.github/workflows/`. Mai desplegament real sense Checkpoint 6.
 
+### Rol 9 — Agent Security
+Valida seguretat dels tres codebases mitjançant revisió i **proves
+d'atac reals contra l'app engegada en local** (autenticació, autorització/
+IDOR, injecció, exposició de dades/secrets, dependències vulnerables).
+Àmbit d'escriptura: `security-reports/`. Veredicte: SEGUR / NO SEGUR —
+**bloqueja el merge igual que el QA**, en paral·lel a ell.
+
 ### Checkpoints humans (resum)
 - **Checkpoint 1**: històries d'usuari.
 - **Checkpoint 2**: cada pantalla de mockup (web i mòbil).
 - **Checkpoint 3**: contracte OpenAPI.
-- **Checkpoint 4**: veredicte QA (bloqueig automàtic per procés si
-  NO APTE; no cal que l'humà intervingui perquè el bloqueig ja és
-  efectiu, però qualsevol reobertura de l'ambigüitat s'eleva a l'humà).
-- **Checkpoint 5**: merge a la branca principal (amb QA APTE + informe UX
-  com a suport).
+- **Checkpoint 4**: veredictes QA + Security (bloqueig automàtic per
+  procés si algun dels dos és negatiu; no cal que l'humà intervingui
+  perquè el bloqueig ja és efectiu, però qualsevol reobertura de
+  l'ambigüitat s'eleva a l'humà).
+- **Checkpoint 5**: merge a la branca principal (requereix QA APTE +
+  Security SEGUR; informe UX com a suport, no com a bloqueig).
 - **Checkpoint 6**: primer desplegament real a staging/producció o
   primera publicació a stores.
 
