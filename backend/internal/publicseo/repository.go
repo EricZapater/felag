@@ -243,164 +243,132 @@ func (r *repository) ListPublicDestinations(ctx context.Context, q, countryCode,
 func (r *repository) GetPublicDestinationBySlugOrID(ctx context.Context, slugOrID string) (*PublicDestinationItem, bool, string, string, error) {
 	trimmed := strings.TrimSpace(slugOrID)
 
-	// 1. Ultra-fast town lookup
-	townQuery := `
-		SELECT t.id,
-		       COALESCE(t.slug, LOWER(REGEXP_REPLACE(t.name, '[^a-zA-Z0-9]+', '-', 'g'))) AS slug,
-		       t.name,
-		       reg.name AS region_name,
-		       c.name AS country_name,
-		       c.code AS country_code
-		FROM towns t
-		JOIN regions reg ON t.region_id = reg.id
-		JOIN countries c ON reg.country_id = c.id
-		WHERE t.slug = $1 OR LOWER(t.slug) = LOWER($1) OR LOWER(t.name) = LOWER($1) OR t.id::text = $1
+	unifiedQuery := `
+		WITH candidate_towns AS (
+			SELECT 'town' AS dest_type,
+			       t.id::text AS id,
+			       COALESCE(t.slug, LOWER(REGEXP_REPLACE(t.name, '[^a-zA-Z0-9]+', '-', 'g'))) AS slug,
+			       t.name AS name,
+			       reg.name AS region_name,
+			       c.name AS country_name,
+			       c.code AS country_code,
+			       t.id::text AS town_id_str,
+			       (SELECT COUNT(dr.id) FROM destination_recommendations dr WHERE dr.town_id = t.id AND dr.is_public = true) AS tips_count,
+			       (SELECT COUNT(DISTINCT tr.user_id) FROM trip_stages ts JOIN trips tr ON ts.trip_id = tr.id WHERE ts.town_id = t.id) +
+			       (SELECT COUNT(DISTINCT dr.user_id) FROM destination_recommendations dr WHERE dr.town_id = t.id AND dr.is_public = true) AS felagis_count,
+			       (SELECT TO_CHAR(MAX(dr.created_at), 'YYYY-MM') FROM destination_recommendations dr WHERE dr.town_id = t.id AND dr.is_public = true) AS last_tip_at,
+			       (SELECT dr.image_url FROM destination_recommendations dr WHERE dr.town_id = t.id AND dr.is_public = true AND dr.image_url IS NOT NULL AND dr.image_url != '' ORDER BY dr.useful_votes_count DESC, dr.created_at DESC LIMIT 1) AS cover_image_url
+			FROM towns t
+			JOIN regions reg ON t.region_id = reg.id
+			JOIN countries c ON reg.country_id = c.id
+			WHERE t.slug = $1 
+			   OR LOWER(t.slug) = LOWER($1) 
+			   OR LOWER(t.name) = LOWER($1) 
+			   OR t.id::text = $1
+		),
+		candidate_countries AS (
+			SELECT 'country' AS dest_type,
+			       c.code AS id,
+			       COALESCE(c.slug, LOWER(REGEXP_REPLACE(c.name, '[^a-zA-Z0-9]+', '-', 'g'))) AS slug,
+			       c.name AS name,
+			       NULL::text AS region_name,
+			       c.name AS country_name,
+			       c.code AS country_code,
+			       ''::text AS town_id_str,
+			       (SELECT COUNT(dr.id) FROM destination_recommendations dr WHERE (dr.country_code = c.code OR dr.town_id IN (
+			           SELECT t2.id FROM towns t2 JOIN regions r2 ON t2.region_id = r2.id WHERE r2.country_id = c.id
+			       )) AND dr.is_public = true) AS tips_count,
+			       (SELECT COUNT(DISTINCT tr.user_id) FROM trip_stages ts JOIN trips tr ON ts.trip_id = tr.id WHERE ts.country_code = c.code OR ts.destination_name ILIKE ('%' || c.name || '%')) +
+			       (SELECT COUNT(DISTINCT dr.user_id) FROM destination_recommendations dr WHERE (dr.country_code = c.code OR dr.town_id IN (
+			           SELECT t2.id FROM towns t2 JOIN regions r2 ON t2.region_id = r2.id WHERE r2.country_id = c.id
+			       )) AND dr.is_public = true) AS felagis_count,
+			       (SELECT TO_CHAR(MAX(dr.created_at), 'YYYY-MM') FROM destination_recommendations dr WHERE (dr.country_code = c.code OR dr.town_id IN (
+			           SELECT t2.id FROM towns t2 JOIN regions r2 ON t2.region_id = r2.id WHERE r2.country_id = c.id
+			       )) AND dr.is_public = true) AS last_tip_at,
+			       (SELECT dr.image_url FROM destination_recommendations dr WHERE (dr.country_code = c.code OR dr.town_id IN (
+			           SELECT t2.id FROM towns t2 JOIN regions r2 ON t2.region_id = r2.id WHERE r2.country_id = c.id
+			       )) AND dr.is_public = true AND dr.image_url IS NOT NULL AND dr.image_url != '' ORDER BY dr.useful_votes_count DESC, dr.created_at DESC LIMIT 1) AS cover_image_url
+			FROM countries c
+			WHERE c.slug = $1 
+			   OR LOWER(c.slug) = LOWER($1) 
+			   OR c.code = $1 
+			   OR UPPER(c.code) = UPPER($1) 
+			   OR LOWER(c.name) = LOWER($1)
+			   OR ($1 ILIKE 'marroc%' AND c.code = 'MA')
+			   OR ($1 ILIKE 'espany%' AND c.code = 'ES')
+			   OR ($1 ILIKE 'jap%' AND c.code = 'JP')
+			   OR ($1 ILIKE 'fran%' AND c.code = 'FR')
+			   OR ($1 ILIKE 'ital%' AND c.code = 'IT')
+			   OR ($1 ILIKE 'island%' AND c.code = 'IS')
+		)
+		SELECT dest_type, id, slug, name, region_name, country_name, country_code, town_id_str, tips_count, felagis_count, last_tip_at, cover_image_url
+		FROM (
+			SELECT * FROM candidate_towns
+			UNION ALL
+			SELECT * FROM candidate_countries
+		) combined
+		ORDER BY 
+			-- 1. Prioritize destinations that actually have tips/content
+			CASE WHEN tips_count > 0 THEN 0 ELSE 1 END ASC,
+			tips_count DESC,
+			felagis_count DESC,
+			-- 2. Exact match on slug or code or ID
+			CASE 
+				WHEN LOWER(slug) = LOWER($1) THEN 0
+				WHEN LOWER(id) = LOWER($1) THEN 0
+				WHEN LOWER(country_code) = LOWER($1) THEN 0
+				ELSE 1
+			END ASC,
+			-- 3. Default tie-breaker: country before obscure 0-tip town
+			CASE WHEN dest_type = 'country' THEN 0 ELSE 1 END ASC
 		LIMIT 1
 	`
 
 	var item PublicDestinationItem
-	var regName sql.NullString
-	err := r.db.QueryRowContext(ctx, townQuery, trimmed).Scan(
+	var destType, townIDStr string
+	var regName, lastTipAt, coverImg sql.NullString
+
+	err := r.db.QueryRowContext(ctx, unifiedQuery, trimmed).Scan(
+		&destType,
 		&item.ID,
 		&item.Slug,
 		&item.Name,
 		&regName,
 		&item.CountryName,
 		&item.CountryCode,
+		&townIDStr,
+		&item.TotalTipsCount,
+		&item.TotalFelagisCount,
+		&lastTipAt,
+		&coverImg,
 	)
-	if err == nil {
-		if regName.Valid {
-			item.RegionName = &regName.String
-		}
-		flag := countryCodeToEmoji(item.CountryCode)
-		item.FlagEmoji = &flag
-
-		// Targeted aggregates on single town ID
-		var tipsCount, recFelagis int
-		var maxCreatedAt sql.NullString
-		_ = r.db.QueryRowContext(ctx, `
-			SELECT COUNT(id), COUNT(DISTINCT user_id), TO_CHAR(MAX(created_at), 'YYYY-MM')
-			FROM destination_recommendations
-			WHERE town_id = $1 AND is_public = true
-		`, item.ID).Scan(&tipsCount, &recFelagis, &maxCreatedAt)
-
-		var tripFelagis int
-		_ = r.db.QueryRowContext(ctx, `
-			SELECT COUNT(DISTINCT tr.user_id)
-			FROM trip_stages ts
-			JOIN trips tr ON ts.trip_id = tr.id
-			WHERE ts.town_id = $1
-		`, item.ID).Scan(&tripFelagis)
-
-		item.TotalTipsCount = tipsCount
-		item.TotalFelagisCount = tripFelagis + recFelagis
-		if maxCreatedAt.Valid && maxCreatedAt.String != "" {
-			item.UpdatedAtPeriod = maxCreatedAt.String
-		} else {
-			item.UpdatedAtPeriod = "2026-09"
-		}
-
-		// Cover image from top recommendation
-		var coverImg sql.NullString
-		_ = r.db.QueryRowContext(ctx, `
-			SELECT image_url FROM destination_recommendations
-			WHERE town_id = $1 AND is_public = true AND image_url IS NOT NULL AND image_url != ''
-			ORDER BY useful_votes_count DESC, created_at DESC
-			LIMIT 1
-		`, item.ID).Scan(&coverImg)
-		if coverImg.Valid && coverImg.String != "" {
-			item.CoverImageURL = &coverImg.String
-		}
-
-		if item.TotalFelagisCount <= 1 {
-			item.EndorsementSummary = "Avalat per 1 felagi"
-		} else {
-			item.EndorsementSummary = fmt.Sprintf("Avalat per %d felagis", item.TotalFelagisCount)
-		}
-		return &item, true, item.ID, item.CountryCode, nil
+	if err != nil {
+		return nil, false, "", "", err
 	}
 
-	// 2. Try matching country (by slug, code, name, or localized alias)
-	countryQuery := `
-		SELECT c.id::text,
-		       COALESCE(c.slug, LOWER(REGEXP_REPLACE(c.name, '[^a-zA-Z0-9]+', '-', 'g'))) AS slug,
-		       c.name,
-		       c.name AS country_name,
-		       c.code AS country_code
-		FROM countries c
-		WHERE c.slug = $1 
-		   OR LOWER(c.slug) = LOWER($1) 
-		   OR c.code = $1 
-		   OR UPPER(c.code) = UPPER($1) 
-		   OR LOWER(c.name) = LOWER($1)
-		   OR ($1 ILIKE 'marroc%' AND c.code = 'MA')
-		   OR ($1 ILIKE 'espany%' AND c.code = 'ES')
-		   OR ($1 ILIKE 'jap%' AND c.code = 'JP')
-		   OR ($1 ILIKE 'fran%' AND c.code = 'FR')
-		   OR ($1 ILIKE 'ital%' AND c.code = 'IT')
-		   OR ($1 ILIKE 'island%' AND c.code = 'IS')
-		LIMIT 1
-	`
+	if regName.Valid {
+		item.RegionName = &regName.String
+	}
+	if coverImg.Valid && coverImg.String != "" {
+		item.CoverImageURL = &coverImg.String
+	}
+	flag := countryCodeToEmoji(item.CountryCode)
+	item.FlagEmoji = &flag
 
-	err = r.db.QueryRowContext(ctx, countryQuery, trimmed).Scan(
-		&item.ID,
-		&item.Slug,
-		&item.Name,
-		&item.CountryName,
-		&item.CountryCode,
-	)
-	if err == nil {
-		flag := countryCodeToEmoji(item.CountryCode)
-		item.FlagEmoji = &flag
-
-		var tipsCount, recFelagis int
-		var maxCreatedAt sql.NullString
-		_ = r.db.QueryRowContext(ctx, `
-			SELECT COUNT(id), COUNT(DISTINCT user_id), TO_CHAR(MAX(created_at), 'YYYY-MM')
-			FROM destination_recommendations
-			WHERE (country_code = $1 OR town_id IN (
-				SELECT t.id FROM towns t JOIN regions r ON t.region_id = r.id JOIN countries c ON r.country_id = c.id WHERE c.code = $1
-			)) AND is_public = true
-		`, item.CountryCode).Scan(&tipsCount, &recFelagis, &maxCreatedAt)
-
-		var tripFelagis int
-		_ = r.db.QueryRowContext(ctx, `
-			SELECT COUNT(DISTINCT tr.user_id)
-			FROM trip_stages ts
-			JOIN trips tr ON ts.trip_id = tr.id
-			WHERE ts.country_code = $1 OR ts.destination_name ILIKE $2
-		`, item.CountryCode, "%"+item.Name+"%").Scan(&tripFelagis)
-
-		item.TotalTipsCount = tipsCount
-		item.TotalFelagisCount = tripFelagis + recFelagis
-		if maxCreatedAt.Valid && maxCreatedAt.String != "" {
-			item.UpdatedAtPeriod = maxCreatedAt.String
-		} else {
-			item.UpdatedAtPeriod = "2026-09"
-		}
-
-		var countryCoverImg sql.NullString
-		_ = r.db.QueryRowContext(ctx, `
-			SELECT image_url FROM destination_recommendations
-			WHERE (country_code = $1 OR town_id IN (
-				SELECT t.id FROM towns t JOIN regions r ON t.region_id = r.id JOIN countries c ON r.country_id = c.id WHERE c.code = $1
-			)) AND is_public = true AND image_url IS NOT NULL AND image_url != ''
-			ORDER BY useful_votes_count DESC, created_at DESC
-			LIMIT 1
-		`, item.CountryCode).Scan(&countryCoverImg)
-		if countryCoverImg.Valid && countryCoverImg.String != "" {
-			item.CoverImageURL = &countryCoverImg.String
-		}
-
-		if item.TotalFelagisCount <= 1 {
-			item.EndorsementSummary = "Avalat per 1 felagi"
-		} else {
-			item.EndorsementSummary = fmt.Sprintf("Avalat per %d felagis", item.TotalFelagisCount)
-		}
-		return &item, false, "", item.CountryCode, nil
+	if lastTipAt.Valid && lastTipAt.String != "" {
+		item.UpdatedAtPeriod = lastTipAt.String
+	} else {
+		item.UpdatedAtPeriod = "2026-09"
 	}
 
-	return nil, false, "", "", sql.ErrNoRows
+	if item.TotalFelagisCount <= 1 {
+		item.EndorsementSummary = "Avalat per 1 felagi"
+	} else {
+		item.EndorsementSummary = fmt.Sprintf("Avalat per %d felagis", item.TotalFelagisCount)
+	}
+
+	isTown := (destType == "town")
+	return &item, isTown, townIDStr, item.CountryCode, nil
 }
 
 func (r *repository) GetPublicRecommendationsForDestination(ctx context.Context, isTown bool, townID, countryCode string) ([]PublicAnonymousTip, error) {
