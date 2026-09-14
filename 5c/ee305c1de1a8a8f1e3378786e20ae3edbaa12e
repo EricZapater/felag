@@ -1,0 +1,44 @@
+backend/cmd/api/main.go
+  h_42175f19913982 131,203,206-209
+backend/internal/community/handler.go
+  h_42175f19913982 7,328-379
+backend/internal/community/model.go
+  h_42175f19913982 170
+backend/internal/community/repository.go
+  h_42175f19913982 20,29,1087-1101,1827-1960,1967-1973
+backend/internal/community/service.go
+  h_42175f19913982 10,17,45,53,57,63,70-73,201-211,229-254,378-388
+backend/internal/community/service_test.go
+  h_42175f19913982 10,198-227,839-920
+frontend/src/modules/community/types.ts
+  h_42175f19913982 57,62-63,69-71,78-79,82,91-93
+frontend/src/modules/community/views/DestinationDetailView.tsx
+  h_42175f19913982 730-739,749-751
+frontend/src/modules/inspiration/api.ts
+  h_42175f19913982 3,13-19,42-63,65-66
+frontend/src/modules/inspiration/types.ts
+  h_42175f19913982 15-16
+frontend/src/modules/inspiration/views/InspirationView.tsx
+  h_42175f19913982 378,382,483-486,571,578-579,767-770,816-819,838,845-846,854,863,908-909,912-915,920-926
+frontend/src/modules/inspiration/views/PublicTripDetailView.tsx
+  h_42175f19913982 1-495
+frontend/src/modules/inspiration/views/RecommendationDetailView.tsx
+  h_42175f19913982 1-612
+frontend/src/modules/notifications/types.ts
+  h_42175f19913982 1
+frontend/src/modules/notifications/views/NotificationsView.tsx
+  h_42175f19913982 1,10,43-44,59,70-82,94-103,133-171,186,198,201-203,209,219
+frontend/src/router/index.tsx
+  h_42175f19913982 25-26,135,137,140,145,148-156
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "5cee305c1de1a8a8f1e3378786e20ae3edbaa12e",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
