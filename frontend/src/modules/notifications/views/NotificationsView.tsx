@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -7,6 +7,7 @@ import {
   Typography,
   CircularProgress,
   Alert,
+  Chip,
 } from '@mui/material';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
@@ -39,6 +40,8 @@ function formatRelativeTime(dateStr: string): string {
 
 function getNotificationIcon(type: string): string {
   switch (type) {
+    case 'recommendation_comment':
+      return '💬';
     case 'new_match':
       return '✨';
     case 'trip_reminder':
@@ -53,6 +56,7 @@ export default function NotificationsView() {
   const { notifications, unreadCount, fetchNotifications, markAsRead, markAllAsRead, isLoading, error } =
     useNotificationStore();
   const navigate = useNavigate();
+  const [filterType, setFilterType] = useState<'all' | 'comments' | 'matches'>('all');
 
   useEffect(() => {
     fetchNotifications();
@@ -61,6 +65,19 @@ export default function NotificationsView() {
   const handleNotificationClick = async (notif: Notification) => {
     if (!notif.read) {
       await markAsRead(notif.id);
+    }
+
+    if (notif.data && (notif.data.recommendation_id || notif.type === 'recommendation_comment')) {
+      const recId = notif.data.recommendation_id || notif.data.target_id;
+      if (recId) {
+        navigate(`/inspiration/recommendations/${recId}`);
+        return;
+      }
+    }
+
+    if (notif.data && notif.data.action_url) {
+      navigate(notif.data.action_url as string);
+      return;
     }
 
     if (notif.data && notif.data.trip_id) {
@@ -73,6 +90,16 @@ export default function NotificationsView() {
   const handleMarkAllAsRead = async () => {
     await markAllAsRead();
   };
+
+  const filteredNotifications = notifications.filter((n) => {
+    if (filterType === 'comments') {
+      return n.type === 'recommendation_comment';
+    }
+    if (filterType === 'matches') {
+      return n.type === 'new_match' || n.type === 'trip_reminder';
+    }
+    return true;
+  });
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#F9F6F0' }}>
@@ -103,6 +130,45 @@ export default function NotificationsView() {
           )}
         </Box>
 
+        {/* Filter Chips */}
+        {notifications.length > 0 && (
+          <Box sx={{ display: 'flex', gap: 1, mb: 3, flexWrap: 'wrap' }}>
+            <Chip
+              label="Totes"
+              clickable
+              onClick={() => setFilterType('all')}
+              sx={{
+                bgcolor: filterType === 'all' ? '#C85A32' : '#EFEAE2',
+                color: filterType === 'all' ? '#FFFFFF' : '#4A3E39',
+                fontWeight: 600,
+                '&:hover': { bgcolor: filterType === 'all' ? '#B24E2B' : '#E5DDD3' },
+              }}
+            />
+            <Chip
+              label="💬 Comentaris a consells"
+              clickable
+              onClick={() => setFilterType('comments')}
+              sx={{
+                bgcolor: filterType === 'comments' ? '#C85A32' : '#EFEAE2',
+                color: filterType === 'comments' ? '#FFFFFF' : '#4A3E39',
+                fontWeight: 600,
+                '&:hover': { bgcolor: filterType === 'comments' ? '#B24E2B' : '#E5DDD3' },
+              }}
+            />
+            <Chip
+              label="✨ Viatges & Coincidències"
+              clickable
+              onClick={() => setFilterType('matches')}
+              sx={{
+                bgcolor: filterType === 'matches' ? '#C85A32' : '#EFEAE2',
+                color: filterType === 'matches' ? '#FFFFFF' : '#4A3E39',
+                fontWeight: 600,
+                '&:hover': { bgcolor: filterType === 'matches' ? '#B24E2B' : '#E5DDD3' },
+              }}
+            />
+          </Box>
+        )}
+
         {/* Loading / Error States */}
         {isLoading && notifications.length === 0 && (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
@@ -117,7 +183,7 @@ export default function NotificationsView() {
         )}
 
         {/* Empty state */}
-        {!isLoading && !error && notifications.length === 0 && (
+        {!isLoading && !error && filteredNotifications.length === 0 && (
           <Card
             sx={{
               p: 5,
@@ -129,16 +195,18 @@ export default function NotificationsView() {
           >
             <NotificationsNoneIcon sx={{ fontSize: 48, color: '#8C7A70', mb: 1.5 }} />
             <Typography variant="h6" sx={{ color: '#2C221E', fontWeight: 600, mb: 1 }}>
-              No tens cap notificació
+              {filterType === 'all' ? 'No tens cap notificació' : 'No hi ha notificacions en aquest filtre'}
             </Typography>
             <Typography variant="body2" sx={{ color: '#786C65' }}>
-              Quan hi hagi novetats sobre els teus viatges o noves coincidències amb altres FELAGIS, les veuràs aquí.
+              {filterType === 'all'
+                ? 'Quan hi hagi novetats sobre els teus consells, viatges o noves coincidències amb altres FELAGIS, les veuràs aquí.'
+                : 'Pots canviar el filtre o tornar a "Totes" per veure altres notificacions.'}
             </Typography>
           </Card>
         )}
 
         {/* Notifications List Card */}
-        {notifications.length > 0 && (
+        {filteredNotifications.length > 0 && (
           <Card
             sx={{
               bgcolor: '#FFFFFF',
@@ -148,7 +216,7 @@ export default function NotificationsView() {
               overflow: 'hidden',
             }}
           >
-            {notifications.map((notif, idx) => {
+            {filteredNotifications.map((notif, idx) => {
               const icon = getNotificationIcon(notif.type);
               const isLast = idx === notifications.length - 1;
 

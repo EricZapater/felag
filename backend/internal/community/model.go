@@ -167,6 +167,7 @@ type InspirationCategory struct {
 	ID    string `json:"id"`
 	Label string `json:"label"`
 	Icon  string `json:"icon"`
+	Emoji string `json:"emoji"`
 }
 
 type InspirationItem struct {

@@ -1,5 +1,6 @@
 import { apiClient } from '@/api/client';
 import { communityApi } from '@/modules/community/api';
+import { Comment, PublicTripSummary, Recommendation } from '@/modules/community/types';
 import {
   GetInspirationParams,
   InspirationCategory,
@@ -9,13 +10,13 @@ import {
 } from './types';
 
 export const INSPIRATION_CATEGORIES: InspirationCategoryOption[] = [
-  { id: 'all', label: 'Tot', emoji: '✨' },
-  { id: 'itinerary', label: 'Itineraris', emoji: '🗺️' },
-  { id: 'food', label: 'Gastronomia', emoji: '🍽️' },
-  { id: 'hidden_gem', label: 'Racons Secrets', emoji: '💎' },
-  { id: 'practical_tip', label: 'Consells Pràctics', emoji: '💡' },
-  { id: 'transport', label: 'Transport', emoji: '🚆' },
-  { id: 'anecdote', label: 'Anècdotes', emoji: '📖' },
+  { id: 'all', label: 'Tot', emoji: '✨', icon: '✨' },
+  { id: 'itinerary', label: 'Itineraris', emoji: '🗺️', icon: '🗺️' },
+  { id: 'food', label: 'Gastronomia', emoji: '🍽️', icon: '🍽️' },
+  { id: 'hidden_gem', label: 'Racons Secrets', emoji: '💎', icon: '💎' },
+  { id: 'practical_tip', label: 'Consells Pràctics', emoji: '💡', icon: '💡' },
+  { id: 'transport', label: 'Transport', emoji: '🚆', icon: '🚆' },
+  { id: 'anecdote', label: 'Anècdotes', emoji: '📖', icon: '📖' },
 ];
 
 export const inspirationApi = {
@@ -38,8 +39,31 @@ export const inspirationApi = {
     return await aggregateInspirationFallback(params);
   },
 
+  getPublicTripDetail: async (tripId: string): Promise<PublicTripSummary> => {
+    const cleanId = tripId.startsWith('trip-') ? tripId.replace('trip-', '') : tripId;
+    const res = await apiClient.get<PublicTripSummary>(`/api/v1/trips/${cleanId}/public`);
+    return res.data;
+  },
+
+  getRecommendationDetail: async (recId: string): Promise<Recommendation> => {
+    const cleanId = recId.startsWith('rec-') ? recId.replace('rec-', '') : recId;
+    const res = await apiClient.get<Recommendation>(`/api/v1/recommendations/${cleanId}`);
+    return res.data;
+  },
+
+  getRecommendationComments: async (recId: string): Promise<Comment[]> => {
+    const cleanId = recId.startsWith('rec-') ? recId.replace('rec-', '') : recId;
+    return await communityApi.getComments(cleanId);
+  },
+
+  createRecommendationComment: async (recId: string, content: string): Promise<Comment> => {
+    const cleanId = recId.startsWith('rec-') ? recId.replace('rec-', '') : recId;
+    return await communityApi.addComment(cleanId, { content });
+  },
+
   voteRecommendation: async (recommendationId: string): Promise<{ voted: boolean; useful_votes_count: number }> => {
-    return await communityApi.voteRecommendation(recommendationId);
+    const cleanId = recommendationId.startsWith('rec-') ? recommendationId.replace('rec-', '') : recommendationId;
+    return await communityApi.voteRecommendation(cleanId);
   },
 };
 

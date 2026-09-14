@@ -375,10 +375,11 @@ export default function InspirationView() {
         >
           {categories.map((cat) => {
             const isSelected = selectedCategory === cat.id;
+            const emoji = cat.emoji || cat.icon || '✨';
             return (
               <Chip
                 key={cat.id}
-                label={`${cat.emoji} ${cat.label}`}
+                label={`${emoji} ${cat.label}`}
                 onClick={() => setCategory(cat.id)}
                 clickable
                 sx={{
@@ -479,7 +480,10 @@ export default function InspirationView() {
                       }}
                     >
                       {/* Cover Photo */}
-                      <Box sx={{ position: 'relative', height: 200, bgcolor: '#FAF7F2' }}>
+                      <Box
+                        onClick={() => navigate(`/inspiration/trips/${item.id}`)}
+                        sx={{ position: 'relative', height: 200, bgcolor: '#FAF7F2', cursor: 'pointer' }}
+                      >
                         {item.cover_image_url || item.image_url ? (
                           <CardMedia
                             component="img"
@@ -564,12 +568,15 @@ export default function InspirationView() {
                       <CardContent sx={{ p: 3, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
                         <Typography
                           variant="h6"
+                          onClick={() => navigate(`/inspiration/trips/${item.id}`)}
                           sx={{
                             fontWeight: 800,
                             color: '#2C221E',
                             fontSize: '1.2rem',
                             lineHeight: 1.3,
                             mb: 1.5,
+                            cursor: 'pointer',
+                            '&:hover': { color: '#C85A32' },
                           }}
                         >
                           {item.title}
@@ -757,7 +764,10 @@ export default function InspirationView() {
                   >
                     {/* Recommendation Photo or Header */}
                     {item.image_url || item.cover_image_url ? (
-                      <Box sx={{ position: 'relative', height: 160, bgcolor: '#FAF7F2' }}>
+                      <Box
+                        onClick={() => navigate(`/inspiration/recommendations/${item.id}`)}
+                        sx={{ position: 'relative', height: 160, bgcolor: '#FAF7F2', cursor: 'pointer' }}
+                      >
                         <CardMedia
                           component="img"
                           image={item.image_url || item.cover_image_url}
@@ -803,7 +813,10 @@ export default function InspirationView() {
                         )}
                       </Box>
                     ) : (
-                      <Box sx={{ p: 2, pb: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Box
+                        onClick={() => navigate(`/inspiration/recommendations/${item.id}`)}
+                        sx={{ p: 2, pb: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                      >
                         <Chip
                           label={`${catInfo.emoji} ${catInfo.label}`}
                           size="small"
@@ -822,12 +835,15 @@ export default function InspirationView() {
                     <CardContent sx={{ p: 2.5, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
                       <Typography
                         variant="h6"
+                        onClick={() => navigate(`/inspiration/recommendations/${item.id}`)}
                         sx={{
                           fontWeight: 700,
                           color: '#2C221E',
                           fontSize: '1.05rem',
                           lineHeight: 1.35,
                           mb: 1,
+                          cursor: 'pointer',
+                          '&:hover': { color: '#C85A32' },
                         }}
                       >
                         {item.title}
@@ -835,6 +851,7 @@ export default function InspirationView() {
 
                       <Typography
                         variant="body2"
+                        onClick={() => navigate(`/inspiration/recommendations/${item.id}`)}
                         sx={{
                           color: '#6E5D53',
                           lineHeight: 1.5,
@@ -843,6 +860,7 @@ export default function InspirationView() {
                           WebkitLineClamp: 3,
                           WebkitBoxOrient: 'vertical',
                           overflow: 'hidden',
+                          cursor: 'pointer',
                         }}
                       >
                         {item.description}
@@ -887,13 +905,25 @@ export default function InspirationView() {
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: 1,
                         }}
                       >
-                        <Box>
+                        <Box
+                          onClick={() => navigate(`/inspiration/recommendations/${item.id}`)}
+                          sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 0.5 }}
+                        >
                           <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: '#786C65' }}>
                             {item.author.name ? item.author.name : 'Felagi'}
                             {item.author.town_name ? ` (${item.author.town_name})` : ''}
                           </Typography>
+                          {(item.comments_count || 0) > 0 && (
+                            <Chip
+                              label={`💬 ${item.comments_count}`}
+                              size="small"
+                              sx={{ height: 20, fontSize: '0.68rem', bgcolor: '#FAF7F2', fontWeight: 700 }}
+                            />
+                          )}
                         </Box>
 
                         {/* Endorsements / Avals */}

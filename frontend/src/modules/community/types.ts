@@ -54,25 +54,32 @@ export interface PublicAuthorSummary {
   town_name?: string;
   region_name?: string;
   country_name?: string;
+  anonymous_title?: string;
 }
 
 export interface PublicTripStage {
   id?: string;
-  destination_name: string;
+  destination_name?: string;
+  country_code?: string;
   town_name?: string;
   region_name?: string;
   country_name?: string;
   flag_emoji?: string;
   order_index?: number;
+  stage_order?: number;
+  start_date?: string;
+  end_date?: string;
   arrival_date?: string;
   departure_date?: string;
 }
 
 export interface PublicTripPhoto {
   id: string;
-  photo_url: string;
+  photo_url?: string;
+  image_url?: string;
   caption?: string;
   is_cover?: boolean;
+  is_featured?: boolean;
 }
 
 export interface PublicTripSummary {
@@ -81,6 +88,9 @@ export interface PublicTripSummary {
   description?: string;
   start_date: string;
   end_date: string;
+  total_days?: number;
+  formatted_period?: string;
+  companions_count?: number;
   status?: string;
   author: PublicAuthorSummary;
   stages?: PublicTripStage[];

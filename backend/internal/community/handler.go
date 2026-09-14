@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"felag/backend/internal/shared"
 	"github.com/gin-gonic/gin"
@@ -322,6 +323,58 @@ func (h *Handler) ListPublicTrips(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, trips)
+}
+
+func (h *Handler) GetRecommendationDetail(c *gin.Context) {
+	recID := c.Param("id")
+	if recID == "" {
+		shared.ErrorResponse(c, http.StatusBadRequest, "BAD_REQUEST", "Identificador de recomanació obligatori.")
+		return
+	}
+
+	cleanRecID := strings.TrimPrefix(recID, "rec-")
+
+	var currentUserID string
+	if uid, exists := c.Get("user_id"); exists {
+		currentUserID, _ = uid.(string)
+	}
+
+	rec, err := h.service.GetRecommendationDetail(cleanRecID, currentUserID)
+	if err != nil {
+		if errors.Is(err, ErrRecommendationNotFound) {
+			shared.ErrorResponse(c, http.StatusNotFound, "NOT_FOUND", "Recomanació no trobada.")
+			return
+		}
+		shared.ErrorResponse(c, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, rec)
+}
+
+func (h *Handler) GetPublicTripDetail(c *gin.Context) {
+	tripID := c.Param("trip_id")
+	if tripID == "" {
+		tripID = c.Param("id")
+	}
+	if tripID == "" {
+		shared.ErrorResponse(c, http.StatusBadRequest, "BAD_REQUEST", "Identificador de viatge obligatori.")
+		return
+	}
+
+	cleanTripID := strings.TrimPrefix(tripID, "trip-")
+
+	trip, err := h.service.GetPublicTripDetail(cleanTripID)
+	if err != nil {
+		if errors.Is(err, ErrTripNotFound) {
+			shared.ErrorResponse(c, http.StatusNotFound, "NOT_FOUND", "Viatge no trobat o no és públic.")
+			return
+		}
+		shared.ErrorResponse(c, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, trip)
 }
 
 func (h *Handler) GetInspirationFeed(c *gin.Context) {

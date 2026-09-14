@@ -128,6 +128,7 @@ func main() {
 	communityRepo := community.NewRepository(database)
 	communityService := community.NewService(communityRepo)
 	communityService.SetStorageService(storageService)
+	communityService.SetNotificationService(notificationService)
 	communityHandler := community.NewHandler(communityService)
 
 	posttripRepo := posttrip.NewRepository(database)
@@ -199,7 +200,12 @@ func main() {
 		}
 
 		// Recommendation public routes
+		v1.GET("/recommendations/:id", shared.OptionalAuthMiddleware(), communityHandler.GetRecommendationDetail)
 		v1.GET("/recommendations/:id/comments", communityHandler.ListComments)
+
+		// Public Trip detail routes
+		v1.GET("/trips/:trip_id/public", communityHandler.GetPublicTripDetail)
+		v1.GET("/community/trips/:id", communityHandler.GetPublicTripDetail)
 
 		// Inspiration feed public / optional auth route
 		v1.GET("/inspiration", shared.OptionalAuthMiddleware(), communityHandler.GetInspirationFeed)

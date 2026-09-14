@@ -727,14 +727,16 @@ export default function DestinationDetailView() {
                                 '&::-webkit-scrollbar': { height: 6 },
                               }}
                             >
-                              {trip.photos.map((photo) => (
-                                <Box
-                                  key={photo.id}
-                                  component="img"
-                                  src={photo.photo_url}
-                                  alt={photo.caption || 'Foto del viatge'}
-                                  onClick={() => setSelectedPhotoPreview(photo.photo_url)}
-                                  sx={{
+                              {trip.photos.map((photo) => {
+                                const photoSrc = photo.photo_url || photo.image_url || '';
+                                return (
+                                  <Box
+                                    key={photo.id}
+                                    component="img"
+                                    src={photoSrc}
+                                    alt={photo.caption || 'Foto del viatge'}
+                                    onClick={() => setSelectedPhotoPreview(photoSrc || null)}
+                                    sx={{
                                     width: { xs: 120, sm: 150 },
                                     height: { xs: 90, sm: 110 },
                                     borderRadius: 2,
@@ -744,8 +746,9 @@ export default function DestinationDetailView() {
                                     transition: 'transform 0.2s',
                                     '&:hover': { transform: 'scale(1.03)', borderColor: '#C85A32' },
                                   }}
-                                />
-                              ))}
+                                  />
+                                );
+                              })}
                             </Box>
                           </Box>
                         )}

@@ -1,4 +1,4 @@
-export type NotificationType = 'new_match' | 'trip_reminder' | 'system';
+export type NotificationType = 'new_match' | 'trip_reminder' | 'system' | 'recommendation_comment';
 
 export interface Notification {
   id: string;

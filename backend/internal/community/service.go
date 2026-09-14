@@ -7,12 +7,14 @@ import (
 	"fmt"
 	"strings"
 
+	"felag/backend/internal/notification"
 	"felag/backend/internal/storage"
 )
 
 var (
 	ErrDestinationNotFound    = errors.New("destinació no trobada")
 	ErrRecommendationNotFound = errors.New("recomanació no trobada")
+	ErrTripNotFound           = errors.New("viatge no trobat")
 	ErrUnauthorized           = errors.New("no autoritzat")
 	ErrNoActiveTrip           = errors.New("l'usuari no té un viatge actiu en aquesta destinació")
 	ErrInvalidInput           = errors.New("dades d'entrada invàlides")
@@ -40,6 +42,7 @@ type Service interface {
 	GetDestinationDetail(destID string, currentUserID string) (*DestinationDetail, error)
 	ListRecommendations(destID string, category, originFilter, sort, currentUserID string) ([]Recommendation, error)
 	CreateRecommendation(destID string, userID string, req CreateRecommendationRequest) (*Recommendation, error)
+	GetRecommendationDetail(recID, currentUserID string) (*Recommendation, error)
 	ToggleVote(recommendationID, userID string) (*VoteResponse, error)
 	ListComments(recommendationID string) ([]Comment, error)
 	CreateComment(recommendationID, userID string, req CreateCommentRequest) (*Comment, error)
@@ -47,18 +50,25 @@ type Service interface {
 	CreateLiveMoment(destID string, userID string, req CreateLiveMomentRequest) (*LiveMoment, error)
 	CreateReport(reporterID string, req CommunityReportRequest) error
 	ListPublicTrips(destID string, limit, offset int) ([]PublicTripSummary, error)
+	GetPublicTripDetail(tripID string) (*PublicTripSummary, error)
 	GetInspirationFeed(q, category, countryCode string, limit, offset int, currentUserID string) (*InspirationResponse, error)
 	SetStorageService(storage storage.StorageService)
 	GetStorageService() storage.StorageService
+	SetNotificationService(notif notification.Service)
 }
 
 type service struct {
 	repo    Repository
 	storage storage.StorageService
+	notif   notification.Service
 }
 
 func NewService(repo Repository) Service {
 	return &service{repo: repo}
+}
+
+func (s *service) SetNotificationService(notif notification.Service) {
+	s.notif = notif
 }
 
 func (s *service) SetStorageService(storage storage.StorageService) {
@@ -188,6 +198,17 @@ func (s *service) ListComments(recommendationID string) ([]Comment, error) {
 	return comments, nil
 }
 
+func (s *service) GetRecommendationDetail(recID, currentUserID string) (*Recommendation, error) {
+	rec, err := s.repo.GetRecommendationDetail(recID, currentUserID)
+	if errors.Is(err, sql.ErrNoRows) || (err == nil && rec == nil) {
+		return nil, ErrRecommendationNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return rec, nil
+}
+
 func (s *service) CreateComment(recommendationID, userID string, req CreateCommentRequest) (*Comment, error) {
 	content := strings.TrimSpace(req.Content)
 	if content == "" {
@@ -203,6 +224,32 @@ func (s *service) CreateComment(recommendationID, userID string, req CreateComme
 	}
 	if err != nil {
 		return nil, err
+	}
+
+	// Notify recommendation author if commenter is not the author
+	if s.notif != nil {
+		go func() {
+			rec, err := s.repo.GetRecommendationByID(recommendationID)
+			if err == nil && rec != nil && rec.Author.ID != "" && rec.Author.ID != userID {
+				commenterName := comment.Author.Name
+				if commenterName == "" {
+					commenterName = "Un viatger"
+				}
+				snippet := content
+				if len(snippet) > 60 {
+					snippet = snippet[:57] + "..."
+				}
+				title := "Nou comentari a la teva recomanació 💬"
+				body := fmt.Sprintf("%s ha comentat a \"%s\": %s", commenterName, rec.Title, snippet)
+				data := map[string]interface{}{
+					"type":              "recommendation_comment",
+					"recommendation_id": recommendationID,
+					"comment_id":        comment.ID,
+					"action_url":        fmt.Sprintf("/inspiration/recommendations/%s", recommendationID),
+				}
+				_, _ = s.notif.SendNotification(rec.Author.ID, "recommendation_comment", title, body, data)
+			}
+		}()
 	}
 
 	return comment, nil
@@ -326,6 +373,17 @@ func (s *service) ListPublicTrips(destID string, limit, offset int) ([]PublicTri
 	}
 
 	return s.repo.ListPublicTripsByDestination(info, limit, offset)
+}
+
+func (s *service) GetPublicTripDetail(tripID string) (*PublicTripSummary, error) {
+	trip, err := s.repo.GetPublicTripByID(tripID)
+	if errors.Is(err, sql.ErrNoRows) || (err == nil && trip == nil) {
+		return nil, ErrTripNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return trip, nil
 }
 
 func (s *service) GetInspirationFeed(q, category, countryCode string, limit, offset int, currentUserID string) (*InspirationResponse, error) {

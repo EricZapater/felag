@@ -12,7 +12,8 @@ export type InspirationItemType = 'itinerary' | 'recommendation';
 export interface InspirationCategoryOption {
   id: InspirationCategory;
   label: string;
-  emoji: string;
+  emoji?: string;
+  icon?: string;
 }
 
 export interface InspirationAuthor {

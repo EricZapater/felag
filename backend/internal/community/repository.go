@@ -17,6 +17,7 @@ type Repository interface {
 	ListRecommendations(info *DestinationInfo, category string, originFilter string, sort string, currentUserID string) ([]Recommendation, error)
 	CreateRecommendation(destID string, info *DestinationInfo, userID string, req CreateRecommendationRequest) (*Recommendation, error)
 	GetRecommendationByID(recID string) (*Recommendation, error)
+	GetRecommendationDetail(recID, currentUserID string) (*Recommendation, error)
 	ToggleVote(recommendationID, userID string) (bool, int, error)
 	ListComments(recommendationID string) ([]Comment, error)
 	CreateComment(recID, userID, content string) (*Comment, error)
@@ -25,6 +26,7 @@ type Repository interface {
 	CreateLiveMoment(townID, userID, tripID, imageURL string, caption *string) (*LiveMoment, error)
 	CreateReport(reporterID, targetType, targetID, reason string, details *string) error
 	ListPublicTripsByDestination(info *DestinationInfo, limit, offset int) ([]PublicTripSummary, error)
+	GetPublicTripByID(tripID string) (*PublicTripSummary, error)
 	GetInspirationFeed(q, category, countryCode string, limit, offset int, currentUserID string) (*InspirationResponse, error)
 }
 
@@ -1082,6 +1084,21 @@ func (r *repository) GetRecommendationByID(recID string) (*Recommendation, error
 	return &rec, nil
 }
 
+func (r *repository) GetRecommendationDetail(recID, currentUserID string) (*Recommendation, error) {
+	rec, err := r.GetRecommendationByID(recID)
+	if err != nil || rec == nil {
+		return rec, err
+	}
+
+	if currentUserID != "" {
+		var voted bool
+		_ = r.db.QueryRow(`SELECT EXISTS(SELECT 1 FROM recommendation_votes WHERE recommendation_id = $1 AND user_id = $2)`, recID, currentUserID).Scan(&voted)
+		rec.UserHasVoted = voted
+	}
+
+	return rec, nil
+}
+
 func (r *repository) ToggleVote(recommendationID, userID string) (bool, int, error) {
 	if r.db == nil {
 		return false, 0, fmt.Errorf("database connection is nil")
@@ -1807,19 +1824,153 @@ func (r *repository) ListPublicTripsByDestination(info *DestinationInfo, limit, 
 	return results, nil
 }
 
+func (r *repository) GetPublicTripByID(tripID string) (*PublicTripSummary, error) {
+	if r.db == nil {
+		return nil, fmt.Errorf("database connection is nil")
+	}
+
+	cleanTripID := strings.TrimPrefix(tripID, "trip-")
+
+	query := `
+		SELECT tr.id, tr.title, tr.description, tr.start_date, tr.end_date,
+		       (tr.end_date - tr.start_date + 1) AS total_days,
+		       TO_CHAR(tr.start_date, 'FMMonth YYYY') AS formatted_period,
+		       u.id AS author_id,
+		       ut.name AS author_town,
+		       ur.name AS author_region,
+		       uc.name AS author_country,
+		       (SELECT COUNT(*) FROM trip_companions tc WHERE tc.trip_id = tr.id AND tc.status = 'accepted') AS companions_count
+		FROM trips tr
+		JOIN users u ON tr.user_id = u.id
+		LEFT JOIN towns ut ON u.town_id = ut.id
+		LEFT JOIN regions ur ON ut.region_id = ur.id
+		LEFT JOIN countries uc ON ur.country_id = uc.id
+		WHERE tr.id = $1 AND tr.visibility = 'public'
+	`
+
+	var pts PublicTripSummary
+	var desc sql.NullString
+	var startDate, endDate time.Time
+	var totalDays, companionsCount int
+	var formattedPeriod string
+	var authorID string
+	var authorTown, authorRegion, authorCountry sql.NullString
+
+	err := r.db.QueryRow(query, cleanTripID).Scan(
+		&pts.ID,
+		&pts.Title,
+		&desc,
+		&startDate,
+		&endDate,
+		&totalDays,
+		&formattedPeriod,
+		&authorID,
+		&authorTown,
+		&authorRegion,
+		&authorCountry,
+		&companionsCount,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("error querying public trip by id: %w", err)
+	}
+
+	if desc.Valid {
+		pts.Description = &desc.String
+	}
+	pts.StartDate = startDate.Format("2006-01-02")
+	pts.EndDate = endDate.Format("2006-01-02")
+	pts.TotalDays = totalDays
+	pts.FormattedPeriod = fmt.Sprintf("%s • %d dies", strings.TrimSpace(formattedPeriod), totalDays)
+	pts.CompanionsCount = companionsCount
+
+	pts.Author = PublicAuthorSummary{
+		ID: authorID,
+	}
+	if authorTown.Valid && authorTown.String != "" {
+		pts.Author.TownName = &authorTown.String
+		pts.Author.AnonymousTitle = fmt.Sprintf("Un felagi de %s", authorTown.String)
+	} else if authorRegion.Valid && authorRegion.String != "" {
+		pts.Author.RegionName = &authorRegion.String
+		pts.Author.AnonymousTitle = fmt.Sprintf("Un felagi de %s", authorRegion.String)
+	} else {
+		pts.Author.AnonymousTitle = "Un felagi de la teva terra"
+	}
+	if authorCountry.Valid && authorCountry.String != "" {
+		pts.Author.CountryName = &authorCountry.String
+	}
+
+	pts.Stages = []PublicTripStage{}
+	pts.Photos = []PublicTripPhoto{}
+
+	// Fetch stages
+	stageQuery := `
+		SELECT id, destination_name, country_code, town_id, start_date, end_date
+		FROM trip_stages
+		WHERE trip_id = $1
+		ORDER BY stage_order ASC
+	`
+	sRows, err := r.db.Query(stageQuery, cleanTripID)
+	if err == nil {
+		defer sRows.Close()
+		for sRows.Next() {
+			var st PublicTripStage
+			var cc, townID sql.NullString
+			var stStart, stEnd time.Time
+			if err := sRows.Scan(&st.ID, &st.DestinationName, &cc, &townID, &stStart, &stEnd); err == nil {
+				if cc.Valid {
+					st.CountryCode = &cc.String
+				}
+				if townID.Valid {
+					st.TownID = &townID.String
+				}
+				st.StartDate = stStart.Format("2006-01-02")
+				st.EndDate = stEnd.Format("2006-01-02")
+				pts.Stages = append(pts.Stages, st)
+			}
+		}
+	}
+
+	// Fetch photos
+	photoQuery := `
+		SELECT id, image_url, caption, is_featured
+		FROM trip_photos
+		WHERE trip_id = $1
+		ORDER BY is_featured DESC, created_at DESC
+	`
+	pRows, err := r.db.Query(photoQuery, cleanTripID)
+	if err == nil {
+		defer pRows.Close()
+		for pRows.Next() {
+			var ph PublicTripPhoto
+			var cap sql.NullString
+			if err := pRows.Scan(&ph.ID, &ph.ImageURL, &cap, &ph.IsFeatured); err == nil {
+				if cap.Valid {
+					ph.Caption = &cap.String
+				}
+				pts.Photos = append(pts.Photos, ph)
+			}
+		}
+	}
+
+	return &pts, nil
+}
+
 func (r *repository) GetInspirationFeed(q, category, countryCode string, limit, offset int, currentUserID string) (*InspirationResponse, error) {
 	if r.db == nil {
 		return nil, fmt.Errorf("database connection is nil")
 	}
 
 	categories := []InspirationCategory{
-		{ID: "all", Label: "Tot", Icon: "✨"},
-		{ID: "itineraries", Label: "Itineraris", Icon: "🗺️"},
-		{ID: "food", Label: "Gastronomia", Icon: "🍽️"},
-		{ID: "hidden_gem", Label: "Racons Secrets", Icon: "💎"},
-		{ID: "practical_tip", Label: "Consells Pràctics", Icon: "💡"},
-		{ID: "transport", Label: "Transport", Icon: "🚆"},
-		{ID: "anecdote", Label: "Anècdotes", Icon: "📖"},
+		{ID: "all", Label: "Tot", Icon: "✨", Emoji: "✨"},
+		{ID: "itineraries", Label: "Itineraris", Icon: "🗺️", Emoji: "🗺️"},
+		{ID: "food", Label: "Gastronomia", Icon: "🍽️", Emoji: "🍽️"},
+		{ID: "hidden_gem", Label: "Racons Secrets", Icon: "💎", Emoji: "💎"},
+		{ID: "practical_tip", Label: "Consells Pràctics", Icon: "💡", Emoji: "💡"},
+		{ID: "transport", Label: "Transport", Icon: "🚆", Emoji: "🚆"},
+		{ID: "anecdote", Label: "Anècdotes", Icon: "📖", Emoji: "📖"},
 	}
 
 	cleanCategory := strings.TrimSpace(category)

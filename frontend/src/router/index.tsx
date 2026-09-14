@@ -18,11 +18,12 @@ import PublicProfileView from '@/modules/users/views/PublicProfileView';
 import TripGalleryView from '@/modules/posttrip/views/TripGalleryView';
 import CelebrationCardGeneratorView from '@/modules/posttrip/views/CelebrationCardGeneratorView';
 import TripWrapupView from '@/modules/posttrip/views/TripWrapupView';
-import ExploreDestinationsView from '@/modules/explore/views/ExploreDestinationsView';
 import AdminDashboardView from '@/modules/admin/views/AdminDashboardView';
 import PublicDestinationsIndexView from '@/modules/publicseo/views/PublicDestinationsIndexView';
 import PublicDestinationGuideView from '@/modules/publicseo/views/PublicDestinationGuideView';
 import InspirationView from '@/modules/inspiration/views/InspirationView';
+import PublicTripDetailView from '@/modules/inspiration/views/PublicTripDetailView';
+import RecommendationDetailView from '@/modules/inspiration/views/RecommendationDetailView';
 import { useAuthStore } from '@/modules/auth/store';
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
@@ -131,19 +132,28 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/explore"
-          element={
-            <ProtectedRoute>
-              <ExploreDestinationsView />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/explore" element={<Navigate to="/inspiration" replace />} />
         <Route
           path="/inspiration"
           element={
             <ProtectedRoute>
               <InspirationView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/inspiration/trips/:id"
+          element={
+            <ProtectedRoute>
+              <PublicTripDetailView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/inspiration/recommendations/:id"
+          element={
+            <ProtectedRoute>
+              <RecommendationDetailView />
             </ProtectedRoute>
           }
         />

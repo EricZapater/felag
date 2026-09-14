@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -192,6 +193,36 @@ func (m *mockCommunityRepo) GetRecommendationByID(recID string) (*Recommendation
 		return nil, nil
 	}
 	return r, nil
+}
+
+func (m *mockCommunityRepo) GetRecommendationDetail(recID, currentUserID string) (*Recommendation, error) {
+	r, ok := m.recs[recID]
+	if !ok {
+		r, ok = m.recs["rec-"+recID]
+	}
+	if !ok {
+		r, ok = m.recs[strings.TrimPrefix(recID, "rec-")]
+	}
+	if !ok {
+		return nil, nil
+	}
+	res := *r
+	if currentUserID != "" && m.votes[res.ID] != nil {
+		res.UserHasVoted = m.votes[res.ID][currentUserID]
+	}
+	return &res, nil
+}
+
+func (m *mockCommunityRepo) GetPublicTripByID(tripID string) (*PublicTripSummary, error) {
+	cleanID := strings.TrimPrefix(tripID, "trip-")
+	for _, trips := range m.publicTrips {
+		for _, t := range trips {
+			if t.ID == tripID || t.ID == cleanID || strings.TrimPrefix(t.ID, "trip-") == cleanID {
+				return &t, nil
+			}
+		}
+	}
+	return nil, nil
 }
 
 func (m *mockCommunityRepo) ToggleVote(recommendationID, userID string) (bool, int, error) {
@@ -804,6 +835,88 @@ func TestSQLInjectionResistance_CommunityAndInspiration(t *testing.T) {
 		})
 	}
 }
+
+func TestHandler_GetRecommendationDetail(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	repo := newMockCommunityRepo()
+	svc := NewService(repo)
+	h := NewHandler(svc)
+
+	// Add mock recommendation
+	loc := "Tokyo Ramen St"
+	rec, _ := repo.CreateRecommendation("town-tokyo", repo.destinations["town-tokyo"], "user-1", CreateRecommendationRequest{
+		Category:     "food",
+		Title:        "El millor Ramen de Shibuya",
+		Description:  "Un brou increïble!",
+		LocationName: &loc,
+	})
+
+	r := gin.New()
+	r.GET("/recommendations/:id", h.GetRecommendationDetail)
+
+	// 1. Success
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/recommendations/"+rec.ID, nil)
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var detail Recommendation
+	if err := json.Unmarshal(w.Body.Bytes(), &detail); err != nil {
+		t.Fatalf("failed to unmarshal response: %v", err)
+	}
+	if detail.Title != "El millor Ramen de Shibuya" {
+		t.Errorf("expected title 'El millor Ramen de Shibuya', got '%s'", detail.Title)
+	}
+
+	// 2. Not found
+	w = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/recommendations/non-existent", nil)
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("expected status 404 for non-existent recommendation, got %d", w.Code)
+	}
+}
+
+func TestHandler_GetPublicTripDetail(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	repo := newMockCommunityRepo()
+	svc := NewService(repo)
+	h := NewHandler(svc)
+
+	r := gin.New()
+	r.GET("/trips/:trip_id/public", h.GetPublicTripDetail)
+
+	// 1. Success
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/trips/trip-1/public", nil)
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var trip PublicTripSummary
+	if err := json.Unmarshal(w.Body.Bytes(), &trip); err != nil {
+		t.Fatalf("failed to unmarshal response: %v", err)
+	}
+	if trip.Title != "Ruta de tardor pel Japó" {
+		t.Errorf("expected title 'Ruta de tardor pel Japó', got '%s'", trip.Title)
+	}
+
+	// 2. Not found
+	w = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/trips/non-existent/public", nil)
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("expected status 404 for non-existent trip, got %d", w.Code)
+	}
+}
+
 
 
 
