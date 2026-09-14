@@ -1,0 +1,14 @@
+frontend/src/components/AppHeader.tsx
+  h_42175f19913982 14-17,19-24,29-30,44,62-66,69,79-81,84,101,106-108,114,126,134-150,152-164,166-397,399-416,418-419,421-426,428,431-432,439,442,444-476,479-560,562-759,762-763,766-767,769-772
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "6fdf5d35511e3ed71d55912b2b059665ee26a190",
+  "prompts": {},
+  "humans": {
+    "h_42175f19913982": {
+      "author": "Èric Zapater <ericzm@ext.inditex.com>"
+    }
+  }
+}
